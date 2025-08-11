@@ -176,7 +176,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_random_preguntas: {
+        Args: { p_academia_id: string; p_tema_id: string; p_limit?: number }
+        Returns: {
+          academia_id: string
+          created_at: string
+          id: string
+          opcion_a: string
+          opcion_b: string
+          opcion_c: string | null
+          opcion_d: string | null
+          parte: string | null
+          pregunta_texto: string
+          solucion_letra: string
+          tema_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
