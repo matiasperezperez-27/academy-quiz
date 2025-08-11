@@ -12,7 +12,8 @@ import {
   Home, 
   BookOpen,
   Award,
-  AlertCircle
+  AlertCircle,
+  ArrowLeft
 } from "lucide-react";
 
 interface ResultsState {
@@ -156,6 +157,23 @@ export default function Results() {
     <main className="min-h-screen p-4 flex items-center justify-center bg-background">
       <div className="w-full max-w-2xl space-y-6">
         
+        {/* Header with Back Button */}
+        <div className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver
+          </Button>
+          <Badge variant="outline" className="px-3 py-1">
+            <BookOpen className="h-3 w-3 mr-1" />
+            {mode === "practice" ? "Modo Práctica" : "Modo Test"}
+          </Badge>
+        </div>
+        
         {/* Main Results Card */}
         <Card className="w-full">
           <CardHeader className="text-center pb-4">
@@ -207,10 +225,9 @@ export default function Results() {
 
             {/* Mode Badge */}
             <div className="flex justify-center">
-              <Badge variant="outline" className="px-3 py-1">
-                <BookOpen className="h-3 w-3 mr-1" />
-                {mode === "practice" ? "Modo Práctica" : "Modo Test"}
-              </Badge>
+              <div className="text-center text-sm text-muted-foreground">
+                Completado el {new Date().toLocaleDateString('es-ES')}
+              </div>
             </div>
 
             {/* Encouragement Message */}

@@ -3,10 +3,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { AlertCircle, CheckCircle2, XCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2, XCircle, ArrowLeft, Home } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { ExitConfirmationDialog, useExitConfirmation } from "@/components/ExitConfirmationDialog";
 
 function setSEO(title: string, description: string) {
   document.title = title;
@@ -70,6 +71,13 @@ export default function Quiz() {
     isLoading: true,
     isAnswering: false,
   });
+
+  const {
+    isOpen: isExitDialogOpen,
+    showConfirmation: showExitConfirmation,
+    handleConfirm: handleExitConfirm,
+    handleClose: handleExitClose,
+  } = useExitConfirmation();
 
   useEffect(() => {
     setSEO("Quiz | Academy Quiz", "Responde a las preguntas una por una y mejora tu puntuación.");
@@ -166,6 +174,24 @@ export default function Quiz() {
     state.questions[state.currentIndex], 
     [state.questions, state.currentIndex]
   );
+
+  // Handle back navigation with confirmation
+  const handleGoBack = useCallback(() => {
+    if (state.currentIndex > 0 || state.score > 0) {
+      showExitConfirmation(() => navigate(-1));
+    } else {
+      navigate(-1);
+    }
+  }, [state.currentIndex, state.score, showExitConfirmation, navigate]);
+
+  // Handle home navigation with confirmation
+  const handleGoHome = useCallback(() => {
+    if (state.currentIndex > 0 || state.score > 0) {
+      showExitConfirmation(() => navigate("/"));
+    } else {
+      navigate("/");
+    }
+  }, [state.currentIndex, state.score, showExitConfirmation, navigate]);
 
   const handleAnswer = useCallback(async (selectedLetter: string) => {
     if (!user || state.isRevealed || state.isAnswering || !currentQuestion) return;
@@ -283,6 +309,28 @@ export default function Quiz() {
   return (
     <main className="min-h-screen p-4 flex items-center justify-center bg-background">
       <div className="w-full max-w-2xl space-y-4">
+        {/* Header with Back Button */}
+        <div className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleGoBack}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleGoHome}
+            className="flex items-center gap-2"
+          >
+            <Home className="h-4 w-4" />
+            Inicio
+          </Button>
+        </div>
+
         {/* Progress Bar */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm text-muted-foreground">
@@ -407,6 +455,16 @@ export default function Quiz() {
               : "Siguiente pregunta en breve..."}
           </div>
         )}
+
+        {/* Exit Confirmation Dialog */}
+        <ExitConfirmationDialog
+          isOpen={isExitDialogOpen}
+          onClose={handleExitClose}
+          onConfirm={handleExitConfirm}
+          currentQuestion={state.currentIndex}
+          totalQuestions={state.questions.length}
+          score={state.score}
+        />
       </div>
     </main>
   );
