@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { AlertCircle, CheckCircle2, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,16 +23,31 @@ type Pregunta = {
   opcion_b: string;
   opcion_c?: string | null;
   opcion_d?: string | null;
-  solucion_letra: string; // 'A' | 'B' | 'C' | 'D'
+  solucion_letra: string;
+  tema_id?: string;
+  academia_id?: string;
+  parte?: string | null;
 };
 
+type QuizMode = "test" | "practice";
+
+interface QuizState {
+  questions: Pregunta[];
+  currentIndex: number;
+  score: number;
+  selectedAnswer: string | null;
+  isRevealed: boolean;
+  isLoading: boolean;
+  isAnswering: boolean;
+}
+
 function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
+  const shuffled = [...arr];
+  for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-  return a;
+  return shuffled;
 }
 
 export default function Quiz() {
@@ -39,154 +56,358 @@ export default function Quiz() {
   const navigate = useNavigate();
   const location = useLocation();
   const params = new URLSearchParams(location.search);
-  const mode = params.get("mode") || "test"; // 'test' | 'practice'
+  
+  const mode: QuizMode = (params.get("mode") as QuizMode) || "test";
   const academiaId = params.get("academia");
   const temaId = params.get("tema");
 
-  const [questions, setQuestions] = useState<Pregunta[]>([]);
-  const [index, setIndex] = useState(0);
-  const [score, setScore] = useState(0);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [revealed, setRevealed] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [state, setState] = useState<QuizState>({
+    questions: [],
+    currentIndex: 0,
+    score: 0,
+    selectedAnswer: null,
+    isRevealed: false,
+    isLoading: true,
+    isAnswering: false,
+  });
 
   useEffect(() => {
     setSEO("Quiz | Academy Quiz", "Responde a las preguntas una por una y mejora tu puntuación.");
   }, []);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        if (mode === "test") {
-          if (!academiaId || !temaId) {
-            toast({ title: "Falta selección", description: "Elige academia y tema antes de empezar." });
-            navigate("/test-setup", { replace: true });
-            return;
-          }
-          const { data, error } = await supabase.rpc("get_random_preguntas", {
-            p_academia_id: academiaId,
-            p_tema_id: temaId,
-            p_limit: 10,
+  const loadQuestions = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      setState(prev => ({ ...prev, isLoading: true }));
+
+      if (mode === "test") {
+        if (!academiaId || !temaId) {
+          toast({ 
+            title: "Parámetros faltantes", 
+            description: "Se requiere seleccionar academia y tema.",
+            variant: "destructive"
           });
-          if (error) throw error;
-          setQuestions((data as any) || []);
-        } else {
-          // practice mode
-          const { data: falladas, error: e1 } = await supabase
-            .from("preguntas_falladas")
-            .select("pregunta_id")
-            .eq("user_id", user!.id);
-          if (e1) throw e1;
-          const ids = (falladas || []).map((f: any) => f.pregunta_id);
-          if (!ids.length) {
-            toast({ title: "Sin preguntas falladas", description: "¡Nada que practicar!" });
-            navigate("/", { replace: true });
-            return;
-          }
-          const { data: preguntas, error: e2 } = await supabase
-            .from("preguntas")
-            .select("*")
-            .in("id", ids);
-          if (e2) throw e2;
-          setQuestions(shuffle((preguntas as any) || []));
+          navigate("/test-setup", { replace: true });
+          return;
         }
-      } catch (err: any) {
-        toast({ title: "Error", description: err.message });
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, academiaId, temaId, user?.id]);
 
-  const current = useMemo(() => questions[index], [questions, index]);
-  const total = questions.length || 10;
+        const { data, error } = await supabase.rpc("get_random_preguntas", {
+          p_academia_id: academiaId,
+          p_tema_id: temaId,
+          p_limit: 10,
+        });
 
-  const handleAnswer = async (letter: string) => {
-    if (!current || revealed) return;
-    setSelected(letter);
-    const correct = current.solucion_letra?.toUpperCase() === letter.toUpperCase();
+        if (error) throw error;
+        if (!data || data.length === 0) {
+          toast({ 
+            title: "Sin preguntas", 
+            description: "No se encontraron preguntas para esta academia y tema.",
+            variant: "destructive"
+          });
+          navigate("/test-setup", { replace: true });
+          return;
+        }
 
-    if (correct) {
-      setScore((s) => s + 1);
-      // If practicing, remove from falladas
-      if (mode === "practice" && user) {
-        await supabase
+        setState(prev => ({ 
+          ...prev, 
+          questions: data as Pregunta[], 
+          isLoading: false 
+        }));
+
+      } else { // practice mode
+        const { data: falladas, error: e1 } = await supabase
           .from("preguntas_falladas")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("pregunta_id", current.id);
-      }
-    } else {
-      // If incorrect during test, record as fallada
-      if (mode === "test" && user) {
-        await supabase
-          .from("preguntas_falladas")
-          .upsert(
-            { user_id: user.id, pregunta_id: current.id },
-            { onConflict: "user_id,pregunta_id", ignoreDuplicates: true }
-          );
-      }
-    }
+          .select("pregunta_id")
+          .eq("user_id", user.id);
 
-    setRevealed(true);
-    setTimeout(() => {
-      setRevealed(false);
-      setSelected(null);
-      if (index + 1 >= questions.length) {
-        navigate("/results", { state: { score: correct ? score + 1 : score, total } });
+        if (e1) throw e1;
+
+        const preguntaIds = (falladas || []).map((f: any) => f.pregunta_id);
+        
+        if (preguntaIds.length === 0) {
+          toast({ 
+            title: "¡Excelente!", 
+            description: "No tienes preguntas falladas para practicar." 
+          });
+          navigate("/", { replace: true });
+          return;
+        }
+
+        const { data: preguntas, error: e2 } = await supabase
+          .from("preguntas")
+          .select("*")
+          .in("id", preguntaIds);
+
+        if (e2) throw e2;
+
+        setState(prev => ({ 
+          ...prev, 
+          questions: shuffle(preguntas as Pregunta[] || []), 
+          isLoading: false 
+        }));
+      }
+    } catch (err: any) {
+      console.error("Error loading questions:", err);
+      toast({ 
+        title: "Error de carga", 
+        description: err.message || "No se pudieron cargar las preguntas.",
+        variant: "destructive"
+      });
+      setState(prev => ({ ...prev, isLoading: false }));
+    }
+  }, [mode, academiaId, temaId, user, toast, navigate]);
+
+  useEffect(() => {
+    loadQuestions();
+  }, [loadQuestions]);
+
+  const currentQuestion = useMemo(() => 
+    state.questions[state.currentIndex], 
+    [state.questions, state.currentIndex]
+  );
+
+  const handleAnswer = useCallback(async (selectedLetter: string) => {
+    if (!user || state.isRevealed || state.isAnswering || !currentQuestion) return;
+
+    setState(prev => ({ ...prev, isAnswering: true, selectedAnswer: selectedLetter }));
+
+    try {
+      const isCorrect = currentQuestion.solucion_letra?.toUpperCase() === selectedLetter.toUpperCase();
+
+      if (isCorrect) {
+        setState(prev => ({ ...prev, score: prev.score + 1 }));
+        
+        // If practicing and correct, remove from failed questions
+        if (mode === "practice") {
+          await supabase
+            .from("preguntas_falladas")
+            .delete()
+            .eq("user_id", user.id)
+            .eq("pregunta_id", currentQuestion.id);
+        }
       } else {
-        setIndex((i) => i + 1);
+        // If test mode and incorrect, add to failed questions
+        if (mode === "test") {
+          await supabase
+            .from("preguntas_falladas")
+            .upsert(
+              { user_id: user.id, pregunta_id: currentQuestion.id },
+              { onConflict: "user_id,pregunta_id", ignoreDuplicates: true }
+            );
+        }
       }
-    }, 1600);
-  };
 
-  if (loading) return null;
-  if (!current) return null;
+      setState(prev => ({ ...prev, isRevealed: true }));
 
-  const options = [
-    { key: "A", text: current.opcion_a },
-    { key: "B", text: current.opcion_b },
-    ...(current.opcion_c ? [{ key: "C", text: current.opcion_c }] : []),
-    ...(current.opcion_d ? [{ key: "D", text: current.opcion_d }] : []),
-  ];
+      // Auto-advance after showing result
+      setTimeout(() => {
+        if (state.currentIndex + 1 >= state.questions.length) {
+          const finalScore = isCorrect ? state.score + 1 : state.score;
+          navigate("/results", { 
+            state: { 
+              score: finalScore, 
+              total: state.questions.length,
+              mode 
+            } 
+          });
+        } else {
+          setState(prev => ({
+            ...prev,
+            currentIndex: prev.currentIndex + 1,
+            selectedAnswer: null,
+            isRevealed: false,
+            isAnswering: false,
+          }));
+        }
+      }, 2000);
+
+    } catch (err: any) {
+      console.error("Error processing answer:", err);
+      toast({ 
+        title: "Error", 
+        description: "Hubo un problema al procesar la respuesta.",
+        variant: "destructive"
+      });
+      setState(prev => ({ ...prev, isAnswering: false }));
+    }
+  }, [user, state, currentQuestion, mode, navigate, toast]);
+
+  const progress = useMemo(() => 
+    state.questions.length > 0 ? ((state.currentIndex + 1) / state.questions.length) * 100 : 0,
+    [state.currentIndex, state.questions.length]
+  );
+
+  const options = useMemo(() => {
+    if (!currentQuestion) return [];
+    
+    return [
+      { key: "A", text: currentQuestion.opcion_a },
+      { key: "B", text: currentQuestion.opcion_b },
+      ...(currentQuestion.opcion_c ? [{ key: "C", text: currentQuestion.opcion_c }] : []),
+      ...(currentQuestion.opcion_d ? [{ key: "D", text: currentQuestion.opcion_d }] : []),
+    ].filter(option => option.text && option.text.trim() !== "");
+  }, [currentQuestion]);
+
+  if (state.isLoading) {
+    return (
+      <main className="min-h-screen p-4 flex items-center justify-center bg-background">
+        <Card className="w-full max-w-2xl">
+          <CardContent className="flex items-center justify-center p-8">
+            <div className="text-center space-y-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="text-muted-foreground">Cargando preguntas...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
+  if (!currentQuestion) {
+    return (
+      <main className="min-h-screen p-4 flex items-center justify-center bg-background">
+        <Card className="w-full max-w-2xl">
+          <CardContent className="flex items-center justify-center p-8">
+            <div className="text-center space-y-4">
+              <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto" />
+              <p className="text-muted-foreground">No se encontraron preguntas disponibles.</p>
+              <Button onClick={() => navigate("/")}>Volver al inicio</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen p-4 flex items-center justify-center bg-background">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Pregunta {index + 1} de {total}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-base">{current.pregunta_texto}</p>
-          <div className="grid gap-3">
-            {options.map((opt) => {
-              const isPicked = selected === opt.key;
-              const isCorrect = revealed && current.solucion_letra?.toUpperCase() === opt.key;
-              const isWrong = revealed && isPicked && !isCorrect;
-              return (
-                <Button
-                  key={opt.key}
-                  variant="secondary"
-                  className={
-                    isCorrect
-                      ? "bg-primary text-primary-foreground"
-                      : isWrong
-                      ? "bg-destructive text-destructive-foreground"
-                      : ""
-                  }
-                  onClick={() => handleAnswer(opt.key)}
-                  disabled={revealed}
-                >
-                  {opt.key}. {opt.text}
-                </Button>
-              );
-            })}
+      <div className="w-full max-w-2xl space-y-4">
+        {/* Progress Bar */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span>Pregunta {state.currentIndex + 1} de {state.questions.length}</span>
+            <span>Aciertos: {state.score}</span>
           </div>
-          <div className="text-sm text-muted-foreground text-right">Aciertos: {score}</div>
-        </CardContent>
-      </Card>
+          <Progress value={progress} className="w-full" />
+        </div>
+
+        {/* Main Quiz Card */}
+        <Card className="w-full">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg sm:text-xl">
+              <span className="text-primary">#{state.currentIndex + 1}</span>
+              <span className="ml-2 text-base text-muted-foreground">
+                {mode === "practice" ? "Modo Práctica" : "Test"}
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Question Text - FIXED OVERFLOW ISSUE */}
+            <div className="space-y-3">
+              <div className="p-4 bg-muted/30 rounded-lg border-l-4 border-primary">
+                <p className="text-base sm:text-lg leading-relaxed whitespace-pre-wrap break-words">
+                  {currentQuestion.pregunta_texto}
+                </p>
+              </div>
+              
+              {/* Part info if available */}
+              {currentQuestion.parte && (
+                <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md inline-block">
+                  Parte: {currentQuestion.parte}
+                </div>
+              )}
+            </div>
+
+            {/* Answer Options - FIXED OVERFLOW ISSUE */}
+            <div className="space-y-3">
+              {options.map((option) => {
+                const isSelected = state.selectedAnswer === option.key;
+                const isCorrect = state.isRevealed && currentQuestion.solucion_letra?.toUpperCase() === option.key;
+                const isWrong = state.isRevealed && isSelected && !isCorrect;
+                
+                return (
+                  <Button
+                    key={option.key}
+                    variant={isCorrect ? "default" : isWrong ? "destructive" : "outline"}
+                    className={`
+                      w-full p-4 h-auto min-h-[3rem] text-left justify-start relative
+                      transition-all duration-200 hover:scale-[1.02]
+                      ${isCorrect ? "bg-green-600 hover:bg-green-700 text-white shadow-lg" : ""}
+                      ${isWrong ? "bg-red-600 hover:bg-red-700 text-white" : ""}
+                      ${!state.isRevealed && isSelected ? "ring-2 ring-primary" : ""}
+                    `}
+                    onClick={() => handleAnswer(option.key)}
+                    disabled={state.isRevealed || state.isAnswering}
+                  >
+                    <div className="flex items-start gap-3 w-full">
+                      {/* Option Letter */}
+                      <div className={`
+                        flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
+                        ${isCorrect ? "bg-white text-green-600" : 
+                          isWrong ? "bg-white text-red-600" : 
+                          "bg-primary text-primary-foreground"}
+                      `}>
+                        {option.key}
+                      </div>
+                      
+                      {/* Option Text - FIXED OVERFLOW */}
+                      <span className="flex-1 text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words text-left">
+                        {option.text}
+                      </span>
+                      
+                      {/* Status Icon */}
+                      {state.isRevealed && (
+                        <div className="flex-shrink-0">
+                          {isCorrect ? (
+                            <CheckCircle2 className="h-5 w-5 text-white" />
+                          ) : isWrong ? (
+                            <XCircle className="h-5 w-5 text-white" />
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
+                  </Button>
+                );
+              })}
+            </div>
+
+            {/* Answer Status */}
+            {state.isRevealed && (
+              <div className="pt-4 border-t">
+                <div className={`
+                  flex items-center gap-2 text-sm font-medium
+                  ${state.selectedAnswer === currentQuestion.solucion_letra?.toUpperCase() 
+                    ? "text-green-600" 
+                    : "text-red-600"
+                  }
+                `}>
+                  {state.selectedAnswer === currentQuestion.solucion_letra?.toUpperCase() ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" />
+                      ¡Correcto!
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-4 w-4" />
+                      Incorrecto. La respuesta correcta es: {currentQuestion.solucion_letra}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Navigation hint */}
+        {state.isRevealed && (
+          <div className="text-center text-sm text-muted-foreground">
+            {state.currentIndex + 1 >= state.questions.length 
+              ? "Finalizando quiz..." 
+              : "Siguiente pregunta en breve..."}
+          </div>
+        )}
+      </div>
     </main>
   );
 }
