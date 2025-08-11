@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,11 @@ import {
   TrendingUp,
   User,
   Clock,
-  CheckCircle2
+  CheckCircle2,
+  RefreshCw
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { useUserStats } from "@/hooks/useQuiz";
 
 function setSEO(title: string, description: string) {
   document.title = title;
@@ -25,66 +26,14 @@ function setSEO(title: string, description: string) {
   document.head.appendChild(meta);
 }
 
-interface UserStats {
-  totalTests: number;
-  totalCorrect: number;
-  totalQuestions: number;
-  failedQuestions: number;
-  lastActivity: string | null;
-}
-
 const Index = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [stats, setStats] = useState<UserStats>({
-    totalTests: 0,
-    totalCorrect: 0,
-    totalQuestions: 0,
-    failedQuestions: 0,
-    lastActivity: null,
-  });
-  const [loadingStats, setLoadingStats] = useState(true);
+  const { stats, loading: loadingStats, refreshStats } = useUserStats();
 
   useEffect(() => {
     setSEO("Dashboard | Academy Quiz", "Tu panel de control para tests y práctica personalizada.");
   }, []);
-
-  // Load user statistics
-  useEffect(() => {
-    const loadUserStats = async () => {
-      if (!user) return;
-      
-      try {
-        setLoadingStats(true);
-        
-        // Get failed questions count
-        const { count: failedCount } = await supabase
-          .from("preguntas_falladas")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user.id);
-
-        // For now, we'll set basic stats
-        // In a full implementation, you'd have a user_sessions table to track these
-        setStats({
-          totalTests: 0, // Would come from user_sessions table
-          totalCorrect: 0, // Would come from user_sessions table  
-          totalQuestions: 0, // Would come from user_sessions table
-          failedQuestions: failedCount || 0,
-          lastActivity: null, // Would come from user_sessions table
-        });
-      } catch (error) {
-        console.error("Error loading user stats:", error);
-      } finally {
-        setLoadingStats(false);
-      }
-    };
-
-    loadUserStats();
-  }, [user]);
-
-  const accuracy = stats.totalQuestions > 0 
-    ? Math.round((stats.totalCorrect / stats.totalQuestions) * 100) 
-    : 0;
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -97,6 +46,21 @@ const Index = () => {
     if (user?.user_metadata?.username) return user.user_metadata.username;
     if (user?.email) return user.email.split('@')[0];
     return "Usuario";
+  };
+
+  const formatLastActivity = (lastActivity: string | null) => {
+    if (!lastActivity) return "Nunca";
+    
+    const date = new Date(lastActivity);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) return "Hoy";
+    if (diffDays === 2) return "Ayer";
+    if (diffDays <= 7) return `Hace ${diffDays} días`;
+    
+    return date.toLocaleDateString('es-ES');
   };
 
   return (
@@ -115,25 +79,37 @@ const Index = () => {
                 ¿Listo para tu próximo desafío de aprendizaje?
               </p>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={signOut}
-              className="flex items-center gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Cerrar Sesión</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={refreshStats}
+                disabled={loadingStats}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${loadingStats ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Actualizar</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={signOut}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Cerrar Sesión</span>
+              </Button>
+            </div>
           </div>
 
           {/* Quick Stats */}
-          {!loadingStats && (
+          {!loadingStats && stats && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <Card className="p-4">
                 <div className="flex items-center gap-2">
                   <Trophy className="h-4 w-4 text-yellow-600" />
                   <div>
-                    <div className="text-2xl font-bold">{stats.totalTests}</div>
+                    <div className="text-2xl font-bold">{stats.completed_sessions}</div>
                     <div className="text-xs text-muted-foreground">Tests</div>
                   </div>
                 </div>
@@ -143,7 +119,7 @@ const Index = () => {
                 <div className="flex items-center gap-2">
                   <Target className="h-4 w-4 text-blue-600" />
                   <div>
-                    <div className="text-2xl font-bold">{accuracy}%</div>
+                    <div className="text-2xl font-bold">{Math.round(stats.overall_accuracy_percentage)}%</div>
                     <div className="text-xs text-muted-foreground">Precisión</div>
                   </div>
                 </div>
@@ -153,7 +129,7 @@ const Index = () => {
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
                   <div>
-                    <div className="text-2xl font-bold">{stats.totalCorrect}</div>
+                    <div className="text-2xl font-bold">{stats.total_correct_answers}</div>
                     <div className="text-xs text-muted-foreground">Correctas</div>
                   </div>
                 </div>
@@ -163,11 +139,28 @@ const Index = () => {
                 <div className="flex items-center gap-2">
                   <BookOpen className="h-4 w-4 text-red-600" />
                   <div>
-                    <div className="text-2xl font-bold">{stats.failedQuestions}</div>
+                    <div className="text-2xl font-bold">{stats.current_failed_questions}</div>
                     <div className="text-xs text-muted-foreground">Falladas</div>
                   </div>
                 </div>
               </Card>
+            </div>
+          )}
+
+          {/* Loading stats */}
+          {loadingStats && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <Card key={i} className="p-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 bg-muted rounded animate-pulse" />
+                    <div>
+                      <div className="h-6 w-8 bg-muted rounded animate-pulse mb-1" />
+                      <div className="h-3 w-12 bg-muted rounded animate-pulse" />
+                    </div>
+                  </div>
+                </Card>
+              ))}
             </div>
           )}
         </div>
@@ -209,8 +202,8 @@ const Index = () => {
           </Card>
 
           {/* Practice Card */}
-          <Card className={`hover:shadow-lg transition-shadow ${stats.failedQuestions > 0 ? 'cursor-pointer' : ''}`} 
-                onClick={() => stats.failedQuestions > 0 && navigate("/practice")}>
+          <Card className={`hover:shadow-lg transition-shadow ${stats && stats.current_failed_questions > 0 ? 'cursor-pointer' : ''}`} 
+                onClick={() => stats && stats.current_failed_questions > 0 && navigate("/practice")}>
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
                 <div className="p-2 bg-orange-100 rounded-lg">
@@ -226,12 +219,12 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {stats.failedQuestions > 0 ? (
+                {stats && stats.current_failed_questions > 0 ? (
                   <>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Preguntas pendientes:</span>
                       <Badge variant="destructive" className="text-xs">
-                        {stats.failedQuestions}
+                        {stats.current_failed_questions}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -274,30 +267,42 @@ const Index = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {stats.totalQuestions > 0 ? (
+              {stats && stats.total_questions_answered > 0 ? (
                 <div className="space-y-4">
                   <div className="flex justify-between text-sm">
                     <span>Precisión General</span>
-                    <span className="font-medium">{accuracy}%</span>
+                    <span className="font-medium">{Math.round(stats.overall_accuracy_percentage)}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
                       className="bg-primary h-2 rounded-full transition-all" 
-                      style={{ width: `${accuracy}%` }}
+                      style={{ width: `${Math.round(stats.overall_accuracy_percentage)}%` }}
                     ></div>
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Total de preguntas:</span>
-                      <span className="font-medium">{stats.totalQuestions}</span>
+                      <span className="font-medium">{stats.total_questions_answered}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Respuestas correctas:</span>
-                      <span className="font-medium text-green-600">{stats.totalCorrect}</span>
+                      <span className="font-medium text-green-600">{stats.total_correct_answers}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Tests completados:</span>
-                      <span className="font-medium">{stats.totalTests}</span>
+                      <span className="font-medium">{stats.completed_sessions}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Puntos totales:</span>
+                      <span className="font-medium text-primary">{stats.points}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Mejor puntuación:</span>
+                      <span className="font-medium text-yellow-600">{Math.round(stats.best_session_score_percentage)}%</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Última actividad:</span>
+                      <span className="font-medium">{formatLastActivity(stats.last_activity)}</span>
                     </div>
                   </div>
                 </div>
@@ -347,10 +352,17 @@ const Index = () => {
                     Tómate descansos entre sesiones de estudio para optimizar el aprendizaje.
                   </p>
                 </div>
-                {stats.failedQuestions > 0 && (
+                {stats && stats.current_failed_questions > 0 && (
                   <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
                     <p className="text-sm text-orange-800">
-                      💡 Tienes {stats.failedQuestions} pregunta{stats.failedQuestions !== 1 ? 's' : ''} pendiente{stats.failedQuestions !== 1 ? 's' : ''} de revisar.
+                      💡 Tienes {stats.current_failed_questions} pregunta{stats.current_failed_questions !== 1 ? 's' : ''} pendiente{stats.current_failed_questions !== 1 ? 's' : ''} de revisar.
+                    </p>
+                  </div>
+                )}
+                {stats && stats.points > 0 && (
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      🏆 Has acumulado {stats.points} puntos. ¡Sigue así para llegar a tu próximo hito!
                     </p>
                   </div>
                 )}
