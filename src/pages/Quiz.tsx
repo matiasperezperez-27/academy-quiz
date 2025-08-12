@@ -47,7 +47,7 @@ export default function Quiz() {
   // Handle navigation errors
   useEffect(() => {
     if (!user) {
-      navigate("/login", { replace: true });
+      navigate("/auth", { replace: true });
       return;
     }
 
