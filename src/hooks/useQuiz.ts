@@ -96,26 +96,42 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
 
   // Load questions and start session
   const loadQuestions = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      console.error("No user found");
+      return;
+    }
 
     try {
       setState(prev => ({ ...prev, isLoading: true }));
+      console.log("Loading questions for mode:", mode, "user:", user.id);
 
       if (mode === "test") {
         if (!academiaId || !temaId) {
           throw new Error("Se requiere seleccionar academia y tema para el modo test");
         }
 
-        // Start new session using RPC function (con cast para evitar error TypeScript)
-const { data: sessionId, error: sessionError } = await (supabase as any)
-  .rpc("start_quiz_session", {
-    p_user_id: user.id,  // <-- AGREGAR ESTA LÍNEA
-    p_academia_id: academiaId,
-    p_tema_id: temaId,
-    p_mode: mode
-  });
+        // FIXED: Added p_user_id parameter!
+        console.log("Starting quiz session with params:", {
+          p_user_id: user.id,
+          p_academia_id: academiaId,
+          p_tema_id: temaId,
+          p_mode: mode
+        });
 
-        if (sessionError) throw sessionError;
+        const { data: sessionId, error: sessionError } = await supabase
+          .rpc("start_quiz_session", {
+            p_user_id: user.id,  // FIXED: Added this parameter
+            p_academia_id: academiaId,
+            p_tema_id: temaId,
+            p_mode: mode
+          });
+
+        if (sessionError) {
+          console.error("Session creation error:", sessionError);
+          throw sessionError;
+        }
+
+        console.log("Session created:", sessionId);
 
         // Get random questions
         const { data: questions, error: questionsError } = await supabase
@@ -130,11 +146,14 @@ const { data: sessionId, error: sessionError } = await (supabase as any)
           throw new Error("No se encontraron preguntas para esta academia y tema");
         }
 
+        console.log("Questions loaded:", questions.length);
+
         setState(prev => ({ 
           ...prev, 
           sessionId,
           questions: questions as Pregunta[], 
-          isLoading: false 
+          isLoading: false,
+          startTime: Date.now()
         }));
 
       } else { // practice mode
@@ -158,24 +177,30 @@ const { data: sessionId, error: sessionError } = await (supabase as any)
 
         if (e2) throw e2;
 
-        // For practice mode, we still need a session to track progress
-        const { data: sessionId, error: sessionError } = await (supabase as any)
+        // FIXED: Added p_user_id parameter for practice mode too!
+        console.log("Starting practice session for user:", user.id);
+        
+        const { data: sessionId, error: sessionError } = await supabase
           .rpc("start_quiz_session", {
-            p_academia_id: preguntas[0]?.academia_id,
-            p_tema_id: preguntas[0]?.tema_id,
+            p_user_id: user.id,  // FIXED: Added this parameter
+            p_academia_id: preguntas[0]?.academia_id || null,
+            p_tema_id: preguntas[0]?.tema_id || null,
             p_mode: mode
           });
 
         if (sessionError) {
           console.warn("No se pudo crear sesión para práctica:", sessionError);
-          // Continuar sin sesión para modo práctica
+          // Continue without session for practice mode
+        } else {
+          console.log("Practice session created:", sessionId);
         }
 
         setState(prev => ({ 
           ...prev, 
           sessionId: sessionId || null,
           questions: shuffle(preguntas as Pregunta[] || []), 
-          isLoading: false 
+          isLoading: false,
+          startTime: Date.now()
         }));
       }
     } catch (err: any) {
@@ -190,24 +215,30 @@ const { data: sessionId, error: sessionError } = await (supabase as any)
     }
   }, [mode, academiaId, temaId, user, toast]);
 
-  // Handle answer submission using new RPC function
+  // Handle answer submission using RPC function
   const submitAnswer = useCallback(async (selectedLetter: string): Promise<boolean> => {
     if (!user || state.isRevealed || state.isAnswering || !state.questions[state.currentIndex]) {
       return false;
     }
 
     const currentQuestion = state.questions[state.currentIndex];
-    const answerStartTime = Date.now();
+    const timeSpent = Math.round((Date.now() - state.startTime) / 1000);
 
     setState(prev => ({ ...prev, isAnswering: true, selectedAnswer: selectedLetter }));
 
     try {
-      const timeSpent = Math.round((Date.now() - answerStartTime) / 1000);
       let isCorrect = false;
 
       if (state.sessionId) {
-        // Usar RPC function si tenemos sessionId
-        const { data: rpcResult, error } = await (supabase as any)
+        // Use RPC function to record answer
+        console.log("Recording answer:", {
+          session: state.sessionId,
+          question: currentQuestion.id,
+          answer: selectedLetter,
+          time: timeSpent
+        });
+
+        const { data: rpcResult, error } = await supabase
           .rpc("record_answer", {
             p_session_id: state.sessionId,
             p_pregunta_id: currentQuestion.id,
@@ -216,14 +247,16 @@ const { data: sessionId, error: sessionError } = await (supabase as any)
           });
 
         if (error) {
-          console.warn("Error en RPC record_answer:", error);
-          // Fallback a lógica manual
+          console.error("Error in RPC record_answer:", error);
+          // Fallback to manual logic
           isCorrect = currentQuestion.solucion_letra?.toUpperCase() === selectedLetter.toUpperCase();
         } else {
           isCorrect = rpcResult as boolean;
+          console.log("Answer recorded, is correct:", isCorrect);
         }
       } else {
-        // Lógica manual para cuando no hay sesión
+        // Manual logic when no session
+        console.log("No session, using manual logic");
         isCorrect = currentQuestion.solucion_letra?.toUpperCase() === selectedLetter.toUpperCase();
         
         if (isCorrect && mode === "practice") {
@@ -258,6 +291,7 @@ const { data: sessionId, error: sessionError } = await (supabase as any)
         score: isCorrect ? prev.score + 1 : prev.score,
         answers: [...prev.answers, answerRecord],
         isRevealed: true,
+        isAnswering: false,
       }));
 
       return isCorrect;
@@ -281,26 +315,29 @@ const { data: sessionId, error: sessionError } = await (supabase as any)
       selectedAnswer: null,
       isRevealed: false,
       isAnswering: false,
+      startTime: Date.now(), // Reset timer for next question
     }));
   }, []);
 
   // Complete quiz session
   const completeQuiz = useCallback(async (): Promise<QuizStats | null> => {
     try {
+      console.log("Completing quiz, session:", state.sessionId);
       let finalStats: QuizStats;
 
       if (state.sessionId) {
-        // Usar RPC function si tenemos sessionId
-        const { data: stats, error } = await (supabase as any)
+        // Use RPC function to complete session
+        const { data: stats, error } = await supabase
           .rpc("complete_quiz_session", {
             p_session_id: state.sessionId
           });
 
         if (error) {
-          console.warn("Error en RPC complete_quiz_session:", error);
-          // Fallback a cálculo manual
+          console.error("Error in RPC complete_quiz_session:", error);
+          // Fallback to manual calculation
           finalStats = getManualStats();
         } else {
+          console.log("Session completed, stats:", stats);
           finalStats = {
             totalQuestions: stats.total_questions || state.questions.length,
             correctAnswers: stats.correct_answers || state.score,
@@ -314,24 +351,32 @@ const { data: sessionId, error: sessionError } = await (supabase as any)
           };
         }
       } else {
-        // Cálculo manual
+        // Manual calculation
+        console.log("No session, using manual stats");
         finalStats = getManualStats();
         
-        // Actualizar puntos manualmente
+        // Update points manually
         if (user && state.score > 0) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("puntos")
+            .eq("id", user.id)
+            .single();
+          
+          const currentPoints = profile?.puntos || 0;
+          const newPoints = currentPoints + (state.score * 10);
+          
           await supabase
             .from("profiles")
-            .update({ 
-              puntos: (await supabase
-                .from("profiles")
-                .select("puntos")
-                .eq("id", user.id)
-                .single()
-              ).data?.puntos + (state.score * 10) || (state.score * 10)
-            })
+            .update({ puntos: newPoints })
             .eq("id", user.id);
+          
+          console.log("Points updated:", currentPoints, "->", newPoints);
         }
       }
+
+      // Mark the quiz as finished in state
+      setState(prev => ({ ...prev, sessionId: null }));
 
       return finalStats;
     } catch (err: any) {
@@ -362,8 +407,8 @@ const { data: sessionId, error: sessionError } = await (supabase as any)
 
   // Check if quiz is finished
   const isQuizFinished = useCallback(() => {
-    return state.currentIndex >= state.questions.length - 1;
-  }, [state.currentIndex, state.questions.length]);
+    return state.currentIndex >= state.questions.length - 1 && state.answers.length === state.questions.length;
+  }, [state]);
 
   // Get current question
   const getCurrentQuestion = useCallback(() => {
@@ -443,45 +488,20 @@ export function useUserStats() {
 
     try {
       setLoading(true);
+      console.log("Loading user stats for:", user.id);
       
-      // Intentar usar RPC function primero
-      try {
-        const { data, error } = await (supabase as any)
-          .rpc("get_user_stats", {
-            p_user_id: user.id
-          });
+      const { data, error } = await supabase
+        .rpc("get_user_stats", {
+          p_user_id: user.id
+        });
 
-        if (error) throw error;
-        setStats(data as UserStats);
-      } catch (rpcError) {
-        console.warn("RPC get_user_stats no disponible, usando consulta manual:", rpcError);
-        
-        // Fallback a consulta manual
-        const { count: failedCount } = await supabase
-          .from("preguntas_falladas")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user.id);
-
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("puntos")
-          .eq("id", user.id)
-          .single();
-
-        const manualStats: UserStats = {
-          total_sessions: 0,
-          completed_sessions: 0,
-          total_questions_answered: 0,
-          total_correct_answers: 0,
-          overall_accuracy_percentage: 0,
-          current_failed_questions: failedCount || 0,
-          best_session_score_percentage: 0,
-          last_activity: null,
-          points: profile?.puntos || 0,
-        };
-
-        setStats(manualStats);
+      if (error) {
+        console.error("Error loading stats:", error);
+        throw error;
       }
+      
+      console.log("User stats loaded:", data);
+      setStats(data as UserStats);
     } catch (err: any) {
       console.error("Error loading user stats:", err);
       toast({
