@@ -388,11 +388,12 @@ export type Database = {
         }[]
       }
       start_quiz_session: {
-        Args: { p_academia_id: string; p_tema_id: string; p_mode: string }
+        Args: { p_user_id: string, p_academia_id: string; p_tema_id: string; p_mode: string }
         Returns: string
       }
       record_answer: {
         Args: { 
+          p_user_id: string;
           p_session_id: string; 
           p_pregunta_id: string; 
           p_selected_answer: string; 
