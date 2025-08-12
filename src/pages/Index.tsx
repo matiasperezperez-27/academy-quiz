@@ -190,7 +190,7 @@ export default function SimpleDashboard() {
         )}
 
         {/* Stats Cards */}
-        {!loading && stats && (
+        {!loading && stats && typeof stats === 'object' && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatsCard
               title="Tests Completados"
@@ -224,6 +224,19 @@ export default function SimpleDashboard() {
               subtitle={`${stats.points || 0} puntos`}
             />
           </div>
+        )}
+
+        {/* Show raw data if stats is null or weird */}
+        {!loading && (!stats || typeof stats !== 'object') && (
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="p-4">
+              <p className="text-red-800">⚠️ Los datos no llegaron correctamente</p>
+              <p className="text-sm text-red-600">Stats recibido: {JSON.stringify(stats)}</p>
+              <Button onClick={loadBasicStats} className="mt-2" size="sm">
+                Reintentar
+              </Button>
+            </CardContent>
+          </Card>
         )}
 
         {/* Main Action Cards */}
@@ -279,7 +292,7 @@ export default function SimpleDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {stats && stats.current_failed_questions > 0 ? (
+                {stats && typeof stats === 'object' && stats.current_failed_questions > 0 ? (
                   <>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Preguntas pendientes:</span>
@@ -316,7 +329,7 @@ export default function SimpleDashboard() {
         </div>
 
         {/* Simple Progress Section */}
-        {stats && (
+        {stats && typeof stats === 'object' && (
           <div className="grid gap-6 md:grid-cols-2">
             {/* Level Info */}
             <Card>
@@ -399,7 +412,7 @@ export default function SimpleDashboard() {
         <Card>
           <CardContent className="p-6 text-center">
             <div className="space-y-3">
-              {stats && stats.current_failed_questions > 0 ? (
+              {stats && typeof stats === 'object' && stats.current_failed_questions > 0 ? (
                 <>
                   <div className="text-lg font-semibold">
                     💪 ¡Tienes {stats.current_failed_questions} preguntas esperándote!
@@ -412,7 +425,7 @@ export default function SimpleDashboard() {
                     Empezar a Practicar
                   </Button>
                 </>
-              ) : stats && stats.completed_sessions === 0 ? (
+              ) : stats && typeof stats === 'object' && stats.completed_sessions === 0 ? (
                 <>
                   <div className="text-lg font-semibold">
                     🌟 ¡Comienza tu viaje de aprendizaje!
@@ -440,13 +453,20 @@ export default function SimpleDashboard() {
         </Card>
 
         {/* Debug Info (temporal) */}
-        {stats && (
+        {!loading && (
           <Card className="border-dashed border-2 border-gray-300">
             <CardHeader>
               <CardTitle className="text-sm text-gray-500">🔧 Info de Debug (temporal)</CardTitle>
             </CardHeader>
             <CardContent>
-              <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto">
+              <div className="space-y-2 text-xs">
+                <div><strong>Loading:</strong> {loading.toString()}</div>
+                <div><strong>Error:</strong> {error || 'ninguno'}</div>
+                <div><strong>Stats type:</strong> {typeof stats}</div>
+                <div><strong>Stats is null:</strong> {(stats === null).toString()}</div>
+                <div><strong>Stats is object:</strong> {(typeof stats === 'object' && stats !== null).toString()}</div>
+              </div>
+              <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto mt-2 max-h-48">
                 {JSON.stringify(stats, null, 2)}
               </pre>
             </CardContent>
