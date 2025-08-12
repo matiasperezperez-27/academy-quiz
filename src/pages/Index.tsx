@@ -24,7 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 // Dashboard súper simple que SÍ funciona
 export default function SimpleDashboard() {
   const { user, signOut } = useAuth();
-  const [stats, setStats] = useState(null);
+  const [rawData, setRawData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -36,23 +36,27 @@ export default function SimpleDashboard() {
       setLoading(true);
       setError(null);
 
+      console.log("Intentando cargar stats para usuario:", user.id);
+
       // Solo usar la función RPC que sabemos que funciona
       const { data: basicStats, error: rpcError } = await supabase
         .rpc("get_user_stats", { p_user_id: user.id });
+
+      console.log("Resultado de RPC:", { basicStats, rpcError });
 
       if (rpcError) {
         throw new Error(`Error RPC: ${rpcError.message}`);
       }
 
-      console.log("Datos recibidos:", basicStats);
-      setStats(basicStats);
+      // Guardar datos raw sin procesar
+      setRawData(basicStats);
 
     } catch (err) {
       console.error("Error cargando stats:", err);
       setError(err.message);
       
       // Si falla todo, poner datos vacíos
-      setStats({
+      setRawData({
         total_sessions: 0,
         completed_sessions: 0,
         total_questions_answered: 0,
@@ -86,14 +90,22 @@ export default function SimpleDashboard() {
   };
 
   const getLevel = (points) => {
-    if (points >= 4000) return { level: 8, title: "Leyenda" };
-    if (points >= 2500) return { level: 7, title: "Maestro" };
-    if (points >= 1500) return { level: 6, title: "Experto" };
-    if (points >= 1000) return { level: 5, title: "Avanzado" };
-    if (points >= 600) return { level: 4, title: "Conocedor" };
-    if (points >= 300) return { level: 3, title: "Estudiante" };
-    if (points >= 100) return { level: 2, title: "Aprendiz" };
+    const pts = Number(points) || 0;
+    if (pts >= 4000) return { level: 8, title: "Leyenda" };
+    if (pts >= 2500) return { level: 7, title: "Maestro" };
+    if (pts >= 1500) return { level: 6, title: "Experto" };
+    if (pts >= 1000) return { level: 5, title: "Avanzado" };
+    if (pts >= 600) return { level: 4, title: "Conocedor" };
+    if (pts >= 300) return { level: 3, title: "Estudiante" };
+    if (pts >= 100) return { level: 2, title: "Aprendiz" };
     return { level: 1, title: "Principiante" };
+  };
+
+  // Función súper segura para obtener valores
+  const safeGet = (obj, key, defaultValue = 0) => {
+    if (!obj || typeof obj !== 'object') return defaultValue;
+    const value = obj[key];
+    return value !== null && value !== undefined ? value : defaultValue;
   };
 
   const StatsCard = ({ title, value, subtitle, icon, color = "text-primary" }) => (
@@ -124,6 +136,19 @@ export default function SimpleDashboard() {
       </div>
     );
   }
+
+  // Variables súper seguras
+  const completedSessions = safeGet(rawData, 'completed_sessions', 0);
+  const totalSessions = safeGet(rawData, 'total_sessions', 0);
+  const accuracy = Math.round(safeGet(rawData, 'overall_accuracy_percentage', 0));
+  const correctAnswers = safeGet(rawData, 'total_correct_answers', 0);
+  const totalAnswers = safeGet(rawData, 'total_questions_answered', 0);
+  const failedQuestions = safeGet(rawData, 'current_failed_questions', 0);
+  const points = safeGet(rawData, 'points', 0);
+  const bestScore = Math.round(safeGet(rawData, 'best_session_score_percentage', 0));
+  const lastActivity = safeGet(rawData, 'last_activity', null);
+
+  const levelInfo = getLevel(points);
 
   return (
     <main className="min-h-screen p-4 bg-background">
@@ -189,12 +214,12 @@ export default function SimpleDashboard() {
           </div>
         )}
 
-        {/* Stats Cards */}
-        {!loading && stats && typeof stats === 'object' && (
+        {/* Stats Cards - SÚPER SEGURAS */}
+        {!loading && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatsCard
               title="Tests Completados"
-              value={stats.completed_sessions || 0}
+              value={completedSessions}
               icon={<Trophy className="h-4 w-4" />}
               color="text-yellow-600"
               subtitle="sesiones finalizadas"
@@ -202,41 +227,28 @@ export default function SimpleDashboard() {
             
             <StatsCard
               title="Precisión General"
-              value={`${Math.round(stats.overall_accuracy_percentage || 0)}%`}
+              value={`${accuracy}%`}
               icon={<Target className="h-4 w-4" />}
               color="text-blue-600"
-              subtitle={`${stats.total_correct_answers || 0}/${stats.total_questions_answered || 0} correctas`}
+              subtitle={`${correctAnswers}/${totalAnswers} correctas`}
             />
             
             <StatsCard
               title="Preguntas Falladas"
-              value={stats.current_failed_questions || 0}
+              value={failedQuestions}
               icon={<BookOpen className="h-4 w-4" />}
               color="text-orange-600"
               subtitle="para practicar"
             />
             
             <StatsCard
-              title={`Nivel ${getLevel(stats.points || 0).level}`}
-              value={getLevel(stats.points || 0).title}
+              title={`Nivel ${levelInfo.level}`}
+              value={levelInfo.title}
               icon={<Star className="h-4 w-4" />}
               color="text-purple-600"
-              subtitle={`${stats.points || 0} puntos`}
+              subtitle={`${points} puntos`}
             />
           </div>
-        )}
-
-        {/* Show raw data if stats is null or weird */}
-        {!loading && (!stats || typeof stats !== 'object') && (
-          <Card className="border-red-200 bg-red-50">
-            <CardContent className="p-4">
-              <p className="text-red-800">⚠️ Los datos no llegaron correctamente</p>
-              <p className="text-sm text-red-600">Stats recibido: {JSON.stringify(stats)}</p>
-              <Button onClick={loadBasicStats} className="mt-2" size="sm">
-                Reintentar
-              </Button>
-            </CardContent>
-          </Card>
         )}
 
         {/* Main Action Cards */}
@@ -276,7 +288,7 @@ export default function SimpleDashboard() {
           </Card>
 
           {/* Practice Card */}
-          <Card className={`hover:shadow-lg transition-shadow ${stats && stats.current_failed_questions > 0 ? 'cursor-pointer' : ''}`}>
+          <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
                 <div className="p-2 bg-orange-100 rounded-lg">
@@ -292,12 +304,12 @@ export default function SimpleDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {stats && typeof stats === 'object' && stats.current_failed_questions > 0 ? (
+                {failedQuestions > 0 ? (
                   <>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Preguntas pendientes:</span>
                       <Badge variant="destructive" className="text-xs">
-                        {stats.current_failed_questions}
+                        {failedQuestions}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -329,93 +341,91 @@ export default function SimpleDashboard() {
         </div>
 
         {/* Simple Progress Section */}
-        {stats && typeof stats === 'object' && (
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Level Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Star className="h-5 w-5 text-yellow-600" />
-                  Tu Nivel
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-purple-100 rounded-full">
-                      <Star className="h-6 w-6 text-purple-600" />
-                    </div>
-                    <div>
-                      <div className="text-xl font-bold">Nivel {getLevel(stats.points).level}</div>
-                      <div className="text-sm text-muted-foreground">{getLevel(stats.points).title}</div>
-                    </div>
-                    <div className="ml-auto">
-                      <div className="text-2xl font-bold text-primary">{stats.points}</div>
-                      <div className="text-xs text-muted-foreground">puntos</div>
-                    </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Level Info */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Star className="h-5 w-5 text-yellow-600" />
+                Tu Nivel
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-purple-100 rounded-full">
+                    <Star className="h-6 w-6 text-purple-600" />
                   </div>
-                  
-                  <div className="text-center p-4 bg-muted/30 rounded-lg">
-                    <p className="text-sm text-muted-foreground">
-                      {stats.points < 100 
-                        ? `Te faltan ${100 - stats.points} puntos para Nivel 2`
-                        : "¡Sigue así para seguir subiendo de nivel!"
-                      }
-                    </p>
+                  <div>
+                    <div className="text-xl font-bold">Nivel {levelInfo.level}</div>
+                    <div className="text-sm text-muted-foreground">{levelInfo.title}</div>
+                  </div>
+                  <div className="ml-auto">
+                    <div className="text-2xl font-bold text-primary">{points}</div>
+                    <div className="text-xs text-muted-foreground">puntos</div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+                
+                <div className="text-center p-4 bg-muted/30 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    {points < 100 
+                      ? `Te faltan ${100 - points} puntos para Nivel 2`
+                      : "¡Sigue así para seguir subiendo de nivel!"
+                    }
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-            {/* Quick Stats */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <BarChart3 className="h-5 w-5" />
-                  Estadísticas Rápidas
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Total de sesiones:</span>
-                    <span className="font-medium">{stats.total_sessions}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Sesiones completadas:</span>
-                    <span className="font-medium">{stats.completed_sessions}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Preguntas respondidas:</span>
-                    <span className="font-medium">{stats.total_questions_answered}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Mejor puntuación:</span>
-                    <span className="font-medium">{Math.round(stats.best_session_score_percentage || 0)}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Última actividad:</span>
-                    <span className="font-medium">
-                      {stats.last_activity 
-                        ? new Date(stats.last_activity).toLocaleDateString('es-ES')
-                        : "Nunca"
-                      }
-                    </span>
-                  </div>
+          {/* Quick Stats */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <BarChart3 className="h-5 w-5" />
+                Estadísticas Rápidas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Total de sesiones:</span>
+                  <span className="font-medium">{totalSessions}</span>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Sesiones completadas:</span>
+                  <span className="font-medium">{completedSessions}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Preguntas respondidas:</span>
+                  <span className="font-medium">{totalAnswers}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Mejor puntuación:</span>
+                  <span className="font-medium">{bestScore}%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Última actividad:</span>
+                  <span className="font-medium">
+                    {lastActivity 
+                      ? new Date(lastActivity).toLocaleDateString('es-ES')
+                      : "Nunca"
+                    }
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Motivational Message */}
         <Card>
           <CardContent className="p-6 text-center">
             <div className="space-y-3">
-              {stats && typeof stats === 'object' && stats.current_failed_questions > 0 ? (
+              {failedQuestions > 0 ? (
                 <>
                   <div className="text-lg font-semibold">
-                    💪 ¡Tienes {stats.current_failed_questions} preguntas esperándote!
+                    💪 ¡Tienes {failedQuestions} preguntas esperándote!
                   </div>
                   <p className="text-muted-foreground">
                     Cada pregunta que practiques te acerca más a la perfección. ¡Es hora de brillar! ✨
@@ -425,7 +435,7 @@ export default function SimpleDashboard() {
                     Empezar a Practicar
                   </Button>
                 </>
-              ) : stats && typeof stats === 'object' && stats.completed_sessions === 0 ? (
+              ) : completedSessions === 0 ? (
                 <>
                   <div className="text-lg font-semibold">
                     🌟 ¡Comienza tu viaje de aprendizaje!
@@ -444,7 +454,7 @@ export default function SimpleDashboard() {
                     🎯 ¡Sigue así!
                   </div>
                   <p className="text-muted-foreground">
-                    Has completado {stats.completed_sessions} sesiones. ¡Tu dedicación está dando frutos!
+                    Has completado {completedSessions} sesiones. ¡Tu dedicación está dando frutos!
                   </p>
                 </>
               )}
@@ -453,25 +463,30 @@ export default function SimpleDashboard() {
         </Card>
 
         {/* Debug Info (temporal) */}
-        {!loading && (
-          <Card className="border-dashed border-2 border-gray-300">
-            <CardHeader>
-              <CardTitle className="text-sm text-gray-500">🔧 Info de Debug (temporal)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-xs">
-                <div><strong>Loading:</strong> {loading.toString()}</div>
-                <div><strong>Error:</strong> {error || 'ninguno'}</div>
-                <div><strong>Stats type:</strong> {typeof stats}</div>
-                <div><strong>Stats is null:</strong> {(stats === null).toString()}</div>
-                <div><strong>Stats is object:</strong> {(typeof stats === 'object' && stats !== null).toString()}</div>
+        <Card className="border-dashed border-2 border-gray-300">
+          <CardHeader>
+            <CardTitle className="text-sm text-gray-500">🔧 Info de Debug (temporal)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 text-xs">
+              <div><strong>Loading:</strong> {loading.toString()}</div>
+              <div><strong>Error:</strong> {error || 'ninguno'}</div>
+              <div><strong>RawData type:</strong> {typeof rawData}</div>
+              <div><strong>RawData is null:</strong> {(rawData === null).toString()}</div>
+              <div><strong>User ID:</strong> {user?.id || 'no-user'}</div>
+              <div><strong>Processed values:</strong></div>
+              <div className="ml-4">
+                <div>• completedSessions: {completedSessions}</div>
+                <div>• failedQuestions: {failedQuestions}</div>
+                <div>• points: {points}</div>
+                <div>• accuracy: {accuracy}%</div>
               </div>
-              <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto mt-2 max-h-48">
-                {JSON.stringify(stats, null, 2)}
-              </pre>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+            <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto mt-2 max-h-48">
+              {JSON.stringify(rawData, null, 2)}
+            </pre>
+          </CardContent>
+        </Card>
       </div>
     </main>
   );
