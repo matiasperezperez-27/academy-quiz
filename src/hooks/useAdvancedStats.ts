@@ -151,19 +151,19 @@ export function useAdvancedStats() {
       const monthlyProgress = processMonthlyProgress(completedSessions);
 
       // Calcular nivel
-      const { level, nextLevelThreshold } = calculateLevel(basicData.points);
+      const { level, nextLevelThreshold } = calculateLevel((basicData as any).points || 0);
 
       const advancedStats: AdvancedUserStats = {
         // Básicas (de la RPC)
-        totalSessions: basicData.total_sessions,
-        completedSessions: basicData.completed_sessions,
-        totalQuestionsAnswered: basicData.total_questions_answered,
-        totalCorrectAnswers: basicData.total_correct_answers,
-        overallAccuracyPercentage: Math.round(basicData.overall_accuracy_percentage),
-        currentFailedQuestions: basicData.current_failed_questions,
-        bestSessionScorePercentage: Math.round(basicData.best_session_score_percentage),
-        lastActivity: basicData.last_activity,
-        points: basicData.points,
+        totalSessions: (basicData as any).total_sessions || 0,
+        completedSessions: (basicData as any).completed_sessions || 0,
+        totalQuestionsAnswered: (basicData as any).total_questions_answered || 0,
+        totalCorrectAnswers: (basicData as any).total_correct_answers || 0,
+        overallAccuracyPercentage: Math.round((basicData as any).overall_accuracy_percentage || 0),
+        currentFailedQuestions: (basicData as any).current_failed_questions || 0,
+        bestSessionScorePercentage: Math.round((basicData as any).best_session_score_percentage || 0),
+        lastActivity: (basicData as any).last_activity,
+        points: (basicData as any).points || 0,
 
         // Avanzadas (calculadas)
         averageSessionTime,
@@ -171,7 +171,7 @@ export function useAdvancedStats() {
         streakDays,
         improvementTrend,
         currentLevel: level,
-        experienceToNextLevel: Math.max(0, nextLevelThreshold - basicData.points),
+        experienceToNextLevel: Math.max(0, nextLevelThreshold - ((basicData as any).points || 0)),
 
         // Por tema
         bestTopics: topicStats.best,
@@ -196,25 +196,25 @@ export function useAdvancedStats() {
           .rpc("get_user_stats", { p_user_id: user.id });
 
         if (fallbackStats) {
-          const { level, nextLevelThreshold } = calculateLevel(fallbackStats.points || 0);
+          const { level, nextLevelThreshold } = calculateLevel((fallbackStats as any).points || 0);
           
           const fallbackAdvancedStats: AdvancedUserStats = {
-            totalSessions: fallbackStats.total_sessions || 0,
-            completedSessions: fallbackStats.completed_sessions || 0,
-            totalQuestionsAnswered: fallbackStats.total_questions_answered || 0,
-            totalCorrectAnswers: fallbackStats.total_correct_answers || 0,
-            overallAccuracyPercentage: Math.round(fallbackStats.overall_accuracy_percentage || 0),
-            currentFailedQuestions: fallbackStats.current_failed_questions || 0,
-            bestSessionScorePercentage: Math.round(fallbackStats.best_session_score_percentage || 0),
-            lastActivity: fallbackStats.last_activity,
-            points: fallbackStats.points || 0,
+            totalSessions: (fallbackStats as any).total_sessions || 0,
+            completedSessions: (fallbackStats as any).completed_sessions || 0,
+            totalQuestionsAnswered: (fallbackStats as any).total_questions_answered || 0,
+            totalCorrectAnswers: (fallbackStats as any).total_correct_answers || 0,
+            overallAccuracyPercentage: Math.round((fallbackStats as any).overall_accuracy_percentage || 0),
+            currentFailedQuestions: (fallbackStats as any).current_failed_questions || 0,
+            bestSessionScorePercentage: Math.round((fallbackStats as any).best_session_score_percentage || 0),
+            lastActivity: (fallbackStats as any).last_activity,
+            points: (fallbackStats as any).points || 0,
             // Valores por defecto para estadísticas avanzadas
             averageSessionTime: 0,
             questionsPerDay: 0,
             streakDays: 0,
             improvementTrend: 0,
             currentLevel: level,
-            experienceToNextLevel: Math.max(0, nextLevelThreshold - (fallbackStats.points || 0)),
+            experienceToNextLevel: Math.max(0, nextLevelThreshold - ((fallbackStats as any).points || 0)),
             bestTopics: [],
             worstTopics: [],
             recentPerformance: [],
