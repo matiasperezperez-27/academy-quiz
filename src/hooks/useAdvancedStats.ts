@@ -86,6 +86,9 @@ export function useAdvancedStats() {
         return;
       }
 
+      // Cast explícito para TypeScript
+      const statsData = basicStats as Record<string, any>;
+
       // 2. Estadísticas de sesiones detalladas
       const { data: sessions } = await supabase
         .from("user_sessions")
@@ -151,7 +154,6 @@ export function useAdvancedStats() {
       const monthlyProgress = processMonthlyProgress(completedSessions);
 
       // Calcular nivel
-      const statsData = basicStats as any;
       const { level, nextLevelThreshold } = calculateLevel(statsData.points || 0);
 
       const advancedStats: AdvancedUserStats = {
