@@ -1,5 +1,4 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,35 +14,63 @@ import {
   CheckCircle2,
   RefreshCw,
   Zap,
-  Calendar,
+  Flame,
   Star,
-  BarChart3,
-  Flame
+  BarChart3
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useAdvancedStats } from "@/hooks/useAdvancedStats";
-import { StatsCard } from "@/components/dashboard/StatsCard";
-import { LevelProgress } from "@/components/dashboard/LevelProgress";
-import { PerformanceChart } from "@/components/dashboard/PerformanceChart";
-import { TopicPerformance } from "@/components/dashboard/TopicPerformance";
-import { ActivityHeatmap } from "@/components/dashboard/ActivityHeatmap";
+import { supabase } from "@/integrations/supabase/client";
 
-function setSEO(title: string, description: string) {
-  document.title = title;
-  const meta = document.querySelector('meta[name="description"]') || document.createElement("meta");
-  meta.setAttribute("name", "description");
-  meta.setAttribute("content", description);
-  document.head.appendChild(meta);
-}
-
-const Index = () => {
+// Dashboard súper simple que SÍ funciona
+export default function SimpleDashboard() {
   const { user, signOut } = useAuth();
-  const navigate = useNavigate();
-  const { stats, loading: loadingStats, refreshStats } = useAdvancedStats();
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Función súper simple para cargar solo lo básico
+  const loadBasicStats = async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Solo usar la función RPC que sabemos que funciona
+      const { data: basicStats, error: rpcError } = await supabase
+        .rpc("get_user_stats", { p_user_id: user.id });
+
+      if (rpcError) {
+        throw new Error(`Error RPC: ${rpcError.message}`);
+      }
+
+      console.log("Datos recibidos:", basicStats);
+      setStats(basicStats);
+
+    } catch (err) {
+      console.error("Error cargando stats:", err);
+      setError(err.message);
+      
+      // Si falla todo, poner datos vacíos
+      setStats({
+        total_sessions: 0,
+        completed_sessions: 0,
+        total_questions_answered: 0,
+        total_correct_answers: 0,
+        overall_accuracy_percentage: 0,
+        current_failed_questions: 0,
+        best_session_score_percentage: 0,
+        last_activity: null,
+        points: 0
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setSEO("Dashboard | Academy Quiz", "Tu panel de control para tests y práctica personalizada.");
-  }, []);
+    loadBasicStats();
+  }, [user]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -58,129 +85,152 @@ const Index = () => {
     return "Usuario";
   };
 
-  const formatLastActivity = (lastActivity: string | null) => {
-    if (!lastActivity) return "Nunca";
-    
-    const date = new Date(lastActivity);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 1) return "Hoy";
-    if (diffDays === 2) return "Ayer";
-    if (diffDays <= 7) return `Hace ${diffDays} días`;
-    
-    return date.toLocaleDateString('es-ES');
+  const getLevel = (points) => {
+    if (points >= 4000) return { level: 8, title: "Leyenda" };
+    if (points >= 2500) return { level: 7, title: "Maestro" };
+    if (points >= 1500) return { level: 6, title: "Experto" };
+    if (points >= 1000) return { level: 5, title: "Avanzado" };
+    if (points >= 600) return { level: 4, title: "Conocedor" };
+    if (points >= 300) return { level: 3, title: "Estudiante" };
+    if (points >= 100) return { level: 2, title: "Aprendiz" };
+    return { level: 1, title: "Principiante" };
   };
+
+  const StatsCard = ({ title, value, subtitle, icon, color = "text-primary" }) => (
+    <Card className="hover:shadow-md transition-shadow">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <div className={`h-4 w-4 ${color}`}>
+          {icon}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        {subtitle && (
+          <p className="text-xs text-muted-foreground">{subtitle}</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card>
+          <CardContent className="p-6">
+            <p>Cargando usuario...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen p-4 bg-background">
       <div className="max-w-6xl mx-auto space-y-6">
         
-        {/* Header Section */}
-        <div className="space-y-4">
-          {/* Welcome Header */}
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <h1 className="text-2xl sm:text-3xl font-bold">
-                {getGreeting()}, {getUserDisplayName()}! 👋
-              </h1>
-              <p className="text-muted-foreground">
-                ¿Listo para tu próximo desafío de aprendizaje?
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={refreshStats}
-                disabled={loadingStats}
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className={`h-4 w-4 ${loadingStats ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">Actualizar</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={signOut}
-                className="flex items-center gap-2"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Cerrar Sesión</span>
-              </Button>
-            </div>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-bold">
+              {getGreeting()}, {getUserDisplayName()}! 👋
+            </h1>
+            <p className="text-muted-foreground">
+              ¿Listo para tu próximo desafío de aprendizaje?
+            </p>
           </div>
-
-          {/* Enhanced Quick Stats */}
-          {!loadingStats && stats && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatsCard
-                title="Tests Completados"
-                value={stats.completedSessions}
-                icon={<Trophy className="h-4 w-4" />}
-                color="text-yellow-600"
-                subtitle="sesiones finalizadas"
-              />
-              
-              <StatsCard
-                title="Precisión General"
-                value={`${stats.overallAccuracyPercentage}%`}
-                icon={<Target className="h-4 w-4" />}
-                color="text-blue-600"
-                trend={stats.improvementTrend !== 0 ? {
-                  value: Math.abs(stats.improvementTrend),
-                  label: "vs anterior",
-                  isPositive: stats.improvementTrend > 0
-                } : undefined}
-              />
-              
-              <StatsCard
-                title="Racha Actual"
-                value={`${stats.streakDays} días`}
-                icon={<Flame className="h-4 w-4" />}
-                color="text-orange-600"
-                subtitle="consecutivos estudiando"
-              />
-              
-              <StatsCard
-                title="Nivel Actual"
-                value={`Nivel ${stats.currentLevel}`}
-                icon={<Star className="h-4 w-4" />}
-                color="text-purple-600"
-                progress={stats.experienceToNextLevel > 0 ? {
-                  value: stats.points,
-                  max: stats.points + stats.experienceToNextLevel,
-                  label: "Progreso al siguiente nivel"
-                } : undefined}
-              />
-            </div>
-          )}
-
-          {/* Loading stats - Updated */}
-          {loadingStats && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, i) => (
-                <Card key={i} className="p-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="h-4 w-20 bg-muted rounded animate-pulse" />
-                      <div className="h-4 w-4 bg-muted rounded animate-pulse" />
-                    </div>
-                    <div className="h-8 w-16 bg-muted rounded animate-pulse" />
-                    <div className="h-3 w-24 bg-muted rounded animate-pulse" />
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={loadBasicStats}
+              disabled={loading}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Actualizar</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={signOut}
+              className="flex items-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Cerrar Sesión</span>
+            </Button>
+          </div>
         </div>
+
+        {/* Error Display */}
+        {error && (
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="p-4">
+              <p className="text-red-800">⚠️ Error: {error}</p>
+              <Button onClick={loadBasicStats} className="mt-2" size="sm">
+                Reintentar
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Loading */}
+        {loading && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <Card key={i} className="p-4">
+                <div className="space-y-3">
+                  <div className="h-4 w-20 bg-muted rounded animate-pulse" />
+                  <div className="h-8 w-16 bg-muted rounded animate-pulse" />
+                  <div className="h-3 w-24 bg-muted rounded animate-pulse" />
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Stats Cards */}
+        {!loading && stats && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatsCard
+              title="Tests Completados"
+              value={stats.completed_sessions || 0}
+              icon={<Trophy className="h-4 w-4" />}
+              color="text-yellow-600"
+              subtitle="sesiones finalizadas"
+            />
+            
+            <StatsCard
+              title="Precisión General"
+              value={`${Math.round(stats.overall_accuracy_percentage || 0)}%`}
+              icon={<Target className="h-4 w-4" />}
+              color="text-blue-600"
+              subtitle={`${stats.total_correct_answers || 0}/${stats.total_questions_answered || 0} correctas`}
+            />
+            
+            <StatsCard
+              title="Preguntas Falladas"
+              value={stats.current_failed_questions || 0}
+              icon={<BookOpen className="h-4 w-4" />}
+              color="text-orange-600"
+              subtitle="para practicar"
+            />
+            
+            <StatsCard
+              title={`Nivel ${getLevel(stats.points || 0).level}`}
+              value={getLevel(stats.points || 0).title}
+              icon={<Star className="h-4 w-4" />}
+              color="text-purple-600"
+              subtitle={`${stats.points || 0} puntos`}
+            />
+          </div>
+        )}
 
         {/* Main Action Cards */}
         <div className="grid gap-6 md:grid-cols-2">
           
           {/* New Test Card */}
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/test-setup")}>
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
                 <div className="p-2 bg-primary/10 rounded-lg">
@@ -204,7 +254,7 @@ const Index = () => {
                   <Target className="h-4 w-4" />
                   10 preguntas aleatorias
                 </div>
-                <Button className="w-full" size="lg">
+                <Button className="w-full" size="lg" onClick={() => window.location.href = '/test-setup'}>
                   <Play className="mr-2 h-4 w-4" />
                   Comenzar Test
                 </Button>
@@ -213,8 +263,7 @@ const Index = () => {
           </Card>
 
           {/* Practice Card */}
-          <Card className={`hover:shadow-lg transition-shadow ${stats && stats.currentFailedQuestions > 0 ? 'cursor-pointer' : ''}`} 
-                onClick={() => stats && stats.currentFailedQuestions > 0 && navigate("/practice")}>
+          <Card className={`hover:shadow-lg transition-shadow ${stats && stats.current_failed_questions > 0 ? 'cursor-pointer' : ''}`}>
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
                 <div className="p-2 bg-orange-100 rounded-lg">
@@ -230,19 +279,19 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {stats && stats.currentFailedQuestions > 0 ? (
+                {stats && stats.current_failed_questions > 0 ? (
                   <>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Preguntas pendientes:</span>
                       <Badge variant="destructive" className="text-xs">
-                        {stats.currentFailedQuestions}
+                        {stats.current_failed_questions}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <TrendingUp className="h-4 w-4" />
                       Mejora tu puntuación
                     </div>
-                    <Button className="w-full" variant="secondary" size="lg">
+                    <Button className="w-full" variant="secondary" size="lg" onClick={() => window.location.href = '/practice'}>
                       <BookOpen className="mr-2 h-4 w-4" />
                       Practicar Ahora
                     </Button>
@@ -266,217 +315,145 @@ const Index = () => {
           </Card>
         </div>
 
-        {/* Advanced Analytics Section */}
-        {!loadingStats && stats && (
-          <div className="space-y-6">
-            {/* Level Progress */}
-            <LevelProgress 
-              currentLevel={stats.currentLevel}
-              points={stats.points}
-              experienceToNextLevel={stats.experienceToNextLevel}
-            />
+        {/* Simple Progress Section */}
+        {stats && (
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Level Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Star className="h-5 w-5 text-yellow-600" />
+                  Tu Nivel
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-purple-100 rounded-full">
+                      <Star className="h-6 w-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <div className="text-xl font-bold">Nivel {getLevel(stats.points).level}</div>
+                      <div className="text-sm text-muted-foreground">{getLevel(stats.points).title}</div>
+                    </div>
+                    <div className="ml-auto">
+                      <div className="text-2xl font-bold text-primary">{stats.points}</div>
+                      <div className="text-xs text-muted-foreground">puntos</div>
+                    </div>
+                  </div>
+                  
+                  <div className="text-center p-4 bg-muted/30 rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      {stats.points < 100 
+                        ? `Te faltan ${100 - stats.points} puntos para Nivel 2`
+                        : "¡Sigue así para seguir subiendo de nivel!"
+                      }
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-            {/* Charts Row */}
-            <div className="grid gap-6 lg:grid-cols-2">
-              <PerformanceChart 
-                data={stats.recentPerformance}
-                title="Rendimiento Últimos 7 Días"
-                type="line"
-              />
-              <ActivityHeatmap weeklyActivity={stats.weeklyActivity} />
-            </div>
-
-            {/* Topic Performance */}
-            <TopicPerformance 
-              bestTopics={stats.bestTopics}
-              worstTopics={stats.worstTopics}
-            />
-
-            {/* Additional Stats Row */}
-            <div className="grid gap-4 md:grid-cols-3">
-              <StatsCard
-                title="Tiempo Promedio por Sesión"
-                value={`${Math.floor(stats.averageSessionTime / 60)}:${(stats.averageSessionTime % 60).toString().padStart(2, '0')}`}
-                icon={<Clock className="h-4 w-4" />}
-                color="text-indigo-600"
-                subtitle="minutos por test"
-              />
-              
-              <StatsCard
-                title="Preguntas por Día"
-                value={stats.questionsPerDay}
-                icon={<BarChart3 className="h-4 w-4" />}
-                color="text-green-600"
-                subtitle="promedio últimos 30 días"
-              />
-              
-              <StatsCard
-                title="Mejor Puntuación"
-                value={`${stats.bestSessionScorePercentage}%`}
-                icon={<Zap className="h-4 w-4" />}
-                color="text-amber-600"
-                subtitle="record personal"
-              />
-            </div>
+            {/* Quick Stats */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <BarChart3 className="h-5 w-5" />
+                  Estadísticas Rápidas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Total de sesiones:</span>
+                    <span className="font-medium">{stats.total_sessions}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Sesiones completadas:</span>
+                    <span className="font-medium">{stats.completed_sessions}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Preguntas respondidas:</span>
+                    <span className="font-medium">{stats.total_questions_answered}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Mejor puntuación:</span>
+                    <span className="font-medium">{Math.round(stats.best_session_score_percentage || 0)}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Última actividad:</span>
+                    <span className="font-medium">
+                      {stats.last_activity 
+                        ? new Date(stats.last_activity).toLocaleDateString('es-ES')
+                        : "Nunca"
+                      }
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
 
-        {/* Recent Activity / Tips Section - Simplified */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Zap className="h-5 w-5" />
-                Acciones Rápidas
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => navigate("/test-setup")}
-              >
-                <Target className="mr-2 h-4 w-4" />
-                Test por Tema Específico
-              </Button>
-              
-              {stats && stats.currentFailedQuestions > 0 && (
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start"
-                  onClick={() => navigate("/practice")}
-                >
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  Repasar {stats.currentFailedQuestions} Preguntas Falladas
-                </Button>
-              )}
-              
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={refreshStats}
-                disabled={loadingStats}
-              >
-                <RefreshCw className={`mr-2 h-4 w-4 ${loadingStats ? 'animate-spin' : ''}`} />
-                Actualizar Estadísticas
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Tips Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <User className="h-5 w-5" />
-                Consejos y Motivación
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                  <p className="text-sm text-muted-foreground">
-                    {stats && stats.streakDays > 0 
-                      ? `¡Vas ${stats.streakDays} días seguidos! Mantén el ritmo.`
-                      : "Establece una rutina diaria de estudio para mejores resultados."
-                    }
-                  </p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                  <p className="text-sm text-muted-foreground">
-                    {stats && stats.improvementTrend > 0
-                      ? `Tu precisión ha mejorado ${stats.improvementTrend}% recientemente. ¡Excelente!`
-                      : "Revisa tus preguntas falladas para identificar áreas de mejora."
-                    }
-                  </p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                  <p className="text-sm text-muted-foreground">
-                    {stats && stats.questionsPerDay > 5
-                      ? "Estás manteniendo un buen ritmo de práctica diaria."
-                      : "Intenta responder al menos 10 preguntas por día para mantener el progreso."
-                    }
-                  </p>
-                </div>
-                
-                {/* Dynamic motivational messages */}
-                {stats && stats.currentFailedQuestions > 0 && (
-                  <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                    <p className="text-sm text-orange-800">
-                      💡 Tienes {stats.currentFailedQuestions} pregunta{stats.currentFailedQuestions !== 1 ? 's' : ''} pendiente{stats.currentFailedQuestions !== 1 ? 's' : ''} de revisar.
-                    </p>
-                  </div>
-                )}
-                
-                {stats && stats.currentLevel >= 5 && (
-                  <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                    <p className="text-sm text-purple-800">
-                      🏆 ¡Nivel {stats.currentLevel} alcanzado! Eres un estudiante avanzado.
-                    </p>
-                  </div>
-                )}
-                
-                {stats && stats.streakDays >= 7 && (
-                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-800">
-                      🔥 ¡{stats.streakDays} días de racha! Tu constancia es admirable.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Additional Features Section */}
+        {/* Motivational Message */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">🚀 Próximamente</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-              <div className="space-y-2">
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <Trophy className="h-6 w-6 text-blue-600 mx-auto" />
-                </div>
-                <h4 className="text-sm font-medium">Rankings</h4>
-                <p className="text-xs text-muted-foreground">Compite con otros usuarios</p>
-              </div>
-              <div className="space-y-2">
-                <div className="p-3 bg-green-50 rounded-lg">
-                  <Target className="h-6 w-6 text-green-600 mx-auto" />
-                </div>
-                <h4 className="text-sm font-medium">Objetivos</h4>
-                <p className="text-xs text-muted-foreground">Establece metas personales</p>
-              </div>
-              <div className="space-y-2">
-                <div className="p-3 bg-purple-50 rounded-lg">
-                  <TrendingUp className="h-6 w-6 text-purple-600 mx-auto" />
-                </div>
-                <h4 className="text-sm font-medium">Estadísticas</h4>
-                <p className="text-xs text-muted-foreground">Análisis detallado de progreso</p>
-              </div>
+          <CardContent className="p-6 text-center">
+            <div className="space-y-3">
+              {stats && stats.current_failed_questions > 0 ? (
+                <>
+                  <div className="text-lg font-semibold">
+                    💪 ¡Tienes {stats.current_failed_questions} preguntas esperándote!
+                  </div>
+                  <p className="text-muted-foreground">
+                    Cada pregunta que practiques te acerca más a la perfección. ¡Es hora de brillar! ✨
+                  </p>
+                  <Button onClick={() => window.location.href = '/practice'} className="mt-3">
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    Empezar a Practicar
+                  </Button>
+                </>
+              ) : stats && stats.completed_sessions === 0 ? (
+                <>
+                  <div className="text-lg font-semibold">
+                    🌟 ¡Comienza tu viaje de aprendizaje!
+                  </div>
+                  <p className="text-muted-foreground">
+                    Cada experto fue una vez un principiante. ¡Haz tu primer test hoy!
+                  </p>
+                  <Button onClick={() => window.location.href = '/test-setup'} className="mt-3">
+                    <Play className="mr-2 h-4 w-4" />
+                    Mi Primer Test
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="text-lg font-semibold">
+                    🎯 ¡Sigue así!
+                  </div>
+                  <p className="text-muted-foreground">
+                    Has completado {stats.completed_sessions} sesiones. ¡Tu dedicación está dando frutos!
+                  </p>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Footer */}
-        <div className="text-center text-sm text-muted-foreground py-4">
-          {stats && stats.streakDays > 0 ? (
-            <p>🔥 ¡Llevas {stats.streakDays} días de racha! Sigue así para dominar tus objetivos 🎯</p>
-          ) : stats && stats.completedSessions > 0 ? (
-            <p>📈 Has completado {stats.completedSessions} tests. ¡Cada sesión te acerca más a la excelencia! 🏆</p>
-          ) : (
-            <p>¡Comienza tu viaje de aprendizaje hoy! Cada experto fue una vez un principiante 🌟</p>
-          )}
-        </div>
+        {/* Debug Info (temporal) */}
+        {stats && (
+          <Card className="border-dashed border-2 border-gray-300">
+            <CardHeader>
+              <CardTitle className="text-sm text-gray-500">🔧 Info de Debug (temporal)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto">
+                {JSON.stringify(stats, null, 2)}
+              </pre>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </main>
   );
-};
-
-export default Index;
+}
 
