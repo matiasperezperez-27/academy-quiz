@@ -44,10 +44,12 @@ export default function Quiz() {
     setSEO("Quiz | Academy Quiz", "Responde a las preguntas una por una y mejora tu puntuación.");
   }, []);
 
-  // Handle navigation errors
+  // Handle navigation errors - FIXED: Don't navigate to /login
   useEffect(() => {
+    // Si no hay usuario, el hook useAuth debería manejarlo
+    // No navegamos a /login porque esa ruta no existe
     if (!user) {
-      navigate("/login", { replace: true });
+      console.log("Esperando autenticación del usuario...");
       return;
     }
 
@@ -142,14 +144,17 @@ export default function Quiz() {
     }
   }, [quiz]);
 
-  if (quiz.isLoading) {
+  // Si está cargando o esperando usuario
+  if (quiz.isLoading || !user) {
     return (
       <main className="min-h-screen p-4 flex items-center justify-center bg-background">
         <Card className="w-full max-w-2xl">
           <CardContent className="flex items-center justify-center p-8">
             <div className="text-center space-y-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-              <p className="text-muted-foreground">Cargando preguntas...</p>
+              <p className="text-muted-foreground">
+                {!user ? "Verificando autenticación..." : "Cargando preguntas..."}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -323,12 +328,12 @@ export default function Quiz() {
           </div>
         )}
 
-{/* Session ID Debug (remove in production) */}
-{import.meta.env.DEV && ( // <--- LÍNEA CORRECTA
-  <div className="text-xs text-muted-foreground text-center">
-    Session ID: {quiz.sessionId || 'No session'}
-  </div>
-)}
+        {/* Session ID Debug (solo en desarrollo) */}
+        {import.meta.env.DEV && (
+          <div className="text-xs text-muted-foreground text-center">
+            Session ID: {quiz.sessionId || 'No session'} | User: {user?.id?.substring(0, 8) || 'No user'}
+          </div>
+        )}
 
         {/* Exit Confirmation Dialog */}
         <ExitConfirmationDialog
