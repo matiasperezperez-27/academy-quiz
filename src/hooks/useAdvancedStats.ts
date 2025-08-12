@@ -151,19 +151,20 @@ export function useAdvancedStats() {
       const monthlyProgress = processMonthlyProgress(completedSessions);
 
       // Calcular nivel
-      const { level, nextLevelThreshold } = calculateLevel(basicStats.points);
+      const statsData = basicStats as any;
+      const { level, nextLevelThreshold } = calculateLevel(statsData.points || 0);
 
       const advancedStats: AdvancedUserStats = {
         // Básicas
-        totalSessions: basicStats.total_sessions,
-        completedSessions: basicStats.completed_sessions,
-        totalQuestionsAnswered: basicStats.total_questions_answered,
-        totalCorrectAnswers: basicStats.total_correct_answers,
-        overallAccuracyPercentage: Math.round(basicStats.overall_accuracy_percentage),
-        currentFailedQuestions: basicStats.current_failed_questions,
-        bestSessionScorePercentage: Math.round(basicStats.best_session_score_percentage),
-        lastActivity: basicStats.last_activity,
-        points: basicStats.points,
+        totalSessions: statsData.total_sessions || 0,
+        completedSessions: statsData.completed_sessions || 0,
+        totalQuestionsAnswered: statsData.total_questions_answered || 0,
+        totalCorrectAnswers: statsData.total_correct_answers || 0,
+        overallAccuracyPercentage: Math.round(statsData.overall_accuracy_percentage || 0),
+        currentFailedQuestions: statsData.current_failed_questions || 0,
+        bestSessionScorePercentage: Math.round(statsData.best_session_score_percentage || 0),
+        lastActivity: statsData.last_activity || null,
+        points: statsData.points || 0,
 
         // Avanzadas
         averageSessionTime,
@@ -171,7 +172,7 @@ export function useAdvancedStats() {
         streakDays,
         improvementTrend,
         currentLevel: level,
-        experienceToNextLevel: nextLevelThreshold - basicStats.points,
+        experienceToNextLevel: Math.max(0, nextLevelThreshold - (statsData.points || 0)),
 
         // Por tema
         bestTopics: topicStats.best,
