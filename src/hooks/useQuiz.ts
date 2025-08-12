@@ -110,7 +110,7 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
           throw new Error("Se requiere seleccionar academia y tema para el modo test");
         }
 
-        // FIXED: Added p_user_id parameter!
+        // Start quiz session with p_user_id
         console.log("Starting quiz session with params:", {
           p_user_id: user.id,
           p_academia_id: academiaId,
@@ -120,7 +120,7 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
 
         const { data: sessionId, error: sessionError } = await supabase
           .rpc("start_quiz_session", {
-            p_user_id: user.id,  // FIXED: Added this parameter
+            p_user_id: user.id,
             p_academia_id: academiaId,
             p_tema_id: temaId,
             p_mode: mode
@@ -177,12 +177,12 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
 
         if (e2) throw e2;
 
-        // FIXED: Added p_user_id parameter for practice mode too!
+        // Start practice session with p_user_id
         console.log("Starting practice session for user:", user.id);
         
         const { data: sessionId, error: sessionError } = await supabase
           .rpc("start_quiz_session", {
-            p_user_id: user.id,  // FIXED: Added this parameter
+            p_user_id: user.id,
             p_academia_id: preguntas[0]?.academia_id || null,
             p_tema_id: preguntas[0]?.tema_id || null,
             p_mode: mode
@@ -190,7 +190,6 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
 
         if (sessionError) {
           console.warn("No se pudo crear sesión para práctica:", sessionError);
-          // Continue without session for practice mode
         } else {
           console.log("Practice session created:", sessionId);
         }
@@ -215,7 +214,7 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
     }
   }, [mode, academiaId, temaId, user, toast]);
 
-  // Handle answer submission using RPC function
+  // Handle answer submission - NO p_user_id needed!
   const submitAnswer = useCallback(async (selectedLetter: string): Promise<boolean> => {
     if (!user || state.isRevealed || state.isAnswering || !state.questions[state.currentIndex]) {
       return false;
@@ -230,7 +229,7 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
       let isCorrect = false;
 
       if (state.sessionId) {
-        // Use RPC function to record answer
+        // Use RPC function WITHOUT p_user_id
         console.log("Recording answer:", {
           session: state.sessionId,
           question: currentQuestion.id,
@@ -240,6 +239,7 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
 
         const { data: rpcResult, error } = await supabase
           .rpc("record_answer", {
+            p_user_id: user.id, // <-- ¡AÑADE ESTA LÍNEA!
             p_session_id: state.sessionId,
             p_pregunta_id: currentQuestion.id,
             p_selected_answer: selectedLetter,
@@ -537,3 +537,6 @@ export function useUserStats() {
     refreshStats: loadStats,
   };
 }
+
+
+
