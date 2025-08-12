@@ -239,7 +239,6 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
 
         const { data: rpcResult, error } = await supabase
           .rpc("record_answer", {
-            p_user_id: user.id, // <-- ¡AÑADE ESTA LÍNEA!
             p_session_id: state.sessionId,
             p_pregunta_id: currentQuestion.id,
             p_selected_answer: selectedLetter,

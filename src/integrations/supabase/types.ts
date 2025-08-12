@@ -393,7 +393,6 @@ export type Database = {
       }
       record_answer: {
         Args: { 
-          p_user_id: string;
           p_session_id: string; 
           p_pregunta_id: string; 
           p_selected_answer: string; 
