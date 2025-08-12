@@ -107,12 +107,13 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
         }
 
         // Start new session using RPC function (con cast para evitar error TypeScript)
-        const { data: sessionId, error: sessionError } = await (supabase as any)
-          .rpc("start_quiz_session", {
-            p_academia_id: academiaId,
-            p_tema_id: temaId,
-            p_mode: mode
-          });
+const { data: sessionId, error: sessionError } = await (supabase as any)
+  .rpc("start_quiz_session", {
+    p_user_id: user.id,  // <-- AGREGAR ESTA LÍNEA
+    p_academia_id: academiaId,
+    p_tema_id: temaId,
+    p_mode: mode
+  });
 
         if (sessionError) throw sessionError;
 
