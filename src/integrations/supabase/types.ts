@@ -171,6 +171,201 @@ export type Database = {
           },
         ]
       }
+      user_sessions: {
+        Row: {
+          id: string
+          user_id: string
+          academia_id: string
+          tema_id: string
+          mode: string
+          total_questions: number
+          correct_answers: number
+          incorrect_answers: number
+          score_percentage: number | null
+          time_started: string
+          time_completed: string | null
+          duration_seconds: number | null
+          is_completed: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          academia_id: string
+          tema_id: string
+          mode: string
+          total_questions?: number
+          correct_answers?: number
+          incorrect_answers?: number
+          score_percentage?: number | null
+          time_started?: string
+          time_completed?: string | null
+          duration_seconds?: number | null
+          is_completed?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          academia_id?: string
+          tema_id?: string
+          mode?: string
+          total_questions?: number
+          correct_answers?: number
+          incorrect_answers?: number
+          score_percentage?: number | null
+          time_started?: string
+          time_completed?: string | null
+          duration_seconds?: number | null
+          is_completed?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "auth.users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_sessions_academia_id_fkey"
+            columns: ["academia_id"]
+            isOneToOne: false
+            referencedRelation: "academias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_sessions_tema_id_fkey"
+            columns: ["tema_id"]
+            isOneToOne: false
+            referencedRelation: "temas"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      user_answers: {
+        Row: {
+          id: string
+          session_id: string
+          user_id: string
+          pregunta_id: string
+          selected_answer: string
+          correct_answer: string
+          is_correct: boolean | null
+          time_spent_seconds: number | null
+          answered_at: string
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          user_id: string
+          pregunta_id: string
+          selected_answer: string
+          correct_answer: string
+          is_correct?: boolean | null
+          time_spent_seconds?: number | null
+          answered_at?: string
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          user_id?: string
+          pregunta_id?: string
+          selected_answer?: string
+          correct_answer?: string
+          is_correct?: boolean | null
+          time_spent_seconds?: number | null
+          answered_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_answers_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "user_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_answers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "auth.users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_answers_pregunta_id_fkey"
+            columns: ["pregunta_id"]
+            isOneToOne: false
+            referencedRelation: "preguntas"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      user_preferences: {
+        Row: {
+          id: string
+          user_id: string
+          theme: string | null
+          notifications_enabled: boolean | null
+          sound_enabled: boolean | null
+          auto_advance: boolean | null
+          preferred_academia_id: string | null
+          preferred_tema_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          theme?: string | null
+          notifications_enabled?: boolean | null
+          sound_enabled?: boolean | null
+          auto_advance?: boolean | null
+          preferred_academia_id?: string | null
+          preferred_tema_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          theme?: string | null
+          notifications_enabled?: boolean | null
+          sound_enabled?: boolean | null
+          auto_advance?: boolean | null
+          preferred_academia_id?: string | null
+          preferred_tema_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "auth.users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_preferences_academia_fkey"
+            columns: ["preferred_academia_id"]
+            isOneToOne: false
+            referencedRelation: "academias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_preferences_tema_fkey"
+            columns: ["preferred_tema_id"]
+            isOneToOne: false
+            referencedRelation: "temas"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -191,6 +386,27 @@ export type Database = {
           solucion_letra: string
           tema_id: string
         }[]
+      }
+      start_quiz_session: {
+        Args: { p_academia_id: string; p_tema_id: string; p_mode: string }
+        Returns: string
+      }
+      record_answer: {
+        Args: { 
+          p_session_id: string; 
+          p_pregunta_id: string; 
+          p_selected_answer: string; 
+          p_time_spent_seconds: number 
+        }
+        Returns: boolean
+      }
+      complete_quiz_session: {
+        Args: { p_session_id: string }
+        Returns: Json
+      }
+      get_user_stats: {
+        Args: { p_user_id: string }
+        Returns: Json
       }
     }
     Enums: {

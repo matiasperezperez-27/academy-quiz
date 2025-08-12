@@ -13,10 +13,20 @@ import {
   User,
   Clock,
   CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  Zap,
+  Calendar,
+  Star,
+  BarChart3,
+  Flame
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useUserStats } from "@/hooks/useQuiz";
+import { useAdvancedStats } from "@/hooks/useAdvancedStats";
+import { StatsCard } from "@/components/dashboard/StatsCard";
+import { LevelProgress } from "@/components/dashboard/LevelProgress";
+import { PerformanceChart } from "@/components/dashboard/PerformanceChart";
+import { TopicPerformance } from "@/components/dashboard/TopicPerformance";
+import { ActivityHeatmap } from "@/components/dashboard/ActivityHeatmap";
 
 function setSEO(title: string, description: string) {
   document.title = title;
@@ -29,7 +39,7 @@ function setSEO(title: string, description: string) {
 const Index = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const { stats, loading: loadingStats, refreshStats } = useUserStats();
+  const { stats, loading: loadingStats, refreshStats } = useAdvancedStats();
 
   useEffect(() => {
     setSEO("Dashboard | Academy Quiz", "Tu panel de control para tests y práctica personalizada.");
@@ -65,7 +75,7 @@ const Index = () => {
 
   return (
     <main className="min-h-screen p-4 bg-background">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         
         {/* Header Section */}
         <div className="space-y-4">
@@ -102,62 +112,63 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Quick Stats */}
+          {/* Enhanced Quick Stats */}
           {!loadingStats && stats && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <Card className="p-4">
-                <div className="flex items-center gap-2">
-                  <Trophy className="h-4 w-4 text-yellow-600" />
-                  <div>
-                    <div className="text-2xl font-bold">{stats.completed_sessions}</div>
-                    <div className="text-xs text-muted-foreground">Tests</div>
-                  </div>
-                </div>
-              </Card>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatsCard
+                title="Tests Completados"
+                value={stats.completedSessions}
+                icon={<Trophy className="h-4 w-4" />}
+                color="text-yellow-600"
+                subtitle="sesiones finalizadas"
+              />
               
-              <Card className="p-4">
-                <div className="flex items-center gap-2">
-                  <Target className="h-4 w-4 text-blue-600" />
-                  <div>
-                    <div className="text-2xl font-bold">{Math.round(stats.overall_accuracy_percentage)}%</div>
-                    <div className="text-xs text-muted-foreground">Precisión</div>
-                  </div>
-                </div>
-              </Card>
+              <StatsCard
+                title="Precisión General"
+                value={`${stats.overallAccuracyPercentage}%`}
+                icon={<Target className="h-4 w-4" />}
+                color="text-blue-600"
+                trend={stats.improvementTrend !== 0 ? {
+                  value: Math.abs(stats.improvementTrend),
+                  label: "vs anterior",
+                  isPositive: stats.improvementTrend > 0
+                } : undefined}
+              />
               
-              <Card className="p-4">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <div>
-                    <div className="text-2xl font-bold">{stats.total_correct_answers}</div>
-                    <div className="text-xs text-muted-foreground">Correctas</div>
-                  </div>
-                </div>
-              </Card>
+              <StatsCard
+                title="Racha Actual"
+                value={`${stats.streakDays} días`}
+                icon={<Flame className="h-4 w-4" />}
+                color="text-orange-600"
+                subtitle="consecutivos estudiando"
+              />
               
-              <Card className="p-4">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4 text-red-600" />
-                  <div>
-                    <div className="text-2xl font-bold">{stats.current_failed_questions}</div>
-                    <div className="text-xs text-muted-foreground">Falladas</div>
-                  </div>
-                </div>
-              </Card>
+              <StatsCard
+                title="Nivel Actual"
+                value={`Nivel ${stats.currentLevel}`}
+                icon={<Star className="h-4 w-4" />}
+                color="text-purple-600"
+                progress={stats.experienceToNextLevel > 0 ? {
+                  value: stats.points,
+                  max: stats.points + stats.experienceToNextLevel,
+                  label: "Progreso al siguiente nivel"
+                } : undefined}
+              />
             </div>
           )}
 
-          {/* Loading stats */}
+          {/* Loading stats - Updated */}
           {loadingStats && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[...Array(4)].map((_, i) => (
                 <Card key={i} className="p-4">
-                  <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 bg-muted rounded animate-pulse" />
-                    <div>
-                      <div className="h-6 w-8 bg-muted rounded animate-pulse mb-1" />
-                      <div className="h-3 w-12 bg-muted rounded animate-pulse" />
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="h-4 w-20 bg-muted rounded animate-pulse" />
+                      <div className="h-4 w-4 bg-muted rounded animate-pulse" />
                     </div>
+                    <div className="h-8 w-16 bg-muted rounded animate-pulse" />
+                    <div className="h-3 w-24 bg-muted rounded animate-pulse" />
                   </div>
                 </Card>
               ))}
@@ -202,8 +213,8 @@ const Index = () => {
           </Card>
 
           {/* Practice Card */}
-          <Card className={`hover:shadow-lg transition-shadow ${stats && stats.current_failed_questions > 0 ? 'cursor-pointer' : ''}`} 
-                onClick={() => stats && stats.current_failed_questions > 0 && navigate("/practice")}>
+          <Card className={`hover:shadow-lg transition-shadow ${stats && stats.currentFailedQuestions > 0 ? 'cursor-pointer' : ''}`} 
+                onClick={() => stats && stats.currentFailedQuestions > 0 && navigate("/practice")}>
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
                 <div className="p-2 bg-orange-100 rounded-lg">
@@ -219,12 +230,12 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {stats && stats.current_failed_questions > 0 ? (
+                {stats && stats.currentFailedQuestions > 0 ? (
                   <>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Preguntas pendientes:</span>
                       <Badge variant="destructive" className="text-xs">
-                        {stats.current_failed_questions}
+                        {stats.currentFailedQuestions}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -255,72 +266,101 @@ const Index = () => {
           </Card>
         </div>
 
-        {/* Recent Activity / Tips Section */}
+        {/* Advanced Analytics Section */}
+        {!loadingStats && stats && (
+          <div className="space-y-6">
+            {/* Level Progress */}
+            <LevelProgress 
+              currentLevel={stats.currentLevel}
+              points={stats.points}
+              experienceToNextLevel={stats.experienceToNextLevel}
+            />
+
+            {/* Charts Row */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              <PerformanceChart 
+                data={stats.recentPerformance}
+                title="Rendimiento Últimos 7 Días"
+                type="line"
+              />
+              <ActivityHeatmap weeklyActivity={stats.weeklyActivity} />
+            </div>
+
+            {/* Topic Performance */}
+            <TopicPerformance 
+              bestTopics={stats.bestTopics}
+              worstTopics={stats.worstTopics}
+            />
+
+            {/* Additional Stats Row */}
+            <div className="grid gap-4 md:grid-cols-3">
+              <StatsCard
+                title="Tiempo Promedio por Sesión"
+                value={`${Math.floor(stats.averageSessionTime / 60)}:${(stats.averageSessionTime % 60).toString().padStart(2, '0')}`}
+                icon={<Clock className="h-4 w-4" />}
+                color="text-indigo-600"
+                subtitle="minutos por test"
+              />
+              
+              <StatsCard
+                title="Preguntas por Día"
+                value={stats.questionsPerDay}
+                icon={<BarChart3 className="h-4 w-4" />}
+                color="text-green-600"
+                subtitle="promedio últimos 30 días"
+              />
+              
+              <StatsCard
+                title="Mejor Puntuación"
+                value={`${stats.bestSessionScorePercentage}%`}
+                icon={<Zap className="h-4 w-4" />}
+                color="text-amber-600"
+                subtitle="record personal"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Recent Activity / Tips Section - Simplified */}
         <div className="grid gap-6 md:grid-cols-2">
-          
-          {/* Progress Card */}
+          {/* Quick Actions */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <TrendingUp className="h-5 w-5" />
-                Tu Progreso
+                <Zap className="h-5 w-5" />
+                Acciones Rápidas
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              {stats && stats.total_questions_answered > 0 ? (
-                <div className="space-y-4">
-                  <div className="flex justify-between text-sm">
-                    <span>Precisión General</span>
-                    <span className="font-medium">{Math.round(stats.overall_accuracy_percentage)}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-primary h-2 rounded-full transition-all" 
-                      style={{ width: `${Math.round(stats.overall_accuracy_percentage)}%` }}
-                    ></div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Total de preguntas:</span>
-                      <span className="font-medium">{stats.total_questions_answered}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Respuestas correctas:</span>
-                      <span className="font-medium text-green-600">{stats.total_correct_answers}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Tests completados:</span>
-                      <span className="font-medium">{stats.completed_sessions}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Puntos totales:</span>
-                      <span className="font-medium text-primary">{stats.points}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Mejor puntuación:</span>
-                      <span className="font-medium text-yellow-600">{Math.round(stats.best_session_score_percentage)}%</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Última actividad:</span>
-                      <span className="font-medium">{formatLastActivity(stats.last_activity)}</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-4">
-                  <Target className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Aún no has completado ningún test.
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate("/test-setup")}
-                  >
-                    Comenzar Primer Test
-                  </Button>
-                </div>
+            <CardContent className="space-y-3">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => navigate("/test-setup")}
+              >
+                <Target className="mr-2 h-4 w-4" />
+                Test por Tema Específico
+              </Button>
+              
+              {stats && stats.currentFailedQuestions > 0 && (
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => navigate("/practice")}
+                >
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Repasar {stats.currentFailedQuestions} Preguntas Falladas
+                </Button>
               )}
+              
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={refreshStats}
+                disabled={loadingStats}
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${loadingStats ? 'animate-spin' : ''}`} />
+                Actualizar Estadísticas
+              </Button>
             </CardContent>
           </Card>
 
@@ -329,7 +369,7 @@ const Index = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <User className="h-5 w-5" />
-                Consejos de Estudio
+                Consejos y Motivación
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -337,32 +377,52 @@ const Index = () => {
                 <div className="flex items-start gap-3">
                   <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                   <p className="text-sm text-muted-foreground">
-                    Practica regularmente para mejorar la retención de conocimientos.
+                    {stats && stats.streakDays > 0 
+                      ? `¡Vas ${stats.streakDays} días seguidos! Mantén el ritmo.`
+                      : "Establece una rutina diaria de estudio para mejores resultados."
+                    }
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                   <p className="text-sm text-muted-foreground">
-                    Revisa tus preguntas falladas para identificar áreas de mejora.
+                    {stats && stats.improvementTrend > 0
+                      ? `Tu precisión ha mejorado ${stats.improvementTrend}% recientemente. ¡Excelente!`
+                      : "Revisa tus preguntas falladas para identificar áreas de mejora."
+                    }
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                   <p className="text-sm text-muted-foreground">
-                    Tómate descansos entre sesiones de estudio para optimizar el aprendizaje.
+                    {stats && stats.questionsPerDay > 5
+                      ? "Estás manteniendo un buen ritmo de práctica diaria."
+                      : "Intenta responder al menos 10 preguntas por día para mantener el progreso."
+                    }
                   </p>
                 </div>
-                {stats && stats.current_failed_questions > 0 && (
+                
+                {/* Dynamic motivational messages */}
+                {stats && stats.currentFailedQuestions > 0 && (
                   <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
                     <p className="text-sm text-orange-800">
-                      💡 Tienes {stats.current_failed_questions} pregunta{stats.current_failed_questions !== 1 ? 's' : ''} pendiente{stats.current_failed_questions !== 1 ? 's' : ''} de revisar.
+                      💡 Tienes {stats.currentFailedQuestions} pregunta{stats.currentFailedQuestions !== 1 ? 's' : ''} pendiente{stats.currentFailedQuestions !== 1 ? 's' : ''} de revisar.
                     </p>
                   </div>
                 )}
-                {stats && stats.points > 0 && (
+                
+                {stats && stats.currentLevel >= 5 && (
+                  <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                    <p className="text-sm text-purple-800">
+                      🏆 ¡Nivel {stats.currentLevel} alcanzado! Eres un estudiante avanzado.
+                    </p>
+                  </div>
+                )}
+                
+                {stats && stats.streakDays >= 7 && (
                   <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-sm text-blue-800">
-                      🏆 Has acumulado {stats.points} puntos. ¡Sigue así para llegar a tu próximo hito!
+                      🔥 ¡{stats.streakDays} días de racha! Tu constancia es admirable.
                     </p>
                   </div>
                 )}
@@ -405,7 +465,13 @@ const Index = () => {
 
         {/* Footer */}
         <div className="text-center text-sm text-muted-foreground py-4">
-          <p>¡Sigue practicando para alcanzar tus objetivos de aprendizaje! 🎯</p>
+          {stats && stats.streakDays > 0 ? (
+            <p>🔥 ¡Llevas {stats.streakDays} días de racha! Sigue así para dominar tus objetivos 🎯</p>
+          ) : stats && stats.completedSessions > 0 ? (
+            <p>📈 Has completado {stats.completedSessions} tests. ¡Cada sesión te acerca más a la excelencia! 🏆</p>
+          ) : (
+            <p>¡Comienza tu viaje de aprendizaje hoy! Cada experto fue una vez un principiante 🌟</p>
+          )}
         </div>
       </div>
     </main>
@@ -413,3 +479,4 @@ const Index = () => {
 };
 
 export default Index;
+
