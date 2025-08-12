@@ -1,7 +1,8 @@
 // ========================================
-// 1. HOOK AVANZADO PARA ESTADÍSTICAS - VERSIÓN CORREGIDA
+// 1. HOOK AVANZADO PARA ESTADÍSTICAS
 // ========================================
 
+// src/hooks/useAdvancedStats.ts
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -75,8 +76,21 @@ export function useAdvancedStats() {
     try {
       setLoading(true);
 
-      // 1. Obtener sesiones del usuario
-      const { data: sessions, error: sessionsError } = await supabase
+      // 1. Estadísticas básicas
+      const { data: basicStats } = await supabase.rpc("get_user_stats", {
+        p_user_id: user.id
+      });
+
+      if (!basicStats) {
+        setStats(null);
+        return;
+      }
+
+      // Cast explícito para TypeScript
+      const statsData = basicStats as Record<string, any>;
+
+      // 2. Estadísticas de sesiones detalladas
+      const { data: sessions } = await supabase
         .from("user_sessions")
         .select(`
           id, created_at, duration_seconds, score_percentage, 
@@ -85,69 +99,43 @@ export function useAdvancedStats() {
           academias!inner(nombre)
         `)
         .eq("user_id", user.id)
+        .eq("is_completed", true)
         .order("created_at", { ascending: false });
 
-      if (sessionsError) throw sessionsError;
+      // 3. Actividad reciente (últimos 30 días)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      // 2. Obtener preguntas falladas
-      const { count: failedCount, error: failedError } = await supabase
-        .from("preguntas_falladas")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id);
+      const { data: recentActivity } = await supabase
+        .from("user_sessions")
+        .select("created_at, score_percentage, total_questions")
+        .eq("user_id", user.id)
+        .eq("is_completed", true)
+        .gte("created_at", thirtyDaysAgo.toISOString())
+        .order("created_at", { ascending: true });
 
-      if (failedError) throw failedError;
+      // 4. Performance por tema
+      const { data: topicPerformance } = await supabase
+        .from("user_sessions")
+        .select(`
+          correct_answers, total_questions,
+          temas!inner(nombre)
+        `)
+        .eq("user_id", user.id)
+        .eq("is_completed", true);
 
-      // 3. Obtener perfil para puntos
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("puntos")
-        .eq("id", user.id)
-        .single();
+      // Procesar datos
+      const completedSessions = sessions || [];
+      const recentSessions = recentActivity || [];
+      const topicData = topicPerformance || [];
 
-      if (profileError && profileError.code !== 'PGRST116') {
-        console.warn("Error obteniendo perfil:", profileError);
-      }
-
-      // 4. Procesar datos
-      const allSessions = sessions || [];
-      const completedSessions = allSessions.filter(s => s.is_completed);
-      
-      // Estadísticas básicas
-      const totalSessions = allSessions.length;
-      const totalCompletedSessions = completedSessions.length;
-      
-      const totalQuestionsAnswered = completedSessions.reduce((sum, s) => sum + (s.total_questions || 0), 0);
-      const totalCorrectAnswers = completedSessions.reduce((sum, s) => sum + (s.correct_answers || 0), 0);
-      
-      const overallAccuracyPercentage = totalQuestionsAnswered > 0 
-        ? Math.round((totalCorrectAnswers / totalQuestionsAnswered) * 100) 
-        : 0;
-      
-      const bestSessionScore = completedSessions.length > 0 
-        ? Math.max(...completedSessions.map(s => s.score_percentage || 0))
-        : 0;
-      
-      const lastActivity = completedSessions.length > 0 
-        ? completedSessions[0].created_at 
-        : null;
-
-      const points = profile?.puntos || 0;
-
-      // 5. Estadísticas avanzadas
+      // Calcular estadísticas avanzadas
       const averageSessionTime = completedSessions.length > 0
         ? Math.round(completedSessions.reduce((sum, s) => sum + (s.duration_seconds || 0), 0) / completedSessions.length)
         : 0;
 
-      // Actividad reciente (últimos 30 días)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      const recentSessions = completedSessions.filter(s => 
-        new Date(s.created_at) >= thirtyDaysAgo
-      );
-
       const questionsPerDay = recentSessions.length > 0
-        ? Math.round(recentSessions.reduce((sum, s) => sum + (s.total_questions || 0), 0) / 30)
+        ? Math.round(recentSessions.reduce((sum, s) => sum + s.total_questions, 0) / 30)
         : 0;
 
       // Calcular racha de días
@@ -157,7 +145,7 @@ export function useAdvancedStats() {
       const improvementTrend = calculateImprovementTrend(recentSessions);
 
       // Procesar performance por temas
-      const topicStats = processTopicPerformance(completedSessions);
+      const topicStats = processTopicPerformance(topicData);
 
       // Actividad semanal
       const weeklyActivity = processWeeklyActivity(recentSessions);
@@ -166,19 +154,19 @@ export function useAdvancedStats() {
       const monthlyProgress = processMonthlyProgress(completedSessions);
 
       // Calcular nivel
-      const { level, nextLevelThreshold } = calculateLevel(points);
+      const { level, nextLevelThreshold } = calculateLevel(statsData.points || 0);
 
       const advancedStats: AdvancedUserStats = {
         // Básicas
-        totalSessions,
-        completedSessions: totalCompletedSessions,
-        totalQuestionsAnswered,
-        totalCorrectAnswers,
-        overallAccuracyPercentage,
-        currentFailedQuestions: failedCount || 0,
-        bestSessionScorePercentage: Math.round(bestSessionScore),
-        lastActivity,
-        points,
+        totalSessions: statsData.total_sessions || 0,
+        completedSessions: statsData.completed_sessions || 0,
+        totalQuestionsAnswered: statsData.total_questions_answered || 0,
+        totalCorrectAnswers: statsData.total_correct_answers || 0,
+        overallAccuracyPercentage: Math.round(statsData.overall_accuracy_percentage || 0),
+        currentFailedQuestions: statsData.current_failed_questions || 0,
+        bestSessionScorePercentage: Math.round(statsData.best_session_score_percentage || 0),
+        lastActivity: statsData.last_activity || null,
+        points: statsData.points || 0,
 
         // Avanzadas
         averageSessionTime,
@@ -186,7 +174,7 @@ export function useAdvancedStats() {
         streakDays,
         improvementTrend,
         currentLevel: level,
-        experienceToNextLevel: Math.max(0, nextLevelThreshold - points),
+        experienceToNextLevel: Math.max(0, nextLevelThreshold - (statsData.points || 0)),
 
         // Por tema
         bestTopics: topicStats.best,
@@ -207,31 +195,6 @@ export function useAdvancedStats() {
         description: "No se pudieron cargar las estadísticas avanzadas.",
         variant: "destructive"
       });
-
-      // Establecer estadísticas vacías como fallback
-      const emptyStats: AdvancedUserStats = {
-        totalSessions: 0,
-        completedSessions: 0,
-        totalQuestionsAnswered: 0,
-        totalCorrectAnswers: 0,
-        overallAccuracyPercentage: 0,
-        currentFailedQuestions: 0,
-        bestSessionScorePercentage: 0,
-        lastActivity: null,
-        points: 0,
-        averageSessionTime: 0,
-        questionsPerDay: 0,
-        streakDays: 0,
-        improvementTrend: 0,
-        currentLevel: 1,
-        experienceToNextLevel: 100,
-        bestTopics: [],
-        worstTopics: [],
-        recentPerformance: [],
-        weeklyActivity: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(day => ({ day, sessions: 0, accuracy: 0 })),
-        monthlyProgress: [],
-      };
-      setStats(emptyStats);
     } finally {
       setLoading(false);
     }
@@ -283,29 +246,25 @@ function calculateImprovementTrend(sessions: any[]): number {
   if (sessions.length < 5) return 0;
 
   const recent = sessions.slice(-5);
-  const older = sessions.slice(0, Math.min(5, sessions.length - 5));
+  const older = sessions.slice(0, 5);
 
-  if (older.length === 0) return 0;
-
-  const recentAvg = recent.reduce((sum, s) => sum + (s.score_percentage || 0), 0) / recent.length;
-  const olderAvg = older.reduce((sum, s) => sum + (s.score_percentage || 0), 0) / older.length;
+  const recentAvg = recent.reduce((sum, s) => sum + s.score_percentage, 0) / recent.length;
+  const olderAvg = older.reduce((sum, s) => sum + s.score_percentage, 0) / older.length;
 
   return Math.round(recentAvg - olderAvg);
 }
 
-function processTopicPerformance(sessions: any[]) {
+function processTopicPerformance(data: any[]) {
   const topicMap = new Map();
 
-  sessions.forEach(session => {
-    if (!session.temas?.nombre) return;
-    
+  data.forEach(session => {
     const topicName = session.temas.nombre;
     if (!topicMap.has(topicName)) {
       topicMap.set(topicName, { correct: 0, total: 0 });
     }
     const topic = topicMap.get(topicName);
-    topic.correct += session.correct_answers || 0;
-    topic.total += session.total_questions || 0;
+    topic.correct += session.correct_answers;
+    topic.total += session.total_questions;
   });
 
   const topics = Array.from(topicMap.entries()).map(([name, stats]) => ({
@@ -326,8 +285,8 @@ function processRecentPerformance(sessions: any[]) {
       month: 'short', 
       day: 'numeric' 
     }),
-    accuracy: Math.round(session.score_percentage || 0),
-    questionsAnswered: session.total_questions || 0
+    accuracy: Math.round(session.score_percentage),
+    questionsAnswered: session.total_questions
   }));
 }
 
@@ -338,7 +297,7 @@ function processWeeklyActivity(sessions: any[]) {
   sessions.forEach(session => {
     const dayIndex = new Date(session.created_at).getDay();
     weekData[dayIndex].sessions++;
-    weekData[dayIndex].accuracy += session.score_percentage || 0;
+    weekData[dayIndex].accuracy += session.score_percentage;
   });
 
   return weekData.map(day => ({
@@ -361,8 +320,8 @@ function processMonthlyProgress(sessions: any[]) {
     }
     
     const month = monthMap.get(monthKey);
-    month.totalQuestions += session.total_questions || 0;
-    month.totalCorrect += session.correct_answers || 0;
+    month.totalQuestions += session.total_questions;
+    month.totalCorrect += session.correct_answers;
     month.sessions++;
   });
 
