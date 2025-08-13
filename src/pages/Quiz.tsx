@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo } from "react";
+import { useEffect, useCallback, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +30,9 @@ export default function Quiz() {
   const academiaId = params.get("academia");
   const temaId = params.get("tema");
   const questionsParam = params.get("questions");
+
+  // 🔧 FIX: Estado para prevenir doble navegación
+  const [isCompletingQuiz, setIsCompletingQuiz] = useState(false);
 
   // 🔧 FIX: Memoizar specificQuestionIds para evitar recreación
   const specificQuestionIds = useMemo(() => {
@@ -72,16 +75,21 @@ export default function Quiz() {
   // Handle quiz completion
   useEffect(() => {
     const handleCompletion = async () => {
-      if (quiz.isFinished && quiz.isRevealed) {
-        // 🔧 FIX: Añadir delay para la última pregunta si fue correcta
+      // 🔧 FIX: Prevenir doble ejecución
+      if (quiz.isFinished && quiz.isRevealed && !isCompletingQuiz) {
+        console.log("🎯 Quiz terminado detectado, analizando última respuesta...");
+        
+        // Verificar si la última pregunta fue correcta
         const isLastQuestionCorrect = quiz.selectedAnswer === quiz.currentQuestion?.solucion_letra?.toUpperCase();
         
         if (isLastQuestionCorrect) {
           // Si la última pregunta fue correcta, esperar el mismo tiempo que otras respuestas correctas
-          console.log("🎯 Última pregunta correcta, aplicando delay de 1500ms...");
+          console.log("🎯 Última pregunta correcta, aplicando delay de 2000ms...");
+          setIsCompletingQuiz(true); // 👈 Marcar como "completando" para prevenir doble ejecución
+          
           setTimeout(async () => {
             await completeQuizAndNavigate();
-          }, 1500);
+          }, 2000); // 👈 Aumentado a 2 segundos para mejor experiencia
         } else {
           // Si fue incorrecta, no navegar automáticamente - esperar a que el usuario haga clic en "Siguiente"
           console.log("🎯 Última pregunta incorrecta, esperando acción del usuario...");
@@ -91,6 +99,8 @@ export default function Quiz() {
     };
 
     const completeQuizAndNavigate = async () => {
+      console.log("🎯 Iniciando navegación a Results...");
+      
       // Complete the quiz session in database
       const quizStats = await quiz.completeQuiz();
       
@@ -143,7 +153,7 @@ export default function Quiz() {
     };
 
     handleCompletion();
-  }, [quiz.isFinished, quiz.isRevealed, quiz, mode, navigate]);
+  }, [quiz.isFinished, quiz.isRevealed, quiz, mode, navigate, isCompletingQuiz]);
 
   // Handle back navigation with confirmation
   const handleGoBack = useCallback(() => {
@@ -202,6 +212,7 @@ export default function Quiz() {
     if (quiz.isFinished) {
       // 🔧 FIX: Si es la última pregunta, completar el quiz manualmente
       console.log("🎯 Última pregunta - completando quiz manualmente...");
+      setIsCompletingQuiz(true); // 👈 Marcar como "completando"
       
       // Complete the quiz session in database
       const quizStats = await quiz.completeQuiz();
@@ -245,7 +256,7 @@ export default function Quiz() {
     
     // Si no es la última pregunta, continuar normalmente
     quiz.nextQuestion();
-  }, [quiz, mode, navigate]);
+  }, [quiz, mode, navigate, setIsCompletingQuiz]);
 
   // Determinar si mostrar el botón "Siguiente"
   const shouldShowNextButton = quiz.isRevealed && !quiz.isAnswering && (
