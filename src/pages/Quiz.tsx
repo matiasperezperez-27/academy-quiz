@@ -56,6 +56,10 @@ export default function Quiz() {
   useEffect(() => {
     if (!user) {
       console.log("Esperando autenticación del usuario...");
+      console.log("🎯 NAVEGANDO A RESULTS CON:");
+      console.log("- originalFailedQuestionsCount:", stats?.originalFailedQuestionsCount);
+      console.log("- questionsStillFailed:", stats?.questionsStillFailed);
+      console.log("- specificQuestionIds:", quiz.specificQuestionIds);
       return;
     }
 
