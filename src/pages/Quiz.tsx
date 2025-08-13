@@ -98,7 +98,9 @@ export default function Quiz() {
               temaId: quiz.currentTemaId,
               // 🎯 NUEVA INFO PARA DETECTAR ORIGEN
               originalFailedQuestionsCount: quizStats.originalFailedQuestionsCount,
-              questionsStillFailed: quizStats.questionsStillFailed
+              questionsStillFailed: quizStats.questionsStillFailed,
+              // 🆕 PASAR LAS PREGUNTAS ORIGINALES PARA REPETIR
+              originalQuestionIds: quiz.specificQuestionIds
             },
             replace: true
           });
@@ -113,7 +115,9 @@ export default function Quiz() {
               temaId: quiz.currentTemaId,
               // 🎯 FALLBACK PARA DETECTAR ORIGEN
               originalFailedQuestionsCount: quiz.specificQuestionIds?.length || 0,
-              questionsStillFailed: []
+              questionsStillFailed: [],
+              // 🆕 PASAR LAS PREGUNTAS ORIGINALES PARA REPETIR
+              originalQuestionIds: quiz.specificQuestionIds
             },
             replace: true
           });

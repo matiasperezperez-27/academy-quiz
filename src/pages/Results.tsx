@@ -36,6 +36,8 @@ interface ResultsState {
   // 🆕 NUEVAS PROPIEDADES PARA SOLUCIONAR EL BUG
   originalFailedQuestionsCount?: number;
   questionsStillFailed?: string[];
+  // 🆕 NUEVA PROPIEDAD PARA REPETIR TEST
+  originalQuestionIds?: string[];
 }
 
 interface PerformanceLevel {
@@ -138,7 +140,8 @@ export default function Results() {
     pointsEarned = 0,
     averageTimePerQuestion = 0,
     originalFailedQuestionsCount = 0,
-    questionsStillFailed = []
+    questionsStillFailed = [],
+    originalQuestionIds = []
   } = location.state || {};
 
   // 🎯 NUEVA LÓGICA: Detectar si viene de análisis por temas
@@ -188,16 +191,33 @@ export default function Results() {
 
   // 🆕 NUEVA FUNCIÓN: Repetir el mismo test de análisis por temas
   const handleRepeatTopicTest = () => {
+    console.log("🔄 REPETIR TEST - Debug:");
+    console.log("- academiaId:", academiaId);
+    console.log("- temaId:", temaId);
+    console.log("- originalFailedQuestionsCount:", originalFailedQuestionsCount);
+    console.log("- questionsStillFailed:", questionsStillFailed);
+    console.log("- originalQuestionIds:", originalQuestionIds);
+
     if (academiaId && temaId && originalFailedQuestionsCount > 0) {
-      // Recrear la URL con las mismas preguntas falladas
-      const remainingFailedIds = questionsStillFailed || [];
-      if (remainingFailedIds.length > 0) {
-        const questionIds = remainingFailedIds.join(',');
+      // Opción 1: Si aún hay preguntas falladas específicas de esta sesión
+      if (questionsStillFailed && questionsStillFailed.length > 0) {
+        const questionIds = questionsStillFailed.join(',');
+        console.log("🔄 Opción 1: Repetir con preguntas que siguen falladas:", questionIds);
         window.location.href = `/quiz?mode=practice&tema=${temaId}&questions=${questionIds}`;
-      } else {
-        // Si ya no hay preguntas falladas, hacer un test normal del tema
+      }
+      // Opción 2: Repetir con las preguntas originales del análisis
+      else if (originalQuestionIds && originalQuestionIds.length > 0) {
+        const questionIds = originalQuestionIds.join(',');
+        console.log("🔄 Opción 2: Repetir con preguntas originales:", questionIds);
+        window.location.href = `/quiz?mode=practice&tema=${temaId}&questions=${questionIds}`;
+      }
+      // Opción 3: Test normal del tema
+      else {
+        console.log("🔄 Opción 3: Test normal del tema");
         window.location.href = `/quiz?mode=test&academia=${academiaId}&tema=${temaId}`;
       }
+    } else {
+      console.log("🔄 ERROR: Faltan datos necesarios");
     }
   };
 
