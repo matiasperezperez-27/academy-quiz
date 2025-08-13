@@ -508,8 +508,8 @@ useEffect(() => {
     return {
       totalQuestions: state.questions.length,
       correctAnswers: state.score,
-      incorrectAnswers: state.answers.length - state.score,
-      percentage: state.answers.length > 0 ? Math.round((state.score / state.answers.length) * 100) : 0,
+      incorrectAnswers: state.questions.length - state.score,
+      percentage: state.questions.length > 0 ? Math.round((state.score / state.questions.length) * 100) : 0,
       averageTimePerQuestion: state.answers.length > 0 
         ? Math.round(state.answers.reduce((sum, a) => sum + a.timeSpent, 0) / state.answers.length)
         : 0,
