@@ -222,7 +222,10 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
           questions: shuffle(specificQuestions as Pregunta[]), 
           isLoading: false,
           startTime: Date.now(),
-          specificQuestionIds: specificQuestionIds
+          specificQuestionIds: specificQuestionIds,
+          // 🎯 IMPORTANTE: Guardar academia y tema para uso posterior
+          currentAcademiaId: specificQuestions[0]?.academia_id || null,
+          currentTemaId: specificQuestions[0]?.tema_id || null
         }));
 
         console.log("🔍 STATE SET - questions.length:", specificQuestions.length);

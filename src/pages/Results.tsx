@@ -126,6 +126,10 @@ export default function Results() {
   const navigate = useNavigate();
   const location = useLocation() as { state?: ResultsState };
   
+  // 🎯 OBTENER TEMA_ID DE LA URL COMO BACKUP
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlTemaId = urlParams.get('tema');
+  
   const {
     score = 0,
     total = 10,
@@ -143,6 +147,9 @@ export default function Results() {
     questionsStillFailed = [],
     originalQuestionIds = []
   } = location.state || {};
+
+  // 🎯 USAR TEMA_ID DE URL COMO BACKUP
+  const finalTemaId = temaId || urlTemaId;
 
   // 🎯 NUEVA LÓGICA: Detectar si viene de análisis por temas
   const isFromTopicAnalysis = originalFailedQuestionsCount > 0;
@@ -194,30 +201,39 @@ export default function Results() {
     console.log("🔄 REPETIR TEST - Debug:");
     console.log("- academiaId:", academiaId);
     console.log("- temaId:", temaId);
+    console.log("- finalTemaId:", finalTemaId);
     console.log("- originalFailedQuestionsCount:", originalFailedQuestionsCount);
     console.log("- questionsStillFailed:", questionsStillFailed);
     console.log("- originalQuestionIds:", originalQuestionIds);
 
-    if (academiaId && temaId && originalFailedQuestionsCount > 0) {
+    // 🎯 SIMPLIFICADO: Solo necesitamos temaId y las preguntas originales
+    if (finalTemaId && originalQuestionIds && originalQuestionIds.length > 0) {
       // Opción 1: Si aún hay preguntas falladas específicas de esta sesión
       if (questionsStillFailed && questionsStillFailed.length > 0) {
         const questionIds = questionsStillFailed.join(',');
         console.log("🔄 Opción 1: Repetir con preguntas que siguen falladas:", questionIds);
-        window.location.href = `/quiz?mode=practice&tema=${temaId}&questions=${questionIds}`;
+        window.location.href = `/quiz?mode=practice&tema=${finalTemaId}&questions=${questionIds}`;
       }
       // Opción 2: Repetir con las preguntas originales del análisis
-      else if (originalQuestionIds && originalQuestionIds.length > 0) {
+      else {
         const questionIds = originalQuestionIds.join(',');
         console.log("🔄 Opción 2: Repetir con preguntas originales:", questionIds);
-        window.location.href = `/quiz?mode=practice&tema=${temaId}&questions=${questionIds}`;
+        window.location.href = `/quiz?mode=practice&tema=${finalTemaId}&questions=${questionIds}`;
       }
-      // Opción 3: Test normal del tema
-      else {
-        console.log("🔄 Opción 3: Test normal del tema");
-        window.location.href = `/quiz?mode=test&academia=${academiaId}&tema=${temaId}`;
-      }
-    } else {
+    } 
+    // Fallback: Si tenemos academiaId y temaId, hacer test normal
+    else if (academiaId && finalTemaId) {
+      console.log("🔄 Opción 3: Test normal del tema");
+      window.location.href = `/quiz?mode=test&academia=${academiaId}&tema=${finalTemaId}`;
+    }
+    // Error: No tenemos suficientes datos
+    else {
       console.log("🔄 ERROR: Faltan datos necesarios");
+      console.log("- Necesitamos: finalTemaId Y originalQuestionIds");
+      console.log("- O al menos: academiaId Y finalTemaId");
+      
+      // Como último recurso, ir al análisis por temas
+      navigate("/analisis-temas");
     }
   };
 
