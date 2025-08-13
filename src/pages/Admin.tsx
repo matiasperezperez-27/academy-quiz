@@ -29,24 +29,29 @@ export default function Admin() {
   }, []);
 
   useEffect(() => {
-    if (!loading && !user) {
-      toast({
-        title: "Acceso denegado",
-        description: "Debes iniciar sesión para acceder al panel de administración",
-        variant: "destructive"
-      });
-      navigate("/", { replace: true });
-      return;
-    }
+    // Añadir un delay para evitar redirects prematuros
+    const timer = setTimeout(() => {
+      if (!loading && !user) {
+        toast({
+          title: "Acceso denegado",
+          description: "Debes iniciar sesión para acceder al panel de administración",
+          variant: "destructive"
+        });
+        navigate("/", { replace: true });
+        return;
+      }
 
-    if (!loading && user && !isAdmin) {
-      toast({
-        title: "Acceso denegado", 
-        description: "No tienes permisos de administrador",
-        variant: "destructive"
-      });
-      navigate("/", { replace: true });
-    }
+      if (!loading && user && !isAdmin) {
+        toast({
+          title: "Acceso denegado", 
+          description: "No tienes permisos de administrador",
+          variant: "destructive"
+        });
+        navigate("/", { replace: true });
+      }
+    }, 500); // Delay de 500ms para que se estabilice el auth
+
+    return () => clearTimeout(timer);
   }, [user, isAdmin, loading, navigate, toast]);
 
   if (loading) {
