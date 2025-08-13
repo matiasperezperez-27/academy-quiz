@@ -73,7 +73,14 @@ export function useTopicAnalysis() {
       // Obtener preguntas falladas para práctica dirigida
       const { data: preguntasFalladas, error: falladasError } = await supabase
         .from('preguntas_falladas')
-        .select('pregunta_id')
+        .select(`
+          pregunta_id,
+          preguntas!inner(
+            tema_id,
+            temas!inner(nombre),
+            academias!inner(nombre)
+          )
+        `)
         .eq('user_id', user.id);
 
       if (falladasError) throw falladasError;
@@ -123,7 +130,7 @@ export function useTopicAnalysis() {
           tema.ultima_respuesta = answer.answered_at;
         }
 
-        // Agregar preguntas falladas del sistema legacy
+        // SOLO agregar de preguntas_falladas (para ser consistente con useQuiz)
         if (falladasSet.has(pregunta.id)) {
           tema.preguntas_falladas.add(pregunta.id);
         }
