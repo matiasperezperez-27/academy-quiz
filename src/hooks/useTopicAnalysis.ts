@@ -13,13 +13,9 @@ export interface TopicStats {
   total_correctas: number;
   total_incorrectas: number;
   porcentaje_acierto: number;
-  nivel_dominio: 'Dominado' | 'Casi Dominado' | 'En Progreso' | 'Necesita Práctica';
+  nivel_dominio: 'Excelente' | 'Bueno' | 'Regular' | 'Necesita práctica';
   ultima_respuesta: string | null;
   preguntas_falladas_ids: string[];
-  // NUEVAS PROPIEDADES para el sistema de confianza
-  intentos_totales: number;
-  ultimos_intentos: number[];
-  dias_sin_repasar: number;
 }
 
 export interface TopicAnalysisFilters {
@@ -39,12 +35,11 @@ export function useTopicAnalysis() {
     solo_con_errores: false
   });
 
-  const getNivelDominio = (porcentaje: number, intentos: number, diasSinRepasar: number): TopicStats['nivel_dominio'] => {
-    // Sistema de Confianza Progresivo
-    if (porcentaje >= 95 && intentos >= 2) return 'Dominado';
-    if (porcentaje >= 85 && intentos >= 3) return 'Casi Dominado';
-    if (porcentaje >= 70) return 'En Progreso';
-    return 'Necesita Práctica';
+  const getNivelDominio = (porcentaje: number): TopicStats['nivel_dominio'] => {
+    if (porcentaje >= 90) return 'Excelente';
+    if (porcentaje >= 75) return 'Bueno';
+    if (porcentaje >= 60) return 'Regular';
+    return 'Necesita práctica';
   };
 
   const loadTopicAnalysis = useCallback(async () => {
@@ -53,13 +48,12 @@ export function useTopicAnalysis() {
     try {
       setLoading(true);
 
-      // Consulta principal para obtener estadísticas por tema CON SESIONES
+      // Consulta principal para obtener estadísticas por tema
       const { data: rawStats, error: statsError } = await supabase
         .from('user_answers')
         .select(`
           is_correct,
           answered_at,
-          session_id,
           preguntas!inner(
             id,
             tema_id,
@@ -70,10 +64,6 @@ export function useTopicAnalysis() {
             academias!inner(
               nombre
             )
-          ),
-          user_sessions!inner(
-            created_at,
-            score_percentage
           )
         `)
         .eq('user_id', user.id);
@@ -107,8 +97,6 @@ export function useTopicAnalysis() {
         incorrectas: number;
         ultima_respuesta: string | null;
         preguntas_falladas: Set<string>;
-        sesiones: Set<string>;
-        ultimas_sesiones_scores: number[];
       }>();
 
       rawStats?.forEach(answer => {
@@ -124,9 +112,7 @@ export function useTopicAnalysis() {
             correctas: 0,
             incorrectas: 0,
             ultima_respuesta: null,
-            preguntas_falladas: new Set(),
-            sesiones: new Set(),
-            ultimas_sesiones_scores: []
+            preguntas_falladas: new Set()
           });
         }
 
@@ -137,14 +123,6 @@ export function useTopicAnalysis() {
         } else {
           tema.incorrectas++;
           tema.preguntas_falladas.add(pregunta.id);
-        }
-
-        // Tracking de sesiones y scores
-        if (answer.session_id) {
-          tema.sesiones.add(answer.session_id);
-          if (answer.user_sessions?.score_percentage !== null) {
-            tema.ultimas_sesiones_scores.push(answer.user_sessions.score_percentage);
-          }
         }
 
         // Actualizar última respuesta
@@ -163,18 +141,6 @@ export function useTopicAnalysis() {
         const total = tema.correctas + tema.incorrectas;
         const porcentaje = total > 0 ? Math.round((tema.correctas / total) * 100) : 0;
         
-        // Calcular días sin repasar
-        const diasSinRepasar = tema.ultima_respuesta 
-          ? Math.floor((new Date().getTime() - new Date(tema.ultima_respuesta).getTime()) / (1000 * 60 * 60 * 24))
-          : 999;
-
-        // Obtener últimos 5 scores de sesiones
-        const ultimosScores = tema.ultimas_sesiones_scores
-          .slice(-5) // Últimos 5
-          .map(score => Math.round(score));
-
-        const intentosTotales = tema.sesiones.size;
-        
         return {
           tema_id: tema.tema_id,
           tema_nombre: tema.tema_nombre,
@@ -184,13 +150,9 @@ export function useTopicAnalysis() {
           total_correctas: tema.correctas,
           total_incorrectas: tema.incorrectas,
           porcentaje_acierto: porcentaje,
-          nivel_dominio: getNivelDominio(porcentaje, intentosTotales, diasSinRepasar),
+          nivel_dominio: getNivelDominio(porcentaje),
           ultima_respuesta: tema.ultima_respuesta,
-          preguntas_falladas_ids: Array.from(tema.preguntas_falladas),
-          // NUEVOS CAMPOS
-          intentos_totales: intentosTotales,
-          ultimos_intentos: ultimosScores,
-          dias_sin_repasar: diasSinRepasar
+          preguntas_falladas_ids: Array.from(tema.preguntas_falladas)
         };
       });
 
