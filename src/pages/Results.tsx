@@ -15,7 +15,8 @@ import {
   AlertCircle,
   ArrowLeft,
   Play,
-  CheckCircle
+  CheckCircle,
+  BarChart3
 } from "lucide-react";
 
 interface ResultsState {
@@ -32,6 +33,9 @@ interface ResultsState {
   percentage?: number;
   pointsEarned?: number;
   averageTimePerQuestion?: number;
+  // 🆕 NUEVAS PROPIEDADES PARA SOLUCIONAR EL BUG
+  originalFailedQuestionsCount?: number;
+  questionsStillFailed?: string[];
 }
 
 interface PerformanceLevel {
@@ -132,8 +136,13 @@ export default function Results() {
     temaId,
     percentage: providedPercentage,
     pointsEarned = 0,
-    averageTimePerQuestion = 0
+    averageTimePerQuestion = 0,
+    originalFailedQuestionsCount = 0,
+    questionsStillFailed = []
   } = location.state || {};
+
+  // 🎯 NUEVA LÓGICA: Detectar si viene de análisis por temas
+  const isFromTopicAnalysis = originalFailedQuestionsCount > 0;
 
   useEffect(() => {
     setSEO(
@@ -157,7 +166,15 @@ export default function Results() {
     [percentage, mode, remainingQuestionsInTopic]
   );
 
-  const incorrectCount = total - score;
+  // 🔧 FIX: Usar las preguntas que realmente siguen falladas, no calcular incorrectCount
+  const actualFailedCount = mode === "practice" && originalFailedQuestionsCount 
+    ? questionsStillFailed.length // Preguntas que siguen falladas después de esta sesión
+    : total - score; // Para modo test normal, usar el cálculo tradicional
+
+  const shouldShowPracticeButton = mode === "test" && (
+    (originalFailedQuestionsCount > 0 && questionsStillFailed.length > 0) || // Modo práctica con errores restantes
+    (originalFailedQuestionsCount === 0 && actualFailedCount > 0) // Modo test normal con nuevos errores
+  );
 
   // NUEVA LÓGICA: Determinar si mostrar botón "Continuar con 10 más"
   const canContinueWithMore = useMemo(() => {
@@ -165,10 +182,26 @@ export default function Results() {
            academiaId && 
            temaId && 
            remainingQuestionsInTopic !== undefined && 
-           remainingQuestionsInTopic > 0;
-  }, [mode, academiaId, temaId, remainingQuestionsInTopic]);
+           remainingQuestionsInTopic > 0 &&
+           !isFromTopicAnalysis; // No mostrar si viene de análisis por temas
+  }, [mode, academiaId, temaId, remainingQuestionsInTopic, isFromTopicAnalysis]);
 
-  // NUEVA FUNCIÓN: Continuar con más preguntas del mismo tema
+  // 🆕 NUEVA FUNCIÓN: Repetir el mismo test de análisis por temas
+  const handleRepeatTopicTest = () => {
+    if (academiaId && temaId && originalFailedQuestionsCount > 0) {
+      // Recrear la URL con las mismas preguntas falladas
+      const remainingFailedIds = questionsStillFailed || [];
+      if (remainingFailedIds.length > 0) {
+        const questionIds = remainingFailedIds.join(',');
+        window.location.href = `/quiz?mode=practice&tema=${temaId}&questions=${questionIds}`;
+      } else {
+        // Si ya no hay preguntas falladas, hacer un test normal del tema
+        window.location.href = `/quiz?mode=test&academia=${academiaId}&tema=${temaId}`;
+      }
+    }
+  };
+
+  // NUEVA FUNCIÓN: Continuar con más preguntas del mismo tema (para tests normales)
   const handleContinueWithMore = () => {
     if (academiaId && temaId) {
       navigate(`/quiz?mode=test&academia=${academiaId}&tema=${temaId}`);
@@ -266,7 +299,7 @@ export default function Results() {
                 <div className="text-sm text-green-700">Correctas</div>
               </div>
               <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
-                <div className="text-2xl font-bold text-red-600">{incorrectCount}</div>
+                <div className="text-2xl font-bold text-red-600">{actualFailedCount}</div>
                 <div className="text-sm text-red-700">Incorrectas</div>
               </div>
             </div>
@@ -290,7 +323,7 @@ export default function Results() {
             )}
 
             {/* NUEVA: Información de progreso del tema */}
-            {remainingQuestionsInTopic !== undefined && mode === "test" && (
+            {remainingQuestionsInTopic !== undefined && mode === "test" && !isFromTopicAnalysis && (
               <div className="bg-muted/30 p-4 rounded-lg border-l-4 border-blue-500">
                 <div className="flex items-center justify-between">
                   <div>
@@ -334,56 +367,107 @@ export default function Results() {
           </CardContent>
         </Card>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - NUEVA LÓGICA SEGÚN ORIGEN */}
         <Card>
           <CardContent className="pt-6">
             <div className="space-y-3">
-              {/* NUEVA: Botón "Continuar con 10 más" */}
-              {canContinueWithMore && (
-                <Button 
-                  onClick={handleContinueWithMore}
-                  className="w-full"
-                  size="lg"
-                  variant="default"
-                >
-                  <Play className="mr-2 h-4 w-4" />
-                  Continuar con 10 más ({remainingQuestionsInTopic} restantes)
-                </Button>
-              )}
+              {/* NUEVA: Lógica condicional según origen */}
+              {isFromTopicAnalysis ? (
+                // 🎯 BOTONES PARA ANÁLISIS POR TEMAS
+                <>
+                  <Button 
+                    onClick={() => navigate("/analisis-temas")}
+                    className="w-full"
+                    size="lg"
+                    variant="default"
+                  >
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    Ver Análisis por Temas
+                  </Button>
+                  
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Button 
+                      onClick={handleRepeatTopicTest}
+                      variant="outline"
+                      className="w-full"
+                      size="sm"
+                    >
+                      <RotateCcw className="mr-2 h-4 w-4" />
+                      Repetir Test
+                    </Button>
+                    
+                    <Button 
+                      onClick={() => navigate("/")}
+                      variant="outline"
+                      className="w-full"
+                      size="sm"
+                    >
+                      <Home className="mr-2 h-4 w-4" />
+                      Inicio
+                    </Button>
+                  </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Button 
-                  onClick={() => navigate("/")}
-                  variant={canContinueWithMore ? "outline" : "default"}
-                  className="w-full"
-                  size="lg"
-                >
-                  <Home className="mr-2 h-4 w-4" />
-                  Ir al Inicio
-                </Button>
-                
-                <Button 
-                  onClick={() => navigate("/test-setup")}
-                  variant="outline"
-                  className="w-full"
-                  size="lg"
-                >
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  Nuevo Test
-                </Button>
-              </div>
+                  {/* Mostrar info sobre preguntas restantes si las hay */}
+                  {questionsStillFailed.length > 0 && (
+                    <div className="text-center text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
+                      <span>📚 Aún tienes {questionsStillFailed.length} pregunta{questionsStillFailed.length > 1 ? 's' : ''} de este tema para practicar</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                // 🔄 BOTONES PARA TESTS NORMALES (lógica original)
+                <>
+                  {/* NUEVA: Botón "Continuar con 10 más" */}
+                  {canContinueWithMore && (
+                    <Button 
+                      onClick={handleContinueWithMore}
+                      className="w-full"
+                      size="lg"
+                      variant="default"
+                    >
+                      <Play className="mr-2 h-4 w-4" />
+                      Continuar con 10 más ({remainingQuestionsInTopic} restantes)
+                    </Button>
+                  )}
 
-              {/* Practice Button (if there are incorrect answers and it's test mode) */}
-              {mode === "test" && incorrectCount > 0 && (
-                <Button 
-                  onClick={() => navigate("/practice")}
-                  variant="secondary"
-                  className="w-full"
-                  size="lg"
-                >
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  Practicar Preguntas Falladas ({incorrectCount})
-                </Button>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Button 
+                      onClick={() => navigate("/")}
+                      variant={canContinueWithMore ? "outline" : "default"}
+                      className="w-full"
+                      size="lg"
+                    >
+                      <Home className="mr-2 h-4 w-4" />
+                      Ir al Inicio
+                    </Button>
+                    
+                    <Button 
+                      onClick={() => navigate("/test-setup")}
+                      variant="outline"
+                      className="w-full"
+                      size="lg"
+                    >
+                      <RotateCcw className="mr-2 h-4 w-4" />
+                      Nuevo Test
+                    </Button>
+                  </div>
+
+                  {/* Practice Button (if there are incorrect answers and it's test mode) */}
+                  {shouldShowPracticeButton && (
+                    <Button 
+                      onClick={() => navigate("/practice")}
+                      variant="secondary"
+                      className="w-full"
+                      size="lg"
+                    >
+                      <BookOpen className="mr-2 h-4 w-4" />
+                      {originalFailedQuestionsCount > 0 
+                        ? `Seguir Practicando (${questionsStillFailed.length} restantes)`
+                        : `Practicar Preguntas Falladas (${actualFailedCount})`
+                      }
+                    </Button>
+                  )}
+                </>
               )}
             </div>
           </CardContent>
