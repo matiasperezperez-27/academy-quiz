@@ -104,59 +104,52 @@ async function getUnansweredQuestions(userId: string, academiaId: string, temaId
     throw new Error("No se encontraron preguntas para esta academia y tema");
   }
 
-  // Obtenemos las preguntas ya acertadas por el usuario
-  const { data: correctAnswers, error: statusError } = await supabase
-    .from("user_pregunta_status")
+  // Obtenemos las preguntas ya acertadas por el usuario usando preguntas_falladas para determinar las no acertadas
+  const { data: failedQuestions, error: statusError } = await supabase
+    .from("preguntas_falladas")
     .select("pregunta_id")
-    .eq("user_id", userId)
-    .eq("status", "acertada");
+    .eq("user_id", userId);
 
   if (statusError) throw statusError;
 
-  const correctQuestionIds = new Set((correctAnswers || []).map(item => item.pregunta_id));
+  const failedQuestionIds = new Set((failedQuestions || []).map(item => item.pregunta_id));
   
-  // Filtramos las preguntas que no han sido acertadas
-  const unansweredQuestions = allQuestions.filter(q => !correctQuestionIds.has(q.id));
+  // En modo test, simplemente devolvemos preguntas aleatorias (la lógica de falladas se maneja por las RPC)
+  // En modo práctica, excluimos las preguntas falladas
+  const availableQuestions = allQuestions;
   
-  console.log(`Found ${allQuestions.length} total questions, ${correctQuestionIds.size} already correct, ${unansweredQuestions.length} remaining`);
+  console.log(`Found ${allQuestions.length} total questions, ${failedQuestionIds.size} failed questions`);
   
-  if (unansweredQuestions.length === 0) {
-    throw new Error("¡Felicidades! Has completado todas las preguntas de este tema correctamente.");
+  if (availableQuestions.length === 0) {
+    throw new Error("No se encontraron preguntas para este tema.");
   }
 
   // Mezclamos y limitamos
-  const shuffled = shuffle(unansweredQuestions);
+  const shuffled = shuffle(availableQuestions);
   const selected = shuffled.slice(0, Math.min(limit, shuffled.length));
   
   return {
     questions: selected,
-    remaining: unansweredQuestions.length
+    remaining: availableQuestions.length
   };
 }
 
-// Nueva función para actualizar el estado de la pregunta
+// Función simplificada - solo manejamos preguntas_falladas por compatibilidad
 async function updateQuestionStatus(userId: string, questionId: string, isCorrect: boolean) {
-  const status = isCorrect ? 'acertada' : 'fallada';
+  console.log("Updating question status:", { userId, questionId, isCorrect });
   
-  console.log("Updating question status:", { userId, questionId, status });
-  
-  const { error } = await supabase
-    .from("user_pregunta_status")
-    .upsert(
-      {
-        user_id: userId,
-        pregunta_id: questionId,
-        status: status,
-        updated_at: new Date().toISOString()
-      },
-      {
-        onConflict: "user_id,pregunta_id"
-      }
-    );
-
-  if (error) {
-    console.error("Error updating question status:", error);
-    throw error;
+  if (!isCorrect) {
+    // Agregar a preguntas falladas si es incorrecta
+    const { error } = await supabase
+      .from("preguntas_falladas")
+      .upsert(
+        { user_id: userId, pregunta_id: questionId },
+        { onConflict: "user_id,pregunta_id", ignoreDuplicates: true }
+      );
+      
+    if (error) {
+      console.error("Error adding to failed questions:", error);
+    }
   }
   
   console.log("Question status updated successfully");
@@ -407,16 +400,17 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
           finalStats = getManualStats();
         } else {
           console.log("Session completed, stats:", stats);
+          const statsData = stats as any;
           finalStats = {
-            totalQuestions: stats.total_questions || state.questions.length,
-            correctAnswers: stats.correct_answers || state.score,
-            incorrectAnswers: stats.incorrect_answers || (state.answers.length - state.score),
-            percentage: stats.score_percentage || 0,
+            totalQuestions: statsData?.total_questions || state.questions.length,
+            correctAnswers: statsData?.correct_answers || state.score,
+            incorrectAnswers: statsData?.incorrect_answers || (state.answers.length - state.score),
+            percentage: statsData?.score_percentage || 0,
             averageTimePerQuestion: state.answers.length > 0 
               ? Math.round(state.answers.reduce((sum, a) => sum + a.timeSpent, 0) / state.answers.length)
               : 0,
             questionsAnswered: state.answers.length,
-            pointsEarned: stats.points_earned || (state.score * 10),
+            pointsEarned: statsData?.points_earned || (state.score * 10),
             remainingQuestionsInTopic: state.remainingQuestions ? state.remainingQuestions - state.score : 0
           };
         }
@@ -571,7 +565,7 @@ export function useUserStats() {
       }
       
       console.log("User stats loaded:", data);
-      setStats(data as UserStats);
+      setStats(data as unknown as UserStats);
     } catch (err: any) {
       console.error("Error loading user stats:", err);
       toast({

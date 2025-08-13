@@ -17,11 +17,11 @@ export default function AdminStats() {
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const { data, error } = await supabase.rpc('get_admin_stats');
+        const { data, error } = await supabase.rpc('get_admin_stats' as any);
         if (error) throw error;
         
-        if (data && data.length > 0) {
-          setStats(data[0]);
+        if (data && Array.isArray(data) && data.length > 0) {
+          setStats(data[0] as AdminStatsData);
         }
       } catch (error) {
         console.error('Error loading admin stats:', error);

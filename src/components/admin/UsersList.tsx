@@ -21,9 +21,9 @@ export default function UsersList() {
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        const { data, error } = await supabase.rpc('get_users_list', { limit_count: 50 });
+        const { data, error } = await supabase.rpc('get_users_list' as any, { limit_count: 50 });
         if (error) throw error;
-        setUsers(data || []);
+        setUsers((data as User[]) || []);
       } catch (error) {
         console.error('Error loading users:', error);
       } finally {

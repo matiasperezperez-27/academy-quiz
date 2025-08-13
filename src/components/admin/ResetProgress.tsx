@@ -38,7 +38,7 @@ export default function ResetProgress() {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.rpc("reset_user_progress", {
+      const { error } = await supabase.rpc("reset_user_progress" as any, {
         p_user_id: userId.trim(),
         p_tema_id: resetType === "tema" ? temaId.trim() : null
       });
