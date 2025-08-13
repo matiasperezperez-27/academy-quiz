@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Play, 
-  BookOpen, 
-  LogOut, 
-  Trophy, 
-  Target, 
+import {
+  Play,
+  BookOpen,
+  LogOut,
+  Trophy,
+  Target,
   TrendingUp,
   User,
   Clock,
@@ -16,14 +17,17 @@ import {
   Zap,
   Flame,
   Star,
-  BarChart3
+  BarChart3,
+  Shield, // 1. Ícono importado
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdmin } from "@/hooks/useAdmin"; // 2. Hook de admin importado
 import { supabase } from "@/integrations/supabase/client";
 
 // Dashboard súper simple que SÍ funciona
 export default function SimpleDashboard() {
   const { user, signOut } = useAuth();
+  const { isAdmin } = useAdmin(); // 3. Hook en uso
   const [rawData, setRawData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -50,11 +54,10 @@ export default function SimpleDashboard() {
 
       // Guardar datos raw sin procesar
       setRawData(basicStats);
-
     } catch (err) {
       console.error("Error cargando stats:", err);
       setError(err.message);
-      
+
       // Si falla todo, poner datos vacíos
       setRawData({
         total_sessions: 0,
@@ -65,7 +68,7 @@ export default function SimpleDashboard() {
         current_failed_questions: 0,
         best_session_score_percentage: 0,
         last_activity: null,
-        points: 0
+        points: 0,
       });
     } finally {
       setLoading(false);
@@ -85,7 +88,7 @@ export default function SimpleDashboard() {
 
   const getUserDisplayName = () => {
     if (user?.user_metadata?.username) return user.user_metadata.username;
-    if (user?.email) return user.email.split('@')[0];
+    if (user?.email) return user.email.split("@")[0];
     return "Usuario";
   };
 
@@ -103,7 +106,7 @@ export default function SimpleDashboard() {
 
   // Función súper segura para obtener valores
   const safeGet = (obj, key, defaultValue = 0) => {
-    if (!obj || typeof obj !== 'object') return defaultValue;
+    if (!obj || typeof obj !== "object") return defaultValue;
     const value = obj[key];
     return value !== null && value !== undefined ? value : defaultValue;
   };
@@ -112,9 +115,7 @@ export default function SimpleDashboard() {
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <div className={`h-4 w-4 ${color}`}>
-          {icon}
-        </div>
+        <div className={`h-4 w-4 ${color}`}>{icon}</div>
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
@@ -138,22 +139,25 @@ export default function SimpleDashboard() {
   }
 
   // Variables súper seguras
-  const completedSessions = safeGet(rawData, 'completed_sessions', 0);
-  const totalSessions = safeGet(rawData, 'total_sessions', 0);
-  const accuracy = Math.round(safeGet(rawData, 'overall_accuracy_percentage', 0));
-  const correctAnswers = safeGet(rawData, 'total_correct_answers', 0);
-  const totalAnswers = safeGet(rawData, 'total_questions_answered', 0);
-  const failedQuestions = safeGet(rawData, 'current_failed_questions', 0);
-  const points = safeGet(rawData, 'points', 0);
-  const bestScore = Math.round(safeGet(rawData, 'best_session_score_percentage', 0));
-  const lastActivity = safeGet(rawData, 'last_activity', null);
+  const completedSessions = safeGet(rawData, "completed_sessions", 0);
+  const totalSessions = safeGet(rawData, "total_sessions", 0);
+  const accuracy = Math.round(
+    safeGet(rawData, "overall_accuracy_percentage", 0)
+  );
+  const correctAnswers = safeGet(rawData, "total_correct_answers", 0);
+  const totalAnswers = safeGet(rawData, "total_questions_answered", 0);
+  const failedQuestions = safeGet(rawData, "current_failed_questions", 0);
+  const points = safeGet(rawData, "points", 0);
+  const bestScore = Math.round(
+    safeGet(rawData, "best_session_score_percentage", 0)
+  );
+  const lastActivity = safeGet(rawData, "last_activity", null);
 
   const levelInfo = getLevel(points);
 
   return (
     <main className="min-h-screen p-4 bg-background">
       <div className="max-w-6xl mx-auto space-y-6">
-        
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="space-y-1">
@@ -165,6 +169,15 @@ export default function SimpleDashboard() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* 4. CÓDIGO AÑADIDO PARA EL ENLACE DE ADMIN */}
+            {isAdmin && (
+              <Button asChild variant="ghost" size="sm" className="flex items-center gap-2">
+                <Link to="/admin">
+                  <Shield className="h-4 w-4" />
+                  <span className="hidden sm:inline">Admin</span>
+                </Link>
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -172,7 +185,9 @@ export default function SimpleDashboard() {
               disabled={loading}
               className="flex items-center gap-2"
             >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+              />
               <span className="hidden sm:inline">Actualizar</span>
             </Button>
             <Button
@@ -224,7 +239,7 @@ export default function SimpleDashboard() {
               color="text-yellow-600"
               subtitle="sesiones finalizadas"
             />
-            
+
             <StatsCard
               title="Precisión General"
               value={`${accuracy}%`}
@@ -232,7 +247,7 @@ export default function SimpleDashboard() {
               color="text-blue-600"
               subtitle={`${correctAnswers}/${totalAnswers} correctas`}
             />
-            
+
             <StatsCard
               title="Preguntas Falladas"
               value={failedQuestions}
@@ -240,7 +255,7 @@ export default function SimpleDashboard() {
               color="text-orange-600"
               subtitle="para practicar"
             />
-            
+
             <StatsCard
               title={`Nivel ${levelInfo.level}`}
               value={levelInfo.title}
@@ -253,7 +268,6 @@ export default function SimpleDashboard() {
 
         {/* Main Action Cards */}
         <div className="grid gap-6 md:grid-cols-2">
-          
           {/* New Test Card */}
           <Card className="hover:shadow-lg transition-shadow cursor-pointer">
             <CardHeader>
@@ -279,7 +293,11 @@ export default function SimpleDashboard() {
                   <Target className="h-4 w-4" />
                   10 preguntas aleatorias
                 </div>
-                <Button className="w-full" size="lg" onClick={() => window.location.href = '/test-setup'}>
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={() => (window.location.href = "/test-setup")}
+                >
                   <Play className="mr-2 h-4 w-4" />
                   Comenzar Test
                 </Button>
@@ -307,7 +325,9 @@ export default function SimpleDashboard() {
                 {failedQuestions > 0 ? (
                   <>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Preguntas pendientes:</span>
+                      <span className="text-sm text-muted-foreground">
+                        Preguntas pendientes:
+                      </span>
                       <Badge variant="destructive" className="text-xs">
                         {failedQuestions}
                       </Badge>
@@ -316,7 +336,12 @@ export default function SimpleDashboard() {
                       <TrendingUp className="h-4 w-4" />
                       Mejora tu puntuación
                     </div>
-                    <Button className="w-full" variant="secondary" size="lg" onClick={() => window.location.href = '/practice'}>
+                    <Button
+                      className="w-full"
+                      variant="secondary"
+                      size="lg"
+                      onClick={() => (window.location.href = "/practice")}
+                    >
                       <BookOpen className="mr-2 h-4 w-4" />
                       Practicar Ahora
                     </Button>
@@ -326,10 +351,16 @@ export default function SimpleDashboard() {
                     <div className="text-center py-4">
                       <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto mb-2" />
                       <p className="text-sm text-muted-foreground">
-                        ¡Excelente! No tienes preguntas falladas para practicar.
+                        ¡Excelente! No tienes preguntas falladas para
+                        practicar.
                       </p>
                     </div>
-                    <Button className="w-full" variant="secondary" size="lg" disabled>
+                    <Button
+                      className="w-full"
+                      variant="secondary"
+                      size="lg"
+                      disabled
+                    >
                       <BookOpen className="mr-2 h-4 w-4" />
                       Sin Preguntas Pendientes
                     </Button>
@@ -357,21 +388,26 @@ export default function SimpleDashboard() {
                     <Star className="h-6 w-6 text-purple-600" />
                   </div>
                   <div>
-                    <div className="text-xl font-bold">Nivel {levelInfo.level}</div>
-                    <div className="text-sm text-muted-foreground">{levelInfo.title}</div>
+                    <div className="text-xl font-bold">
+                      Nivel {levelInfo.level}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {levelInfo.title}
+                    </div>
                   </div>
                   <div className="ml-auto">
-                    <div className="text-2xl font-bold text-primary">{points}</div>
+                    <div className="text-2xl font-bold text-primary">
+                      {points}
+                    </div>
                     <div className="text-xs text-muted-foreground">puntos</div>
                   </div>
                 </div>
-                
+
                 <div className="text-center p-4 bg-muted/30 rounded-lg">
                   <p className="text-sm text-muted-foreground">
-                    {points < 100 
+                    {points < 100
                       ? `Te faltan ${100 - points} puntos para Nivel 2`
-                      : "¡Sigue así para seguir subiendo de nivel!"
-                    }
+                      : "¡Sigue así para seguir subiendo de nivel!"}
                   </p>
                 </div>
               </div>
@@ -389,28 +425,37 @@ export default function SimpleDashboard() {
             <CardContent>
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Total de sesiones:</span>
+                  <span className="text-sm text-muted-foreground">
+                    Total de sesiones:
+                  </span>
                   <span className="font-medium">{totalSessions}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Sesiones completadas:</span>
+                  <span className="text-sm text-muted-foreground">
+                    Sesiones completadas:
+                  </span>
                   <span className="font-medium">{completedSessions}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Preguntas respondidas:</span>
+                  <span className="text-sm text-muted-foreground">
+                    Preguntas respondidas:
+                  </span>
                   <span className="font-medium">{totalAnswers}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Mejor puntuación:</span>
+                  <span className="text-sm text-muted-foreground">
+                    Mejor puntuación:
+                  </span>
                   <span className="font-medium">{bestScore}%</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Última actividad:</span>
+                  <span className="text-sm text-muted-foreground">
+                    Última actividad:
+                  </span>
                   <span className="font-medium">
-                    {lastActivity 
-                      ? new Date(lastActivity).toLocaleDateString('es-ES')
-                      : "Nunca"
-                    }
+                    {lastActivity
+                      ? new Date(lastActivity).toLocaleDateString("es-ES")
+                      : "Nunca"}
                   </span>
                 </div>
               </div>
@@ -428,9 +473,13 @@ export default function SimpleDashboard() {
                     💪 ¡Tienes {failedQuestions} preguntas esperándote!
                   </div>
                   <p className="text-muted-foreground">
-                    Cada pregunta que practiques te acerca más a la perfección. ¡Es hora de brillar! ✨
+                    Cada pregunta que practiques te acerca más a la perfección.
+                    ¡Es hora de brillar! ✨
                   </p>
-                  <Button onClick={() => window.location.href = '/practice'} className="mt-3">
+                  <Button
+                    onClick={() => (window.location.href = "/practice")}
+                    className="mt-3"
+                  >
                     <BookOpen className="mr-2 h-4 w-4" />
                     Empezar a Practicar
                   </Button>
@@ -441,20 +490,23 @@ export default function SimpleDashboard() {
                     🌟 ¡Comienza tu viaje de aprendizaje!
                   </div>
                   <p className="text-muted-foreground">
-                    Cada experto fue una vez un principiante. ¡Haz tu primer test hoy!
+                    Cada experto fue una vez un principiante. ¡Haz tu primer
+                    test hoy!
                   </p>
-                  <Button onClick={() => window.location.href = '/test-setup'} className="mt-3">
+                  <Button
+                    onClick={() => (window.location.href = "/test-setup")}
+                    className="mt-3"
+                  >
                     <Play className="mr-2 h-4 w-4" />
                     Mi Primer Test
                   </Button>
                 </>
               ) : (
                 <>
-                  <div className="text-lg font-semibold">
-                    🎯 ¡Sigue así!
-                  </div>
+                  <div className="text-lg font-semibold">🎯 ¡Sigue así!</div>
                   <p className="text-muted-foreground">
-                    Has completado {completedSessions} sesiones. ¡Tu dedicación está dando frutos!
+                    Has completado {completedSessions} sesiones. ¡Tu dedicación
+                    está dando frutos!
                   </p>
                 </>
               )}
@@ -465,16 +517,30 @@ export default function SimpleDashboard() {
         {/* Debug Info (temporal) */}
         <Card className="border-dashed border-2 border-gray-300">
           <CardHeader>
-            <CardTitle className="text-sm text-gray-500">🔧 Info de Debug (temporal)</CardTitle>
+            <CardTitle className="text-sm text-gray-500">
+              🔧 Info de Debug (temporal)
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2 text-xs">
-              <div><strong>Loading:</strong> {loading.toString()}</div>
-              <div><strong>Error:</strong> {error || 'ninguno'}</div>
-              <div><strong>RawData type:</strong> {typeof rawData}</div>
-              <div><strong>RawData is null:</strong> {(rawData === null).toString()}</div>
-              <div><strong>User ID:</strong> {user?.id || 'no-user'}</div>
-              <div><strong>Processed values:</strong></div>
+              <div>
+                <strong>Loading:</strong> {loading.toString()}
+              </div>
+              <div>
+                <strong>Error:</strong> {error || "ninguno"}
+              </div>
+              <div>
+                <strong>RawData type:</strong> {typeof rawData}
+              </div>
+              <div>
+                <strong>RawData is null:</strong> {(rawData === null).toString()}
+              </div>
+              <div>
+                <strong>User ID:</strong> {user?.id || "no-user"}
+              </div>
+              <div>
+                <strong>Processed values:</strong>
+              </div>
               <div className="ml-4">
                 <div>• completedSessions: {completedSessions}</div>
                 <div>• failedQuestions: {failedQuestions}</div>
