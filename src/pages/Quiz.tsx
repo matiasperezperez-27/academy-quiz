@@ -73,55 +73,72 @@ export default function Quiz() {
   useEffect(() => {
     const handleCompletion = async () => {
       if (quiz.isFinished && quiz.isRevealed) {
-        // Complete the quiz session in database
-        const quizStats = await quiz.completeQuiz();
+        // 🔧 FIX: Añadir delay para la última pregunta si fue correcta
+        const isLastQuestionCorrect = quiz.selectedAnswer === quiz.currentQuestion?.solucion_letra?.toUpperCase();
         
-        console.log("🎯 NAVEGANDO A RESULTS CON:");
-        console.log("- quizStats:", quizStats);
-        console.log("- originalFailedQuestionsCount:", quizStats?.originalFailedQuestionsCount);
-        console.log("- questionsStillFailed:", quizStats?.questionsStillFailed);
-        console.log("- specificQuestionIds:", quiz.specificQuestionIds);
-        
-        if (quizStats) {
-          // Navigate to results with complete stats including remaining questions
-          navigate("/results", { 
-            state: { 
-              score: quizStats.correctAnswers,
-              total: quizStats.totalQuestions,
-              mode,
-              percentage: quizStats.percentage,
-              pointsEarned: quizStats.pointsEarned,
-              averageTimePerQuestion: quizStats.averageTimePerQuestion,
-              // INFORMACIÓN para continuar con más preguntas
-              remainingQuestionsInTopic: quizStats.remainingQuestionsInTopic,
-              academiaId: quiz.currentAcademiaId,
-              temaId: quiz.currentTemaId,
-              // 🎯 NUEVA INFO PARA DETECTAR ORIGEN
-              originalFailedQuestionsCount: quizStats.originalFailedQuestionsCount,
-              questionsStillFailed: quizStats.questionsStillFailed,
-              // 🆕 PASAR LAS PREGUNTAS ORIGINALES PARA REPETIR
-              originalQuestionIds: quiz.specificQuestionIds
-            },
-            replace: true
-          });
+        if (isLastQuestionCorrect) {
+          // Si la última pregunta fue correcta, esperar el mismo tiempo que otras respuestas correctas
+          console.log("🎯 Última pregunta correcta, aplicando delay de 1500ms...");
+          setTimeout(async () => {
+            await completeQuizAndNavigate();
+          }, 1500);
         } else {
-          // Fallback if completion fails
-          navigate("/results", { 
-            state: { 
-              score: quiz.score,
-              total: quiz.questions.length,
-              mode,
-              academiaId: quiz.currentAcademiaId,
-              temaId: quiz.currentTemaId,
-              // 🎯 FALLBACK PARA DETECTAR ORIGEN
-              originalFailedQuestionsCount: quiz.specificQuestionIds?.length || 0,
-              questionsStillFailed: [],
-              // 🆕 PASAR LAS PREGUNTAS ORIGINALES PARA REPETIR
-              originalQuestionIds: quiz.specificQuestionIds
-            },
-            replace: true
-          });
+          // Si fue incorrecta, no navegar automáticamente - esperar a que el usuario haga clic en "Siguiente"
+          console.log("🎯 Última pregunta incorrecta, esperando acción del usuario...");
+          // No hacer nada aquí - se manejará con el botón "Siguiente"
         }
+      }
+    };
+
+    const completeQuizAndNavigate = async () => {
+      // Complete the quiz session in database
+      const quizStats = await quiz.completeQuiz();
+      
+      console.log("🎯 NAVEGANDO A RESULTS CON:");
+      console.log("- quizStats:", quizStats);
+      console.log("- originalFailedQuestionsCount:", quizStats?.originalFailedQuestionsCount);
+      console.log("- questionsStillFailed:", quizStats?.questionsStillFailed);
+      console.log("- specificQuestionIds:", quiz.specificQuestionIds);
+      
+      if (quizStats) {
+        // Navigate to results with complete stats including remaining questions
+        navigate("/results", { 
+          state: { 
+            score: quizStats.correctAnswers,
+            total: quizStats.totalQuestions,
+            mode,
+            percentage: quizStats.percentage,
+            pointsEarned: quizStats.pointsEarned,
+            averageTimePerQuestion: quizStats.averageTimePerQuestion,
+            // INFORMACIÓN para continuar con más preguntas
+            remainingQuestionsInTopic: quizStats.remainingQuestionsInTopic,
+            academiaId: quiz.currentAcademiaId,
+            temaId: quiz.currentTemaId,
+            // 🎯 NUEVA INFO PARA DETECTAR ORIGEN
+            originalFailedQuestionsCount: quizStats.originalFailedQuestionsCount,
+            questionsStillFailed: quizStats.questionsStillFailed,
+            // 🆕 PASAR LAS PREGUNTAS ORIGINALES PARA REPETIR
+            originalQuestionIds: quiz.specificQuestionIds
+          },
+          replace: true
+        });
+      } else {
+        // Fallback if completion fails
+        navigate("/results", { 
+          state: { 
+            score: quiz.score,
+            total: quiz.questions.length,
+            mode,
+            academiaId: quiz.currentAcademiaId,
+            temaId: quiz.currentTemaId,
+            // 🎯 FALLBACK PARA DETECTAR ORIGEN
+            originalFailedQuestionsCount: quiz.specificQuestionIds?.length || 0,
+            questionsStillFailed: [],
+            // 🆕 PASAR LAS PREGUNTAS ORIGINALES PARA REPETIR
+            originalQuestionIds: quiz.specificQuestionIds
+          },
+          replace: true
+        });
       }
     };
 
@@ -164,23 +181,71 @@ export default function Quiz() {
 
     const isCorrect = await quiz.submitAnswer(selectedLetter);
     
-    // NUEVA LÓGICA: Solo auto-advance si es correcto
-    if (isCorrect && !quiz.isFinished) {
-      setTimeout(() => {
-        quiz.nextQuestion();
-      }, 1500); // Menos tiempo para respuestas correctas
+    // 🔧 FIX: Auto-advance si es correcto, INCLUSO en la última pregunta
+    if (isCorrect) {
+      if (quiz.isFinished) {
+        // Si es la última pregunta y es correcta, NO auto-advance aquí
+        // El useEffect se encargará con delay
+        console.log("🎯 Última pregunta correcta - useEffect manejará la navegación con delay");
+      } else {
+        // Si no es la última pregunta, auto-advance normal
+        setTimeout(() => {
+          quiz.nextQuestion();
+        }, 1500);
+      }
     }
     // Si es incorrecto, no avanzamos automáticamente - el usuario debe hacer clic en "Siguiente"
   }, [quiz]);
 
   // Handle manual next question (for incorrect answers)
-  const handleNextQuestion = useCallback(() => {
+  const handleNextQuestion = useCallback(async () => {
     if (quiz.isFinished) {
-      // Si es la última pregunta, se manejará por el useEffect de completion
+      // 🔧 FIX: Si es la última pregunta, completar el quiz manualmente
+      console.log("🎯 Última pregunta - completando quiz manualmente...");
+      
+      // Complete the quiz session in database
+      const quizStats = await quiz.completeQuiz();
+      
+      if (quizStats) {
+        navigate("/results", { 
+          state: { 
+            score: quizStats.correctAnswers,
+            total: quizStats.totalQuestions,
+            mode,
+            percentage: quizStats.percentage,
+            pointsEarned: quizStats.pointsEarned,
+            averageTimePerQuestion: quizStats.averageTimePerQuestion,
+            remainingQuestionsInTopic: quizStats.remainingQuestionsInTopic,
+            academiaId: quiz.currentAcademiaId,
+            temaId: quiz.currentTemaId,
+            originalFailedQuestionsCount: quizStats.originalFailedQuestionsCount,
+            questionsStillFailed: quizStats.questionsStillFailed,
+            originalQuestionIds: quiz.specificQuestionIds
+          },
+          replace: true
+        });
+      } else {
+        // Fallback
+        navigate("/results", { 
+          state: { 
+            score: quiz.score,
+            total: quiz.questions.length,
+            mode,
+            academiaId: quiz.currentAcademiaId,
+            temaId: quiz.currentTemaId,
+            originalFailedQuestionsCount: quiz.specificQuestionIds?.length || 0,
+            questionsStillFailed: [],
+            originalQuestionIds: quiz.specificQuestionIds
+          },
+          replace: true
+        });
+      }
       return;
     }
+    
+    // Si no es la última pregunta, continuar normalmente
     quiz.nextQuestion();
-  }, [quiz]);
+  }, [quiz, mode, navigate]);
 
   // Determinar si mostrar el botón "Siguiente"
   const shouldShowNextButton = quiz.isRevealed && !quiz.isAnswering && (
