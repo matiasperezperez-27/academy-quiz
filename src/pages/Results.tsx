@@ -135,17 +135,6 @@ export default function Results() {
     averageTimePerQuestion = 0
   } = location.state || {};
 
-  // DEBUG: Log the received data
-  useEffect(() => {
-    console.log("Results page - received data:", {
-      score,
-      total,
-      mode,
-      percentage: providedPercentage,
-      rawState: location.state
-    });
-  }, [score, total, mode, providedPercentage, location.state]);
-
   useEffect(() => {
     setSEO(
       "Resultados del Quiz | Academy Quiz", 

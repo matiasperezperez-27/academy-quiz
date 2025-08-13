@@ -452,18 +452,10 @@ useEffect(() => {
         } else {
           console.log("Session completed, stats:", stats);
           const statsData = stats as any;
-          console.log("DEBUG - Processing stats data:", {
-            statsData,
-            total_questions: statsData?.total_questions,
-            correct_answers: statsData?.correct_answers,
-            state_questions_length: state.questions.length,
-            state_score: state.score,
-            state_answers_length: state.answers.length
-          });
           finalStats = {
             totalQuestions: statsData?.total_questions || state.questions.length,
             correctAnswers: statsData?.correct_answers || state.score,
-            incorrectAnswers: statsData?.incorrect_answers || (state.questions.length - state.score),
+            incorrectAnswers: statsData?.incorrect_answers || (state.answers.length - state.score),
             percentage: statsData?.score_percentage || 0,
             averageTimePerQuestion: state.answers.length > 0 
               ? Math.round(state.answers.reduce((sum, a) => sum + a.timeSpent, 0) / state.answers.length)
@@ -516,8 +508,8 @@ useEffect(() => {
     return {
       totalQuestions: state.questions.length,
       correctAnswers: state.score,
-      incorrectAnswers: state.questions.length - state.score,
-      percentage: state.questions.length > 0 ? Math.round((state.score / state.questions.length) * 100) : 0,
+      incorrectAnswers: state.answers.length - state.score,
+      percentage: state.answers.length > 0 ? Math.round((state.score / state.answers.length) * 100) : 0,
       averageTimePerQuestion: state.answers.length > 0 
         ? Math.round(state.answers.reduce((sum, a) => sum + a.timeSpent, 0) / state.answers.length)
         : 0,
