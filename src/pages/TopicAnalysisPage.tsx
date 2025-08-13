@@ -334,7 +334,7 @@ export default function TopicAnalysisPage() {
                 <div className="flex items-center gap-2 p-2 bg-yellow-50 rounded border border-yellow-200">
                   <span>🏆</span>
                   <div>
-                    <div className="font-medium text-yellow-700">Dominado</div>
+                    <div className="font-medium text-yellow-700">Dominado*</div>
                     <div className="text-yellow-600">≥95% + 2 tests</div>
                   </div>
                 </div>
@@ -342,7 +342,7 @@ export default function TopicAnalysisPage() {
                 <div className="flex items-center gap-2 p-2 bg-blue-50 rounded border border-blue-200">
                   <span>⭐</span>
                   <div>
-                    <div className="font-medium text-blue-700">Casi Dominado</div>
+                    <div className="font-medium text-blue-700">Casi Dominado*</div>
                     <div className="text-blue-600">≥85% + 3 tests</div>
                   </div>
                 </div>
@@ -364,8 +364,13 @@ export default function TopicAnalysisPage() {
                 </div>
               </div>
 
-              <div className="mt-2 text-xs text-muted-foreground text-center">
-                <span>💡 Los niveles se actualizan automáticamente según tu progreso</span>
+              <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                <div className="text-center">
+                  <span>💡 Los niveles se actualizan automáticamente según tu progreso</span>
+                </div>
+                <div className="pt-1 border-t border-muted text-center">
+                  <span>* Requiere múltiples tests para demostrar consistencia</span>
+                </div>
               </div>
             </details>
           </CardContent>
