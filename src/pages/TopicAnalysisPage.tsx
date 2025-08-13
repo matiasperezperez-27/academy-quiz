@@ -335,7 +335,7 @@ export default function TopicAnalysisPage() {
                   <span>🏆</span>
                   <div>
                     <div className="font-medium text-yellow-700">Dominado*</div>
-                    <div className="text-yellow-600">≥95% + 2 tests</div>
+                    <div className="text-yellow-600">≥90% + 2 tests</div>
                   </div>
                 </div>
                 
@@ -343,7 +343,7 @@ export default function TopicAnalysisPage() {
                   <span>⭐</span>
                   <div>
                     <div className="font-medium text-blue-700">Casi Dominado*</div>
-                    <div className="text-blue-600">≥85% + 3 tests</div>
+                    <div className="text-blue-600">≥80% + 3 tests</div>
                   </div>
                 </div>
                 

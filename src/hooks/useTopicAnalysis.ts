@@ -40,9 +40,9 @@ export function useTopicAnalysis() {
   });
 
   const getNivelDominio = (porcentaje: number, intentos: number, diasSinRepasar: number): TopicStats['nivel_dominio'] => {
-    // Sistema de Confianza Progresivo
-    if (porcentaje >= 95 && intentos >= 2) return 'Dominado';
-    if (porcentaje >= 85 && intentos >= 3) return 'Casi Dominado';
+    // Sistema de Confianza Progresivo - CRITERIOS ACTUALIZADOS
+    if (porcentaje >= 90 && intentos >= 2) return 'Dominado';
+    if (porcentaje >= 80 && intentos >= 3) return 'Casi Dominado';
     if (porcentaje >= 70) return 'En Progreso';
     return 'Necesita Práctica';
   };
