@@ -15,20 +15,14 @@ function setSEO(title: string, description: string) {
   document.head.appendChild(meta);
 }
 
-// CAMBIO: La estructura del tipo Option se usará para almacenar el conteo
-type Option = {
-  id: string;
+type Option = { 
+  id: string; 
   nombre: string;
-  // Hacemos el _count no opcional para los temas
-  _count: { preguntas: number };
+  _count?: { preguntas: number }; // Para mostrar cantidad de preguntas
 };
 
-// CAMBIO: Tipo específico para academias, ya que no necesitan el conteo
-type AcademiaOption = Omit<Option, '_count'>;
-
 const TestSetup = () => {
-  const [academias, setAcademias] = useState<AcademiaOption[]>([]);
-  // CAMBIO: El estado de temas ahora será del tipo Option completo
+  const [academias, setAcademias] = useState<Option[]>([]);
   const [temas, setTemas] = useState<Option[]>([]);
   const [academiaId, setAcademiaId] = useState<string>("");
   const [temaId, setTemaId] = useState<string>("");
@@ -42,7 +36,7 @@ const TestSetup = () => {
     setSEO("Nuevo Test | Academy Quiz", "Elige academia y tema para comenzar un test de 10 preguntas aleatorias.");
   }, []);
 
-  // Load academias on mount (Sin cambios aquí)
+  // Load academias on mount
   useEffect(() => {
     const loadAcademias = async () => {
       try {
@@ -53,11 +47,11 @@ const TestSetup = () => {
           .order("nombre");
 
         if (error) throw error;
-        setAcademias((data || []) as AcademiaOption[]);
+        setAcademias((data || []) as Option[]);
       } catch (err: any) {
         console.error("Error loading academias:", err);
-        toast({
-          title: "Error",
+        toast({ 
+          title: "Error", 
           description: "No se pudieron cargar las academias.",
           variant: "destructive"
         });
@@ -69,7 +63,7 @@ const TestSetup = () => {
     loadAcademias();
   }, [toast]);
 
-  // CAMBIO 1: Modificamos el useEffect que carga los temas para que también traiga el conteo de preguntas
+  // Load temas when academia changes
   useEffect(() => {
     if (!academiaId) {
       setTemas([]);
@@ -78,35 +72,23 @@ const TestSetup = () => {
       return;
     }
 
-    const loadTemasWithCount = async () => {
+    const loadTemas = async () => {
       try {
         setLoadingTemas(true);
-        // La magia está aquí: `preguntas(count)` cuenta las preguntas relacionadas
         const { data, error } = await supabase
           .from("temas")
-          .select("id, nombre, preguntas(count)")
+          .select("id, nombre")
           .eq("academia_id", academiaId)
           .order("nombre");
 
         if (error) throw error;
-
-        // Transformamos los datos para que se ajusten a nuestro tipo Option
-        const temasConConteo = (data || []).map(tema => ({
-          id: tema.id,
-          nombre: tema.nombre,
-          // Supabase devuelve `preguntas` como un array, accedemos a su primer elemento
-          _count: {
-            preguntas: (tema.preguntas[0]?.count || 0) as number
-          }
-        }));
-        
-        setTemas(temasConConteo);
+        setTemas((data || []) as Option[]);
         setTemaId(""); // Reset tema selection
-        setQuestionCount(0); // Reset count
+        setQuestionCount(0);
       } catch (err: any) {
         console.error("Error loading temas:", err);
-        toast({
-          title: "Error",
+        toast({ 
+          title: "Error", 
           description: "No se pudieron cargar los temas.",
           variant: "destructive"
         });
@@ -115,34 +97,34 @@ const TestSetup = () => {
       }
     };
 
-    loadTemasWithCount();
+    loadTemas();
   }, [academiaId, toast]);
 
-  // ELIMINADO: Este useEffect ya no es necesario, lo borramos por completo.
-  /*
+  // Load question count when tema changes
   useEffect(() => {
     if (!academiaId || !temaId) {
       setQuestionCount(0);
       return;
     }
-    const loadQuestionCount = async () => { ... };
+
+    const loadQuestionCount = async () => {
+      try {
+        const { count, error } = await supabase
+          .from("preguntas")
+          .select("*", { count: "exact", head: true })
+          .eq("academia_id", academiaId)
+          .eq("tema_id", temaId);
+
+        if (error) throw error;
+        setQuestionCount(count || 0);
+      } catch (err: any) {
+        console.error("Error loading question count:", err);
+        setQuestionCount(0);
+      }
+    };
+
     loadQuestionCount();
   }, [academiaId, temaId]);
-  */
-
-  // CAMBIO 2: Ahora, cuando cambia el temaId, simplemente actualizamos el contador desde los datos que ya tenemos.
-  useEffect(() => {
-    if (temaId) {
-      const temaSeleccionado = temas.find(t => t.id === temaId);
-      if (temaSeleccionado) {
-        setQuestionCount(temaSeleccionado._count.preguntas);
-      }
-    } else {
-      // Si se deselecciona el tema, reseteamos el contador
-      setQuestionCount(0);
-    }
-  }, [temaId, temas]);
-
 
   const canStart = useMemo(() => {
     return Boolean(academiaId && temaId && questionCount > 0);
@@ -161,7 +143,6 @@ const TestSetup = () => {
     navigate(`/quiz?mode=test&academia=${academiaId}&tema=${temaId}`);
   };
 
-  // El resto del JSX no necesita cambios, ya que depende del estado `questionCount` que ahora se actualizará correctamente.
   return (
     <main className="min-h-screen p-4 flex items-center justify-center bg-background">
       <div className="w-full max-w-md space-y-6">
@@ -216,18 +197,18 @@ const TestSetup = () => {
                 <Users className="h-4 w-4 text-muted-foreground" />
                 <label className="text-sm font-medium">Academia</label>
               </div>
-              <Select
-                value={academiaId}
+              <Select 
+                value={academiaId} 
                 onValueChange={setAcademiaId}
                 disabled={loadingAcademias}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue
+                  <SelectValue 
                     placeholder={
-                      loadingAcademias
-                        ? "Cargando academias..."
+                      loadingAcademias 
+                        ? "Cargando academias..." 
                         : "Selecciona una academia"
-                    }
+                    } 
                   />
                 </SelectTrigger>
                 <SelectContent>
@@ -246,74 +227,64 @@ const TestSetup = () => {
                 <BookOpen className="h-4 w-4 text-muted-foreground" />
                 <label className="text-sm font-medium">Tema</label>
               </div>
-              <Select
-                value={temaId}
-                onValueChange={setTemaId}
+              <Select 
+                value={temaId} 
+                onValueChange={setTemaId} 
                 disabled={!academiaId || loadingTemas}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue
+                  <SelectValue 
                     placeholder={
-                      !academiaId
+                      !academiaId 
                         ? "Primero selecciona una academia"
-                        : loadingTemas
-                        ? "Cargando temas..."
+                        : loadingTemas 
+                        ? "Cargando temas..." 
                         : "Selecciona un tema"
-                    }
+                    } 
                   />
                 </SelectTrigger>
                 <SelectContent>
                   {temas.map((tema) => (
-                    // CAMBIO 3: Mostramos el conteo en el desplegable, ¡un extra útil!
                     <SelectItem key={tema.id} value={tema.id}>
-                      <div className="flex justify-between w-full">
-                        <span>{tema.nombre}</span>
-                        <span className="text-muted-foreground text-xs pr-2">
-                          ({tema._count.preguntas} preg.)
-                        </span>
-                      </div>
+                      {tema.nombre}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Question Count Info (Esto ahora funcionará correctamente) */}
-            {temaId && !loadingTemas && (
-              <>
-                {questionCount > 0 && (
-                  <div className="bg-muted/30 p-3 rounded-lg border border-muted">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Preguntas disponibles:</span>
-                      <span className="font-medium text-primary">{questionCount}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm mt-1">
-                      <span className="text-muted-foreground">Test incluirá:</span>
-                      <span className="font-medium">
-                        {Math.min(questionCount, 10)} preguntas
-                      </span>
-                    </div>
-                  </div>
-                )}
+            {/* Question Count Info */}
+            {questionCount > 0 && (
+              <div className="bg-muted/30 p-3 rounded-lg border border-muted">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Preguntas disponibles:</span>
+                  <span className="font-medium text-primary">{questionCount}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm mt-1">
+                  <span className="text-muted-foreground">Test incluirá:</span>
+                  <span className="font-medium">
+                    {Math.min(questionCount, 10)} preguntas
+                  </span>
+                </div>
+              </div>
+            )}
 
-                {/* Warning if not enough questions */}
-                {questionCount > 0 && questionCount < 10 && (
-                  <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
-                    <p className="text-sm text-yellow-800">
-                      ⚠️ Este tema tiene menos de 10 preguntas. El test incluirá {questionCount} pregunta{questionCount !== 1 ? 's' : ''}.
-                    </p>
-                  </div>
-                )}
+            {/* Warning if not enough questions */}
+            {questionCount > 0 && questionCount < 10 && (
+              <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  ⚠️ Este tema tiene menos de 10 preguntas. El test incluirá {questionCount} pregunta{questionCount !== 1 ? 's' : ''}.
+                </p>
+              </div>
+            )}
 
-                {/* No questions warning */}
-                {questionCount === 0 && (
-                  <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
-                    <p className="text-sm text-red-800">
-                      ❌ No hay preguntas disponibles para este tema. Selecciona otro.
-                    </p>
-                  </div>
-                )}
-              </>
+            {/* No questions warning */}
+            {academiaId && temaId && questionCount === 0 && (
+              <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
+                <p className="text-sm text-red-800">
+                  ❌ No hay preguntas disponibles para este tema. Selecciona otro tema.
+                </p>
+              </div>
             )}
 
             {/* Selection Summary */}
@@ -337,9 +308,9 @@ const TestSetup = () => {
               onClick={handleStartTest}
             >
               <Play className="mr-2 h-4 w-4" />
-              {!academiaId
-                ? "Selecciona una academia"
-                : !temaId
+              {!academiaId 
+                ? "Selecciona una academia" 
+                : !temaId 
                 ? "Selecciona un tema"
                 : questionCount === 0
                 ? "Sin preguntas disponibles"
