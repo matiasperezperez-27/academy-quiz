@@ -30,7 +30,7 @@ export default function Quiz() {
   const academiaId = params.get("academia");
   const temaId = params.get("tema");
   const questionsParam = params.get("questions");
-  
+
   // 🔧 FIX: Memoizar specificQuestionIds para evitar recreación
   const specificQuestionIds = useMemo(() => {
     if (!questionsParam) return undefined;
@@ -56,10 +56,6 @@ export default function Quiz() {
   useEffect(() => {
     if (!user) {
       console.log("Esperando autenticación del usuario...");
-      console.log("🎯 NAVEGANDO A RESULTS CON:");
-      console.log("- originalFailedQuestionsCount:", stats?.originalFailedQuestionsCount);
-      console.log("- questionsStillFailed:", stats?.questionsStillFailed);
-      console.log("- specificQuestionIds:", quiz.specificQuestionIds);
       return;
     }
 
@@ -78,22 +74,31 @@ export default function Quiz() {
     const handleCompletion = async () => {
       if (quiz.isFinished && quiz.isRevealed) {
         // Complete the quiz session in database
-        const stats = await quiz.completeQuiz();
+        const quizStats = await quiz.completeQuiz();
         
-        if (stats) {
+        console.log("🎯 NAVEGANDO A RESULTS CON:");
+        console.log("- quizStats:", quizStats);
+        console.log("- originalFailedQuestionsCount:", quizStats?.originalFailedQuestionsCount);
+        console.log("- questionsStillFailed:", quizStats?.questionsStillFailed);
+        console.log("- specificQuestionIds:", quiz.specificQuestionIds);
+        
+        if (quizStats) {
           // Navigate to results with complete stats including remaining questions
           navigate("/results", { 
             state: { 
-              score: stats.correctAnswers,
-              total: stats.totalQuestions,
+              score: quizStats.correctAnswers,
+              total: quizStats.totalQuestions,
               mode,
-              percentage: stats.percentage,
-              pointsEarned: stats.pointsEarned,
-              averageTimePerQuestion: stats.averageTimePerQuestion,
-              // NUEVO: Información para continuar con más preguntas
-              remainingQuestionsInTopic: stats.remainingQuestionsInTopic,
+              percentage: quizStats.percentage,
+              pointsEarned: quizStats.pointsEarned,
+              averageTimePerQuestion: quizStats.averageTimePerQuestion,
+              // INFORMACIÓN para continuar con más preguntas
+              remainingQuestionsInTopic: quizStats.remainingQuestionsInTopic,
               academiaId: quiz.currentAcademiaId,
-              temaId: quiz.currentTemaId
+              temaId: quiz.currentTemaId,
+              // 🎯 NUEVA INFO PARA DETECTAR ORIGEN
+              originalFailedQuestionsCount: quizStats.originalFailedQuestionsCount,
+              questionsStillFailed: quizStats.questionsStillFailed
             },
             replace: true
           });
@@ -105,7 +110,10 @@ export default function Quiz() {
               total: quiz.questions.length,
               mode,
               academiaId: quiz.currentAcademiaId,
-              temaId: quiz.currentTemaId
+              temaId: quiz.currentTemaId,
+              // 🎯 FALLBACK PARA DETECTAR ORIGEN
+              originalFailedQuestionsCount: quiz.specificQuestionIds?.length || 0,
+              questionsStillFailed: []
             },
             replace: true
           });
