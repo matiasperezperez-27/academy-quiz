@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { ExitConfirmationDialog, useExitConfirmation } from "@/components/ExitConfirmationDialog";
 import { useQuiz } from "@/hooks/useQuiz";
-import { useEffect, useCallback, useMemo } from "react";
 
 function setSEO(title: string, description: string) {
   document.title = title;
