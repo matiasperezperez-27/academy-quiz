@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo } from "react";
+import { useEffect, useCallback, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +38,10 @@ export default function Quiz() {
     return ids.length > 0 ? ids : undefined;
   }, [questionsParam]); // Solo cambia si questionsParam cambia
 
+  // 🆕 NUEVO: Estados para controlar la finalización y prevenir flash
+  const [isCompletingQuiz, setIsCompletingQuiz] = useState(false);
+  const [completionData, setCompletionData] = useState<any>(null);
+
   // USE THE QUIZ HOOK!
   const quiz = useQuiz(mode, academiaId, temaId, specificQuestionIds);
 
@@ -69,81 +73,82 @@ export default function Quiz() {
     }
   }, [user, mode, academiaId, temaId, navigate, toast]);
 
-  // Handle quiz completion
+  // 🆕 NUEVO: Función unificada para completar y navegar
+  const completeAndNavigate = useCallback(async () => {
+    if (isCompletingQuiz) return; // Prevenir múltiples ejecuciones
+    
+    setIsCompletingQuiz(true);
+    console.log("🎯 Iniciando completación del quiz...");
+    
+    try {
+      // Usar datos precargados si están disponibles, o completar ahora
+      const quizStats = completionData || await quiz.completeQuiz();
+      
+      console.log("🎯 NAVEGANDO A RESULTS CON:", quizStats);
+      
+      const navigationState = {
+        score: quizStats?.correctAnswers || quiz.score,
+        total: quizStats?.totalQuestions || quiz.questions.length,
+        mode,
+        percentage: quizStats?.percentage,
+        pointsEarned: quizStats?.pointsEarned,
+        averageTimePerQuestion: quizStats?.averageTimePerQuestion,
+        remainingQuestionsInTopic: quizStats?.remainingQuestionsInTopic,
+        academiaId: quiz.currentAcademiaId,
+        temaId: quiz.currentTemaId,
+        originalFailedQuestionsCount: quizStats?.originalFailedQuestionsCount,
+        questionsStillFailed: quizStats?.questionsStillFailed,
+        originalQuestionIds: quiz.specificQuestionIds
+      };
+
+      // Navegar inmediatamente después de tener los datos
+      navigate("/results", { 
+        state: navigationState,
+        replace: true
+      });
+      
+    } catch (error) {
+      console.error("Error completando quiz:", error);
+      // Fallback navigation
+      navigate("/results", { 
+        state: { 
+          score: quiz.score,
+          total: quiz.questions.length,
+          mode,
+          academiaId: quiz.currentAcademiaId,
+          temaId: quiz.currentTemaId,
+          originalFailedQuestionsCount: quiz.specificQuestionIds?.length || 0,
+          questionsStillFailed: [],
+          originalQuestionIds: quiz.specificQuestionIds
+        },
+        replace: true
+      });
+    }
+  }, [quiz, mode, navigate, isCompletingQuiz, completionData]);
+
+  // 🔄 MODIFICADO: useEffect simplificado - solo para precargar datos
   useEffect(() => {
     const handleCompletion = async () => {
-      if (quiz.isFinished && quiz.isRevealed) {
-        // 🔧 FIX: Añadir delay para la última pregunta si fue correcta
+      if (quiz.isFinished && quiz.isRevealed && !isCompletingQuiz && !completionData) {
         const isLastQuestionCorrect = quiz.selectedAnswer === quiz.currentQuestion?.solucion_letra?.toUpperCase();
         
         if (isLastQuestionCorrect) {
-          // Si la última pregunta fue correcta, esperar el mismo tiempo que otras respuestas correctas
-          console.log("🎯 Última pregunta correcta, aplicando delay de 1500ms...");
-          setTimeout(async () => {
-            await completeQuizAndNavigate();
-          }, 1500);
-        } else {
-          // Si fue incorrecta, no navegar automáticamente - esperar a que el usuario haga clic en "Siguiente"
-          console.log("🎯 Última pregunta incorrecta, esperando acción del usuario...");
-          // No hacer nada aquí - se manejará con el botón "Siguiente"
+          console.log("🎯 Última pregunta correcta - precargando datos...");
+          
+          // Precargar los datos del quiz SIN navegar todavía
+          try {
+            const quizStats = await quiz.completeQuiz();
+            setCompletionData(quizStats);
+            console.log("🎯 Datos precargados exitosamente");
+          } catch (error) {
+            console.error("Error precargando datos:", error);
+          }
         }
       }
     };
 
-    const completeQuizAndNavigate = async () => {
-      // Complete the quiz session in database
-      const quizStats = await quiz.completeQuiz();
-      
-      console.log("🎯 NAVEGANDO A RESULTS CON:");
-      console.log("- quizStats:", quizStats);
-      console.log("- originalFailedQuestionsCount:", quizStats?.originalFailedQuestionsCount);
-      console.log("- questionsStillFailed:", quizStats?.questionsStillFailed);
-      console.log("- specificQuestionIds:", quiz.specificQuestionIds);
-      
-      if (quizStats) {
-        // Navigate to results with complete stats including remaining questions
-        navigate("/results", { 
-          state: { 
-            score: quizStats.correctAnswers,
-            total: quizStats.totalQuestions,
-            mode,
-            percentage: quizStats.percentage,
-            pointsEarned: quizStats.pointsEarned,
-            averageTimePerQuestion: quizStats.averageTimePerQuestion,
-            // INFORMACIÓN para continuar con más preguntas
-            remainingQuestionsInTopic: quizStats.remainingQuestionsInTopic,
-            academiaId: quiz.currentAcademiaId,
-            temaId: quiz.currentTemaId,
-            // 🎯 NUEVA INFO PARA DETECTAR ORIGEN
-            originalFailedQuestionsCount: quizStats.originalFailedQuestionsCount,
-            questionsStillFailed: quizStats.questionsStillFailed,
-            // 🆕 PASAR LAS PREGUNTAS ORIGINALES PARA REPETIR
-            originalQuestionIds: quiz.specificQuestionIds
-          },
-          replace: true
-        });
-      } else {
-        // Fallback if completion fails
-        navigate("/results", { 
-          state: { 
-            score: quiz.score,
-            total: quiz.questions.length,
-            mode,
-            academiaId: quiz.currentAcademiaId,
-            temaId: quiz.currentTemaId,
-            // 🎯 FALLBACK PARA DETECTAR ORIGEN
-            originalFailedQuestionsCount: quiz.specificQuestionIds?.length || 0,
-            questionsStillFailed: [],
-            // 🆕 PASAR LAS PREGUNTAS ORIGINALES PARA REPETIR
-            originalQuestionIds: quiz.specificQuestionIds
-          },
-          replace: true
-        });
-      }
-    };
-
     handleCompletion();
-  }, [quiz.isFinished, quiz.isRevealed, quiz, mode, navigate]);
+  }, [quiz.isFinished, quiz.isRevealed, quiz, isCompletingQuiz, completionData]);
 
   // Handle back navigation with confirmation
   const handleGoBack = useCallback(() => {
@@ -175,83 +180,50 @@ export default function Quiz() {
     }
   }, [quiz, showExitConfirmation, navigate]);
 
-  // Handle answer selection
+  // 🔄 MODIFICADO: Handle answer selection con navegación controlada
   const handleAnswer = useCallback(async (selectedLetter: string) => {
     if (quiz.isRevealed || quiz.isAnswering) return;
 
     const isCorrect = await quiz.submitAnswer(selectedLetter);
     
-    // 🔧 FIX: Auto-advance si es correcto, INCLUSO en la última pregunta
     if (isCorrect) {
       if (quiz.isFinished) {
-        // Si es la última pregunta y es correcta, NO auto-advance aquí
-        // El useEffect se encargará con delay
-        console.log("🎯 Última pregunta correcta - useEffect manejará la navegación con delay");
+        console.log("🎯 ÚLTIMA PREGUNTA DETECTADA - Respuesta correcta");
+        // Para la última pregunta correcta: delay visual de 3 segundos luego navegar
+        setTimeout(() => {
+          console.log("🎯 Delay completado, navegando ahora...");
+          completeAndNavigate();
+        }, 3000); // 3 segundos para ver el feedback
       } else {
-        // Si no es la última pregunta, auto-advance normal
+        // Preguntas normales: auto-advance de 1.5 segundos
         setTimeout(() => {
           quiz.nextQuestion();
         }, 1500);
       }
     }
     // Si es incorrecto, no avanzamos automáticamente - el usuario debe hacer clic en "Siguiente"
-  }, [quiz]);
+  }, [quiz, completeAndNavigate]);
 
-  // Handle manual next question (for incorrect answers)
+  // 🔄 MODIFICADO: Handle manual next question (para respuestas incorrectas y última pregunta)
   const handleNextQuestion = useCallback(async () => {
     if (quiz.isFinished) {
-      // 🔧 FIX: Si es la última pregunta, completar el quiz manualmente
       console.log("🎯 Última pregunta - completando quiz manualmente...");
-      
-      // Complete the quiz session in database
-      const quizStats = await quiz.completeQuiz();
-      
-      if (quizStats) {
-        navigate("/results", { 
-          state: { 
-            score: quizStats.correctAnswers,
-            total: quizStats.totalQuestions,
-            mode,
-            percentage: quizStats.percentage,
-            pointsEarned: quizStats.pointsEarned,
-            averageTimePerQuestion: quizStats.averageTimePerQuestion,
-            remainingQuestionsInTopic: quizStats.remainingQuestionsInTopic,
-            academiaId: quiz.currentAcademiaId,
-            temaId: quiz.currentTemaId,
-            originalFailedQuestionsCount: quizStats.originalFailedQuestionsCount,
-            questionsStillFailed: quizStats.questionsStillFailed,
-            originalQuestionIds: quiz.specificQuestionIds
-          },
-          replace: true
-        });
-      } else {
-        // Fallback
-        navigate("/results", { 
-          state: { 
-            score: quiz.score,
-            total: quiz.questions.length,
-            mode,
-            academiaId: quiz.currentAcademiaId,
-            temaId: quiz.currentTemaId,
-            originalFailedQuestionsCount: quiz.specificQuestionIds?.length || 0,
-            questionsStillFailed: [],
-            originalQuestionIds: quiz.specificQuestionIds
-          },
-          replace: true
-        });
-      }
+      await completeAndNavigate();
       return;
     }
     
     // Si no es la última pregunta, continuar normalmente
     quiz.nextQuestion();
-  }, [quiz, mode, navigate]);
+  }, [quiz, completeAndNavigate]);
 
   // Determinar si mostrar el botón "Siguiente"
   const shouldShowNextButton = quiz.isRevealed && !quiz.isAnswering && (
     (quiz.selectedAnswer !== quiz.currentQuestion?.solucion_letra?.toUpperCase()) || // Respuesta incorrecta
     quiz.isFinished // Última pregunta
   );
+
+  // 🆕 NUEVO: Determinar si mostrar loading durante completación
+  const showCompletionLoading = isCompletingQuiz && quiz.isFinished;
 
   // Si está cargando o esperando usuario
   if (quiz.isLoading || !user) {
@@ -311,6 +283,20 @@ export default function Quiz() {
             Inicio
           </Button>
         </div>
+
+        {/* 🆕 NUEVO: Overlay de completación para prevenir flash */}
+        {showCompletionLoading && (
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+            <Card className="w-full max-w-md">
+              <CardContent className="flex items-center justify-center p-8">
+                <div className="text-center space-y-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="text-muted-foreground">Finalizando quiz...</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Progress Bar */}
         <div className="space-y-2">
@@ -409,7 +395,7 @@ export default function Quiz() {
             </div>
 
             {/* Answer Status */}
-            {quiz.isRevealed && (
+            {quiz.isRevealed && !showCompletionLoading && (
               <div className="pt-4 border-t">
                 <div className={`
                   flex items-center gap-2 text-sm font-medium
@@ -422,6 +408,11 @@ export default function Quiz() {
                     <>
                       <CheckCircle2 className="h-4 w-4" />
                       ¡Correcto! +10 puntos
+                      {quiz.isFinished && (
+                        <span className="ml-2 text-xs text-muted-foreground animate-pulse">
+                          (Finalizando en breve...)
+                        </span>
+                      )}
                     </>
                   ) : (
                     <>
@@ -433,8 +424,8 @@ export default function Quiz() {
               </div>
             )}
 
-            {/* NUEVO: Botón Siguiente para respuestas incorrectas */}
-            {shouldShowNextButton && (
+            {/* Botón Siguiente para respuestas incorrectas y última pregunta */}
+            {shouldShowNextButton && !showCompletionLoading && (
               <div className="pt-4 border-t">
                 <Button 
                   onClick={handleNextQuestion}
@@ -456,8 +447,8 @@ export default function Quiz() {
           </CardContent>
         </Card>
 
-        {/* Navigation hint */}
-        {quiz.isRevealed && !shouldShowNextButton && (
+        {/* Navigation hint - actualizado */}
+        {quiz.isRevealed && !shouldShowNextButton && !showCompletionLoading && (
           <div className="text-center text-sm text-muted-foreground">
             {quiz.isFinished
               ? "Finalizando quiz..." 
@@ -470,6 +461,8 @@ export default function Quiz() {
           <div className="text-xs text-muted-foreground text-center">
             Session ID: {quiz.sessionId || 'No session'} | User: {user?.id?.substring(0, 8) || 'No user'}
             {quiz.remainingQuestions !== undefined && ` | Remaining: ${quiz.remainingQuestions}`}
+            {isCompletingQuiz && ' | COMPLETING...'}
+            {completionData && ' | DATA_LOADED'}
           </div>
         )}
 
