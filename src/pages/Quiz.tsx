@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +19,6 @@ function setSEO(title: string, description: string) {
 
 type QuizMode = "test" | "practice";
 
-// En Quiz.tsx, línea ~20 aproximadamente:
 export default function Quiz() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -30,14 +29,16 @@ export default function Quiz() {
   const mode: QuizMode = (params.get("mode") as QuizMode) || "test";
   const academiaId = params.get("academia");
   const temaId = params.get("tema");
-  const questionsParam = params.get("questions"); // 👈 AGREGAR ESTA LÍNEA
+  const questionsParam = params.get("questions");
   
-  // 👈 AGREGAR ESTA LÓGICA
-  const specificQuestionIds = questionsParam 
-    ? questionsParam.split(',').filter(id => id.length > 0)
-    : undefined;
+  // 🔧 FIX: Memoizar specificQuestionIds para evitar recreación
+  const specificQuestionIds = useMemo(() => {
+    if (!questionsParam) return undefined;
+    const ids = questionsParam.split(',').filter(id => id.length > 0);
+    return ids.length > 0 ? ids : undefined;
+  }, [questionsParam]); // Solo cambia si questionsParam cambia
 
-  // USE THE QUIZ HOOK! 👈 MODIFICAR ESTA LÍNEA
+  // USE THE QUIZ HOOK!
   const quiz = useQuiz(mode, academiaId, temaId, specificQuestionIds);
 
   const {
