@@ -35,6 +35,10 @@ export interface QuizState {
     isCorrect: boolean;
     timeSpent: number;
   }>;
+  // Nuevos campos para el sistema de progreso
+  currentAcademiaId?: string;
+  currentTemaId?: string;
+  remainingQuestions?: number;
 }
 
 export interface QuizStats {
@@ -45,6 +49,8 @@ export interface QuizStats {
   averageTimePerQuestion: number;
   questionsAnswered: number;
   pointsEarned: number;
+  // Nuevo campo para preguntas restantes
+  remainingQuestionsInTopic?: number;
 }
 
 export interface UserStats {
@@ -70,6 +76,7 @@ const initialState: QuizState = {
   isAnswering: false,
   startTime: Date.now(),
   answers: [],
+  remainingQuestions: 0,
 };
 
 function shuffle<T>(arr: T[]): T[] {
@@ -79,6 +86,80 @@ function shuffle<T>(arr: T[]): T[] {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
+}
+
+// Nueva función para obtener preguntas no acertadas
+async function getUnansweredQuestions(userId: string, academiaId: string, temaId: string, limit: number = 10) {
+  console.log("Getting unanswered questions for:", { userId, academiaId, temaId, limit });
+  
+  // Primero obtenemos todas las preguntas del tema
+  const { data: allQuestions, error: questionsError } = await supabase
+    .from("preguntas")
+    .select("*")
+    .eq("academia_id", academiaId)
+    .eq("tema_id", temaId);
+
+  if (questionsError) throw questionsError;
+  if (!allQuestions || allQuestions.length === 0) {
+    throw new Error("No se encontraron preguntas para esta academia y tema");
+  }
+
+  // Obtenemos las preguntas ya acertadas por el usuario
+  const { data: correctAnswers, error: statusError } = await supabase
+    .from("user_pregunta_status")
+    .select("pregunta_id")
+    .eq("user_id", userId)
+    .eq("status", "acertada");
+
+  if (statusError) throw statusError;
+
+  const correctQuestionIds = new Set((correctAnswers || []).map(item => item.pregunta_id));
+  
+  // Filtramos las preguntas que no han sido acertadas
+  const unansweredQuestions = allQuestions.filter(q => !correctQuestionIds.has(q.id));
+  
+  console.log(`Found ${allQuestions.length} total questions, ${correctQuestionIds.size} already correct, ${unansweredQuestions.length} remaining`);
+  
+  if (unansweredQuestions.length === 0) {
+    throw new Error("¡Felicidades! Has completado todas las preguntas de este tema correctamente.");
+  }
+
+  // Mezclamos y limitamos
+  const shuffled = shuffle(unansweredQuestions);
+  const selected = shuffled.slice(0, Math.min(limit, shuffled.length));
+  
+  return {
+    questions: selected,
+    remaining: unansweredQuestions.length
+  };
+}
+
+// Nueva función para actualizar el estado de la pregunta
+async function updateQuestionStatus(userId: string, questionId: string, isCorrect: boolean) {
+  const status = isCorrect ? 'acertada' : 'fallada';
+  
+  console.log("Updating question status:", { userId, questionId, status });
+  
+  const { error } = await supabase
+    .from("user_pregunta_status")
+    .upsert(
+      {
+        user_id: userId,
+        pregunta_id: questionId,
+        status: status,
+        updated_at: new Date().toISOString()
+      },
+      {
+        onConflict: "user_id,pregunta_id"
+      }
+    );
+
+  if (error) {
+    console.error("Error updating question status:", error);
+    throw error;
+  }
+  
+  console.log("Question status updated successfully");
 }
 
 export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: string | null) {
@@ -110,7 +191,7 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
           throw new Error("Se requiere seleccionar academia y tema para el modo test");
         }
 
-        // Start quiz session with p_user_id
+        // Start quiz session
         console.log("Starting quiz session with params:", {
           p_user_id: user.id,
           p_academia_id: academiaId,
@@ -127,33 +208,26 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
           });
 
         if (sessionError) {
-          console.error("Session creation error:", sessionError);
-          throw sessionError;
+          console.warn("Session creation failed:", sessionError);
+          // Continuamos sin sesión
         }
 
         console.log("Session created:", sessionId);
 
-        // Get random questions
-        const { data: questions, error: questionsError } = await supabase
-          .rpc("get_random_preguntas", {
-            p_academia_id: academiaId,
-            p_tema_id: temaId,
-            p_limit: 10,
-          });
+        // NUEVA LÓGICA: Obtener preguntas no acertadas
+        const { questions, remaining } = await getUnansweredQuestions(user.id, academiaId, temaId, 10);
 
-        if (questionsError) throw questionsError;
-        if (!questions || questions.length === 0) {
-          throw new Error("No se encontraron preguntas para esta academia y tema");
-        }
-
-        console.log("Questions loaded:", questions.length);
+        console.log("Questions loaded:", questions.length, "remaining:", remaining);
 
         setState(prev => ({ 
           ...prev, 
-          sessionId,
+          sessionId: sessionId || null,
           questions: questions as Pregunta[], 
           isLoading: false,
-          startTime: Date.now()
+          startTime: Date.now(),
+          currentAcademiaId: academiaId,
+          currentTemaId: temaId,
+          remainingQuestions: remaining
         }));
 
       } else { // practice mode
@@ -177,7 +251,7 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
 
         if (e2) throw e2;
 
-        // Start practice session with p_user_id
+        // Start practice session
         console.log("Starting practice session for user:", user.id);
         
         const { data: sessionId, error: sessionError } = await supabase
@@ -214,7 +288,7 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
     }
   }, [mode, academiaId, temaId, user, toast]);
 
-  // Handle answer submission - NO p_user_id needed!
+  // Handle answer submission - MEJORADO con nuevo sistema de progreso
   const submitAnswer = useCallback(async (selectedLetter: string): Promise<boolean> => {
     if (!user || state.isRevealed || state.isAnswering || !state.questions[state.currentIndex]) {
       return false;
@@ -226,18 +300,21 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
     setState(prev => ({ ...prev, isAnswering: true, selectedAnswer: selectedLetter }));
 
     try {
-      let isCorrect = false;
+      const isCorrect = currentQuestion.solucion_letra?.toUpperCase() === selectedLetter.toUpperCase();
 
+      // NUEVA LÓGICA: Siempre actualizar el estado de la pregunta
+      await updateQuestionStatus(user.id, currentQuestion.id, isCorrect);
+
+      // Si hay sesión, usar RPC
       if (state.sessionId) {
-        // Use RPC function WITHOUT p_user_id
-        console.log("Recording answer:", {
+        console.log("Recording answer in session:", {
           session: state.sessionId,
           question: currentQuestion.id,
           answer: selectedLetter,
           time: timeSpent
         });
 
-        const { data: rpcResult, error } = await supabase
+        const { error } = await supabase
           .rpc("record_answer", {
             p_session_id: state.sessionId,
             p_pregunta_id: currentQuestion.id,
@@ -247,33 +324,27 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
 
         if (error) {
           console.error("Error in RPC record_answer:", error);
-          // Fallback to manual logic
-          isCorrect = currentQuestion.solucion_letra?.toUpperCase() === selectedLetter.toUpperCase();
-        } else {
-          isCorrect = rpcResult as boolean;
-          console.log("Answer recorded, is correct:", isCorrect);
         }
-      } else {
-        // Manual logic when no session
-        console.log("No session, using manual logic");
-        isCorrect = currentQuestion.solucion_letra?.toUpperCase() === selectedLetter.toUpperCase();
-        
-        if (isCorrect && mode === "practice") {
+      }
+
+      // Mantener lógica legacy para preguntas_falladas en modo práctica
+      if (mode === "practice") {
+        if (isCorrect) {
           // Remove from failed questions if practicing and correct
           await supabase
             .from("preguntas_falladas")
             .delete()
             .eq("user_id", user.id)
             .eq("pregunta_id", currentQuestion.id);
-        } else if (!isCorrect && mode === "test") {
-          // Add to failed questions if test mode and incorrect
-          await supabase
-            .from("preguntas_falladas")
-            .upsert(
-              { user_id: user.id, pregunta_id: currentQuestion.id },
-              { onConflict: "user_id,pregunta_id", ignoreDuplicates: true }
-            );
         }
+      } else if (mode === "test" && !isCorrect) {
+        // Add to failed questions if test mode and incorrect (legacy)
+        await supabase
+          .from("preguntas_falladas")
+          .upsert(
+            { user_id: user.id, pregunta_id: currentQuestion.id },
+            { onConflict: "user_id,pregunta_id", ignoreDuplicates: true }
+          );
       }
 
       // Record answer locally
@@ -333,7 +404,6 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
 
         if (error) {
           console.error("Error in RPC complete_quiz_session:", error);
-          // Fallback to manual calculation
           finalStats = getManualStats();
         } else {
           console.log("Session completed, stats:", stats);
@@ -347,11 +417,10 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
               : 0,
             questionsAnswered: state.answers.length,
             pointsEarned: stats.points_earned || (state.score * 10),
+            remainingQuestionsInTopic: state.remainingQuestions ? state.remainingQuestions - state.score : 0
           };
         }
       } else {
-        // Manual calculation
-        console.log("No session, using manual stats");
         finalStats = getManualStats();
         
         // Update points manually
@@ -401,6 +470,7 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
         : 0,
       questionsAnswered: state.answers.length,
       pointsEarned: state.score * 10,
+      remainingQuestionsInTopic: state.remainingQuestions ? state.remainingQuestions - state.score : 0
     };
   }, [state]);
 
@@ -427,6 +497,7 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
       averageTimePerQuestion: questionsAnswered > 0 ? Math.round(totalTime / questionsAnswered) : 0,
       questionsAnswered,
       pointsEarned: state.score * 10,
+      remainingQuestionsInTopic: state.remainingQuestions ? state.remainingQuestions - state.score : 0
     };
   }, [state]);
 

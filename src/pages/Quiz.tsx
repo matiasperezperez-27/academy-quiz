@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { AlertCircle, CheckCircle2, XCircle, ArrowLeft, Home } from "lucide-react";
+import { AlertCircle, CheckCircle2, XCircle, ArrowLeft, Home, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { ExitConfirmationDialog, useExitConfirmation } from "@/components/ExitConfirmationDialog";
@@ -44,10 +44,8 @@ export default function Quiz() {
     setSEO("Quiz | Academy Quiz", "Responde a las preguntas una por una y mejora tu puntuación.");
   }, []);
 
-  // Handle navigation errors - FIXED: Don't navigate to /login
+  // Handle navigation errors
   useEffect(() => {
-    // Si no hay usuario, el hook useAuth debería manejarlo
-    // No navegamos a /login porque esa ruta no existe
     if (!user) {
       console.log("Esperando autenticación del usuario...");
       return;
@@ -71,7 +69,7 @@ export default function Quiz() {
         const stats = await quiz.completeQuiz();
         
         if (stats) {
-          // Navigate to results with complete stats
+          // Navigate to results with complete stats including remaining questions
           navigate("/results", { 
             state: { 
               score: stats.correctAnswers,
@@ -79,7 +77,11 @@ export default function Quiz() {
               mode,
               percentage: stats.percentage,
               pointsEarned: stats.pointsEarned,
-              averageTimePerQuestion: stats.averageTimePerQuestion
+              averageTimePerQuestion: stats.averageTimePerQuestion,
+              // NUEVO: Información para continuar con más preguntas
+              remainingQuestionsInTopic: stats.remainingQuestionsInTopic,
+              academiaId: quiz.currentAcademiaId,
+              temaId: quiz.currentTemaId
             },
             replace: true
           });
@@ -89,7 +91,9 @@ export default function Quiz() {
             state: { 
               score: quiz.score,
               total: quiz.questions.length,
-              mode
+              mode,
+              academiaId: quiz.currentAcademiaId,
+              temaId: quiz.currentTemaId
             },
             replace: true
           });
@@ -136,13 +140,29 @@ export default function Quiz() {
 
     const isCorrect = await quiz.submitAnswer(selectedLetter);
     
-    // Auto-advance after showing result
-    if (!quiz.isFinished) {
+    // NUEVA LÓGICA: Solo auto-advance si es correcto
+    if (isCorrect && !quiz.isFinished) {
       setTimeout(() => {
         quiz.nextQuestion();
-      }, 2000);
+      }, 1500); // Menos tiempo para respuestas correctas
     }
+    // Si es incorrecto, no avanzamos automáticamente - el usuario debe hacer clic en "Siguiente"
   }, [quiz]);
+
+  // Handle manual next question (for incorrect answers)
+  const handleNextQuestion = useCallback(() => {
+    if (quiz.isFinished) {
+      // Si es la última pregunta, se manejará por el useEffect de completion
+      return;
+    }
+    quiz.nextQuestion();
+  }, [quiz]);
+
+  // Determinar si mostrar el botón "Siguiente"
+  const shouldShowNextButton = quiz.isRevealed && !quiz.isAnswering && (
+    (quiz.selectedAnswer !== quiz.currentQuestion?.solucion_letra?.toUpperCase()) || // Respuesta incorrecta
+    quiz.isFinished // Última pregunta
+  );
 
   // Si está cargando o esperando usuario
   if (quiz.isLoading || !user) {
@@ -207,7 +227,14 @@ export default function Quiz() {
         <div className="space-y-2">
           <div className="flex justify-between text-sm text-muted-foreground">
             <span>Pregunta {quiz.currentIndex + 1} de {quiz.questions.length}</span>
-            <span>Aciertos: {quiz.score}</span>
+            <div className="flex items-center gap-4">
+              <span>Aciertos: {quiz.score}</span>
+              {quiz.remainingQuestions !== undefined && (
+                <span className="text-xs bg-muted px-2 py-1 rounded">
+                  Restantes: {Math.max(0, quiz.remainingQuestions - quiz.score)}
+                </span>
+              )}
+            </div>
           </div>
           <Progress value={quiz.progress} className="w-full" />
         </div>
@@ -316,11 +343,32 @@ export default function Quiz() {
                 </div>
               </div>
             )}
+
+            {/* NUEVO: Botón Siguiente para respuestas incorrectas */}
+            {shouldShowNextButton && (
+              <div className="pt-4 border-t">
+                <Button 
+                  onClick={handleNextQuestion}
+                  className="w-full"
+                  size="lg"
+                  disabled={quiz.isAnswering}
+                >
+                  {quiz.isFinished ? (
+                    "Ver Resultados"
+                  ) : (
+                    <>
+                      Siguiente Pregunta
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Navigation hint */}
-        {quiz.isRevealed && (
+        {quiz.isRevealed && !shouldShowNextButton && (
           <div className="text-center text-sm text-muted-foreground">
             {quiz.isFinished
               ? "Finalizando quiz..." 
@@ -332,6 +380,7 @@ export default function Quiz() {
         {import.meta.env.DEV && (
           <div className="text-xs text-muted-foreground text-center">
             Session ID: {quiz.sessionId || 'No session'} | User: {user?.id?.substring(0, 8) || 'No user'}
+            {quiz.remainingQuestions !== undefined && ` | Remaining: ${quiz.remainingQuestions}`}
           </div>
         )}
 

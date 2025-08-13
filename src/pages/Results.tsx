@@ -13,7 +13,9 @@ import {
   BookOpen,
   Award,
   AlertCircle,
-  ArrowLeft
+  ArrowLeft,
+  Play,
+  CheckCircle
 } from "lucide-react";
 
 interface ResultsState {
@@ -23,6 +25,13 @@ interface ResultsState {
   timeSpent?: number;
   questionsCorrect?: string[];
   questionsIncorrect?: string[];
+  // NUEVOS campos para el sistema de progreso
+  remainingQuestionsInTopic?: number;
+  academiaId?: string;
+  temaId?: string;
+  percentage?: number;
+  pointsEarned?: number;
+  averageTimePerQuestion?: number;
 }
 
 interface PerformanceLevel {
@@ -85,7 +94,7 @@ const getPerformanceLevel = (percentage: number): PerformanceLevel => {
   }
 };
 
-const getEncouragementMessage = (percentage: number, mode: string): string => {
+const getEncouragementMessage = (percentage: number, mode: string, remainingQuestions?: number): string => {
   if (mode === "practice") {
     if (percentage >= 80) {
       return "¡Excelente! Has mejorado significativamente en tus preguntas falladas.";
@@ -95,7 +104,9 @@ const getEncouragementMessage = (percentage: number, mode: string): string => {
       return "No te desanimes. La práctica constante es la clave del éxito.";
     }
   } else {
-    if (percentage >= 80) {
+    if (remainingQuestions !== undefined && remainingQuestions <= 0) {
+      return "¡Increíble! Has completado todas las preguntas de este tema correctamente. ¡Eres un experto!";
+    } else if (percentage >= 80) {
       return "¡Impresionante! Tienes un excelente dominio de este tema.";
     } else if (percentage >= 60) {
       return "¡Bien hecho! Estás en el camino correcto hacia el dominio del tema.";
@@ -115,7 +126,13 @@ export default function Results() {
     mode = "test",
     timeSpent,
     questionsCorrect = [],
-    questionsIncorrect = []
+    questionsIncorrect = [],
+    remainingQuestionsInTopic = 0,
+    academiaId,
+    temaId,
+    percentage: providedPercentage,
+    pointsEarned = 0,
+    averageTimePerQuestion = 0
   } = location.state || {};
 
   useEffect(() => {
@@ -126,8 +143,8 @@ export default function Results() {
   }, [score, total, mode]);
 
   const percentage = useMemo(() => 
-    total > 0 ? Math.round((score / total) * 100) : 0, 
-    [score, total]
+    providedPercentage || (total > 0 ? Math.round((score / total) * 100) : 0), 
+    [score, total, providedPercentage]
   );
 
   const performance = useMemo(() => 
@@ -136,11 +153,27 @@ export default function Results() {
   );
 
   const encouragementMessage = useMemo(() => 
-    getEncouragementMessage(percentage, mode), 
-    [percentage, mode]
+    getEncouragementMessage(percentage, mode, remainingQuestionsInTopic), 
+    [percentage, mode, remainingQuestionsInTopic]
   );
 
   const incorrectCount = total - score;
+
+  // NUEVA LÓGICA: Determinar si mostrar botón "Continuar con 10 más"
+  const canContinueWithMore = useMemo(() => {
+    return mode === "test" && 
+           academiaId && 
+           temaId && 
+           remainingQuestionsInTopic !== undefined && 
+           remainingQuestionsInTopic > 0;
+  }, [mode, academiaId, temaId, remainingQuestionsInTopic]);
+
+  // NUEVA FUNCIÓN: Continuar con más preguntas del mismo tema
+  const handleContinueWithMore = () => {
+    if (academiaId && temaId) {
+      navigate(`/quiz?mode=test&academia=${academiaId}&tema=${temaId}`);
+    }
+  };
 
   // If no state data, redirect to home
   useEffect(() => {
@@ -173,6 +206,21 @@ export default function Results() {
             {mode === "practice" ? "Modo Práctica" : "Modo Test"}
           </Badge>
         </div>
+
+        {/* NUEVO: Banner de completado total si aplica */}
+        {remainingQuestionsInTopic !== undefined && remainingQuestionsInTopic <= 0 && mode === "test" && (
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-center space-x-3 text-green-700">
+                <CheckCircle className="h-6 w-6" />
+                <div className="text-center">
+                  <p className="font-semibold">¡Tema Completado!</p>
+                  <p className="text-sm">Has respondido correctamente todas las preguntas de este tema</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         
         {/* Main Results Card */}
         <Card className="w-full">
@@ -223,6 +271,46 @@ export default function Results() {
               </div>
             </div>
 
+            {/* NUEVA: Stats adicionales si están disponibles */}
+            {(pointsEarned > 0 || averageTimePerQuestion > 0) && (
+              <div className="grid grid-cols-2 gap-4">
+                {pointsEarned > 0 && (
+                  <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="text-2xl font-bold text-blue-600">{pointsEarned}</div>
+                    <div className="text-sm text-blue-700">Puntos</div>
+                  </div>
+                )}
+                {averageTimePerQuestion > 0 && (
+                  <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
+                    <div className="text-2xl font-bold text-purple-600">{averageTimePerQuestion}s</div>
+                    <div className="text-sm text-purple-700">Promedio</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* NUEVA: Información de progreso del tema */}
+            {remainingQuestionsInTopic !== undefined && mode === "test" && (
+              <div className="bg-muted/30 p-4 rounded-lg border-l-4 border-blue-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-blue-700">Progreso del Tema</p>
+                    <p className="text-sm text-muted-foreground">
+                      {remainingQuestionsInTopic > 0 
+                        ? `Quedan ${remainingQuestionsInTopic} preguntas por dominar`
+                        : "¡Has dominado todas las preguntas de este tema!"
+                      }
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-blue-600">
+                      {remainingQuestionsInTopic > 0 ? remainingQuestionsInTopic : "✓"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Mode Badge */}
             <div className="flex justify-center">
               <div className="text-center text-sm text-muted-foreground">
@@ -249,31 +337,44 @@ export default function Results() {
         {/* Action Buttons */}
         <Card>
           <CardContent className="pt-6">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Button 
-                onClick={() => navigate("/")}
-                variant="default"
-                className="w-full"
-                size="lg"
-              >
-                <Home className="mr-2 h-4 w-4" />
-                Ir al Inicio
-              </Button>
-              
-              <Button 
-                onClick={() => navigate("/test-setup")}
-                variant="outline"
-                className="w-full"
-                size="lg"
-              >
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Nuevo Test
-              </Button>
-            </div>
+            <div className="space-y-3">
+              {/* NUEVA: Botón "Continuar con 10 más" */}
+              {canContinueWithMore && (
+                <Button 
+                  onClick={handleContinueWithMore}
+                  className="w-full"
+                  size="lg"
+                  variant="default"
+                >
+                  <Play className="mr-2 h-4 w-4" />
+                  Continuar con 10 más ({remainingQuestionsInTopic} restantes)
+                </Button>
+              )}
 
-            {/* Practice Button (if there are incorrect answers and it's test mode) */}
-            {mode === "test" && incorrectCount > 0 && (
-              <div className="mt-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Button 
+                  onClick={() => navigate("/")}
+                  variant={canContinueWithMore ? "outline" : "default"}
+                  className="w-full"
+                  size="lg"
+                >
+                  <Home className="mr-2 h-4 w-4" />
+                  Ir al Inicio
+                </Button>
+                
+                <Button 
+                  onClick={() => navigate("/test-setup")}
+                  variant="outline"
+                  className="w-full"
+                  size="lg"
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Nuevo Test
+                </Button>
+              </div>
+
+              {/* Practice Button (if there are incorrect answers and it's test mode) */}
+              {mode === "test" && incorrectCount > 0 && (
                 <Button 
                   onClick={() => navigate("/practice")}
                   variant="secondary"
@@ -283,8 +384,8 @@ export default function Results() {
                   <BookOpen className="mr-2 h-4 w-4" />
                   Practicar Preguntas Falladas ({incorrectCount})
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -340,7 +441,12 @@ export default function Results() {
 
         {/* Footer */}
         <div className="text-center text-sm text-muted-foreground">
-          <p>¡Sigue practicando para mejorar tus resultados!</p>
+          <p>
+            {remainingQuestionsInTopic !== undefined && remainingQuestionsInTopic <= 0 
+              ? "¡Has dominado este tema completamente!" 
+              : "¡Sigue practicando para mejorar tus resultados!"
+            }
+          </p>
         </div>
       </div>
     </main>
