@@ -19,6 +19,7 @@ function setSEO(title: string, description: string) {
 
 type QuizMode = "test" | "practice";
 
+// En Quiz.tsx, línea ~20 aproximadamente:
 export default function Quiz() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -29,9 +30,15 @@ export default function Quiz() {
   const mode: QuizMode = (params.get("mode") as QuizMode) || "test";
   const academiaId = params.get("academia");
   const temaId = params.get("tema");
+  const questionsParam = params.get("questions"); // 👈 AGREGAR ESTA LÍNEA
+  
+  // 👈 AGREGAR ESTA LÓGICA
+  const specificQuestionIds = questionsParam 
+    ? questionsParam.split(',').filter(id => id.length > 0)
+    : undefined;
 
-  // USE THE QUIZ HOOK!
-  const quiz = useQuiz(mode, academiaId, temaId);
+  // USE THE QUIZ HOOK! 👈 MODIFICAR ESTA LÍNEA
+  const quiz = useQuiz(mode, academiaId, temaId, specificQuestionIds);
 
   const {
     isOpen: isExitDialogOpen,

@@ -266,8 +266,8 @@ export default function SimpleDashboard() {
           </div>
         )}
 
-        {/* Main Action Cards */}
-        <div className="grid gap-6 md:grid-cols-2">
+{/* Main Action Cards */}
+        <div className="grid gap-6 md:grid-cols-3"> {/* 👈 CAMBIAR de md:grid-cols-2 a md:grid-cols-3 */}
           {/* New Test Card */}
           <Card className="hover:shadow-lg transition-shadow cursor-pointer">
             <CardHeader>
@@ -366,6 +366,45 @@ export default function SimpleDashboard() {
                     </Button>
                   </>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 👈 NUEVA CARD DE ANÁLISIS POR TEMAS */}
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <BarChart3 className="h-6 w-6 text-purple-600" />
+                </div>
+                <div>
+                  <div className="text-xl">Análisis por Temas</div>
+                  <div className="text-sm text-muted-foreground font-normal">
+                    Ve tu progreso detallado por tema
+                  </div>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Target className="h-4 w-4" />
+                  Identifica tus puntos fuertes
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <TrendingUp className="h-4 w-4" />
+                  Enfócate en lo que necesitas
+                </div>
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => (window.location.href = "/analisis-temas")}
+                  disabled={totalAnswers === 0}
+                >
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  {totalAnswers > 0 ? "Ver Análisis" : "Sin Datos Aún"}
+                </Button>
               </div>
             </CardContent>
           </Card>

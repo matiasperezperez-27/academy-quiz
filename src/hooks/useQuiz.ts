@@ -39,6 +39,7 @@ export interface QuizState {
   currentAcademiaId?: string;
   currentTemaId?: string;
   remainingQuestions?: number;
+  specificQuestionIds?: string[];
 }
 
 export interface QuizStats {
@@ -155,7 +156,7 @@ async function updateQuestionStatus(userId: string, questionId: string, isCorrec
   console.log("Question status updated successfully");
 }
 
-export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: string | null) {
+export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: string | null, specificQuestionIds?: string[]) {
   const [state, setState] = useState<QuizState>(initialState);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -168,119 +169,159 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
     });
   }, []);
 
-  // Load questions and start session
-  const loadQuestions = useCallback(async () => {
-    if (!user) {
-      console.error("No user found");
-      return;
+// Load questions and start session
+const loadQuestions = useCallback(async () => {
+  if (!user) {
+    console.error("No user found");
+    return;
+  }
+
+  try {
+    setState(prev => ({ ...prev, isLoading: true }));
+    console.log("Loading questions for mode:", mode, "user:", user.id);
+
+    // 🆕 NUEVA LÓGICA: Si tenemos IDs específicos, cargar solo esas preguntas
+    if (specificQuestionIds && specificQuestionIds.length > 0) {
+      console.log("Loading specific questions:", specificQuestionIds);
+      
+      const { data: specificQuestions, error: specificError } = await supabase
+        .from("preguntas")
+        .select("*")
+        .in("id", specificQuestionIds);
+
+      if (specificError) throw specificError;
+      if (!specificQuestions || specificQuestions.length === 0) {
+        throw new Error("No se encontraron las preguntas específicas solicitadas");
+      }
+
+      // Start session for specific questions
+      const { data: sessionId, error: sessionError } = await supabase
+        .rpc("start_quiz_session", {
+          p_user_id: user.id,
+          p_academia_id: specificQuestions[0]?.academia_id || null,
+          p_tema_id: specificQuestions[0]?.tema_id || null,
+          p_mode: "practice" // Siempre práctica para preguntas específicas
+        });
+
+      if (sessionError) {
+        console.warn("Session creation failed:", sessionError);
+      }
+
+      setState(prev => ({ 
+        ...prev, 
+        sessionId: sessionId || null,
+        questions: shuffle(specificQuestions as Pregunta[]), 
+        isLoading: false,
+        startTime: Date.now(),
+        specificQuestionIds: specificQuestionIds
+      }));
+
+      return; // 👈 SALIR AQUÍ PARA PREGUNTAS ESPECÍFICAS
     }
 
-    try {
-      setState(prev => ({ ...prev, isLoading: true }));
-      console.log("Loading questions for mode:", mode, "user:", user.id);
+    // 🔄 LÓGICA ORIGINAL PARA OTROS CASOS
+    if (mode === "test") {
+      if (!academiaId || !temaId) {
+        throw new Error("Se requiere seleccionar academia y tema para el modo test");
+      }
 
-      if (mode === "test") {
-        if (!academiaId || !temaId) {
-          throw new Error("Se requiere seleccionar academia y tema para el modo test");
-        }
+      // Start quiz session
+      console.log("Starting quiz session with params:", {
+        p_user_id: user.id,
+        p_academia_id: academiaId,
+        p_tema_id: temaId,
+        p_mode: mode
+      });
 
-        // Start quiz session
-        console.log("Starting quiz session with params:", {
+      const { data: sessionId, error: sessionError } = await supabase
+        .rpc("start_quiz_session", {
           p_user_id: user.id,
           p_academia_id: academiaId,
           p_tema_id: temaId,
           p_mode: mode
         });
 
-        const { data: sessionId, error: sessionError } = await supabase
-          .rpc("start_quiz_session", {
-            p_user_id: user.id,
-            p_academia_id: academiaId,
-            p_tema_id: temaId,
-            p_mode: mode
-          });
-
-        if (sessionError) {
-          console.warn("Session creation failed:", sessionError);
-          // Continuamos sin sesión
-        }
-
-        console.log("Session created:", sessionId);
-
-        // NUEVA LÓGICA: Obtener preguntas no acertadas
-        const { questions, remaining } = await getUnansweredQuestions(user.id, academiaId, temaId, 10);
-
-        console.log("Questions loaded:", questions.length, "remaining:", remaining);
-
-        setState(prev => ({ 
-          ...prev, 
-          sessionId: sessionId || null,
-          questions: questions as Pregunta[], 
-          isLoading: false,
-          startTime: Date.now(),
-          currentAcademiaId: academiaId,
-          currentTemaId: temaId,
-          remainingQuestions: remaining
-        }));
-
-      } else { // practice mode
-        const { data: falladas, error: e1 } = await supabase
-          .from("preguntas_falladas")
-          .select("pregunta_id")
-          .eq("user_id", user.id);
-
-        if (e1) throw e1;
-
-        const preguntaIds = (falladas || []).map((f: any) => f.pregunta_id);
-        
-        if (preguntaIds.length === 0) {
-          throw new Error("No tienes preguntas falladas para practicar");
-        }
-
-        const { data: preguntas, error: e2 } = await supabase
-          .from("preguntas")
-          .select("*")
-          .in("id", preguntaIds);
-
-        if (e2) throw e2;
-
-        // Start practice session
-        console.log("Starting practice session for user:", user.id);
-        
-        const { data: sessionId, error: sessionError } = await supabase
-          .rpc("start_quiz_session", {
-            p_user_id: user.id,
-            p_academia_id: preguntas[0]?.academia_id || null,
-            p_tema_id: preguntas[0]?.tema_id || null,
-            p_mode: mode
-          });
-
-        if (sessionError) {
-          console.warn("No se pudo crear sesión para práctica:", sessionError);
-        } else {
-          console.log("Practice session created:", sessionId);
-        }
-
-        setState(prev => ({ 
-          ...prev, 
-          sessionId: sessionId || null,
-          questions: shuffle(preguntas as Pregunta[] || []), 
-          isLoading: false,
-          startTime: Date.now()
-        }));
+      if (sessionError) {
+        console.warn("Session creation failed:", sessionError);
+        // Continuamos sin sesión
       }
-    } catch (err: any) {
-      console.error("Error loading questions:", err);
-      toast({ 
-        title: "Error de carga", 
-        description: err.message || "No se pudieron cargar las preguntas.",
-        variant: "destructive"
-      });
-      setState(prev => ({ ...prev, isLoading: false }));
-      throw err;
-    }
-  }, [mode, academiaId, temaId, user, toast]);
 
+      console.log("Session created:", sessionId);
+
+      // NUEVA LÓGICA: Obtener preguntas no acertadas
+      const { questions, remaining } = await getUnansweredQuestions(user.id, academiaId, temaId, 10);
+
+      console.log("Questions loaded:", questions.length, "remaining:", remaining);
+
+      setState(prev => ({ 
+        ...prev, 
+        sessionId: sessionId || null,
+        questions: questions as Pregunta[], 
+        isLoading: false,
+        startTime: Date.now(),
+        currentAcademiaId: academiaId,
+        currentTemaId: temaId,
+        remainingQuestions: remaining
+      }));
+
+    } else { // practice mode (lógica original)
+      const { data: falladas, error: e1 } = await supabase
+        .from("preguntas_falladas")
+        .select("pregunta_id")
+        .eq("user_id", user.id);
+
+      if (e1) throw e1;
+
+      const preguntaIds = (falladas || []).map((f: any) => f.pregunta_id);
+      
+      if (preguntaIds.length === 0) {
+        throw new Error("No tienes preguntas falladas para practicar");
+      }
+
+      const { data: preguntas, error: e2 } = await supabase
+        .from("preguntas")
+        .select("*")
+        .in("id", preguntaIds);
+
+      if (e2) throw e2;
+
+      // Start practice session
+      console.log("Starting practice session for user:", user.id);
+      
+      const { data: sessionId, error: sessionError } = await supabase
+        .rpc("start_quiz_session", {
+          p_user_id: user.id,
+          p_academia_id: preguntas[0]?.academia_id || null,
+          p_tema_id: preguntas[0]?.tema_id || null,
+          p_mode: mode
+        });
+
+      if (sessionError) {
+        console.warn("No se pudo crear sesión para práctica:", sessionError);
+      } else {
+        console.log("Practice session created:", sessionId);
+      }
+
+      setState(prev => ({ 
+        ...prev, 
+        sessionId: sessionId || null,
+        questions: shuffle(preguntas as Pregunta[] || []), 
+        isLoading: false,
+        startTime: Date.now()
+      }));
+    }
+  } catch (err: any) {
+    console.error("Error loading questions:", err);
+    toast({ 
+      title: "Error de carga", 
+      description: err.message || "No se pudieron cargar las preguntas.",
+      variant: "destructive"
+    });
+    setState(prev => ({ ...prev, isLoading: false }));
+    throw err;
+  }
+}, [mode, academiaId, temaId, specificQuestionIds, user, toast]); // 👈 AGREGAR specificQuestionIds a las dependencias
+  
   // Handle answer submission - MEJORADO con nuevo sistema de progreso
   const submitAnswer = useCallback(async (selectedLetter: string): Promise<boolean> => {
     if (!user || state.isRevealed || state.isAnswering || !state.questions[state.currentIndex]) {
