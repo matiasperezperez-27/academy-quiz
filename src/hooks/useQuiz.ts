@@ -200,7 +200,7 @@ const loadQuestions = useCallback(async () => {
           p_user_id: user.id,
           p_academia_id: specificQuestions[0]?.academia_id || null,
           p_tema_id: specificQuestions[0]?.tema_id || null,
-          p_mode: "practice"
+          p_mode: "practice" // Siempre práctica para preguntas específicas
         });
 
       if (sessionError) {
@@ -216,7 +216,7 @@ const loadQuestions = useCallback(async () => {
         specificQuestionIds: specificQuestionIds
       }));
 
-      return;
+      return; // 👈 SALIR AQUÍ PARA PREGUNTAS ESPECÍFICAS
     }
 
     // 🔄 LÓGICA ORIGINAL PARA OTROS CASOS
@@ -320,17 +320,7 @@ const loadQuestions = useCallback(async () => {
     setState(prev => ({ ...prev, isLoading: false }));
     throw err;
   }
-}, [mode, academiaId, temaId, user, toast, specificQuestionIds]); // 👈 MANTENER specificQuestionIds pero ahora está memoizado
-
-// 🔧 FIX: Agregar una bandera para evitar múltiples ejecuciones
-const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
-
-useEffect(() => {
-  if (user && !hasLoadedOnce) {
-    setHasLoadedOnce(true);
-    loadQuestions();
-  }
-}, [user, hasLoadedOnce, loadQuestions]); // 👈 AGREGAR specificQuestionIds a las dependencias
+}, [mode, academiaId, temaId, specificQuestionIds, user, toast]); // 👈 AGREGAR specificQuestionIds a las dependencias
   
   // Handle answer submission - MEJORADO con nuevo sistema de progreso
   const submitAnswer = useCallback(async (selectedLetter: string): Promise<boolean> => {
