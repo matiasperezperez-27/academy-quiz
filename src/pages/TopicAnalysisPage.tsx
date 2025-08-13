@@ -1,55 +1,28 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { 
   BookOpen, 
   Target, 
-  TrendingDown, 
-  TrendingUp, 
-  PlayCircle, 
   BarChart3,
-  Filter,
-  CheckCircle2,
-  XCircle,
-  Clock,
   ArrowLeft,
-  RefreshCw
+  RefreshCw,
+  PlayCircle,
+  Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTopicAnalysis } from "@/hooks/useTopicAnalysis";
+
 export default function TopicAnalysisPage() {
   const navigate = (path: string) => {
     window.location.href = path;
   };
 
-  const handlePracticeClick = (temaId: string, academiaId: string, preguntasFalladas: string[]) => {
-    // 🔍 DEBUG: Log para identificar el problema
-    console.log('=== PRACTICE CLICK DEBUG ===');
-    console.log('Tema ID:', temaId);
-    console.log('Academia ID:', academiaId);
-    console.log('Preguntas falladas desde análisis:', preguntasFalladas);
-    console.log('Cantidad de preguntas:', preguntasFalladas.length);
-    
-    if (preguntasFalladas.length === 0) {
-      // Si no hay preguntas falladas específicas, ir a test normal
-      window.location.href = `/quiz?mode=test&academia=${academiaId}&tema=${temaId}`;
-    } else {
-      // Ir a modo práctica con preguntas específicas
-      const questionIds = preguntasFalladas.join(',');
-      console.log('URL que se va a usar:', `/quiz?mode=practice&tema=${temaId}&questions=${questionIds}`);
-      window.location.href = `/quiz?mode=practice&tema=${temaId}&questions=${questionIds}`;
-    }
-  };
   const { 
     topicStats, 
     academias, 
     loading, 
-    filters, 
-    setFilters, 
     refreshData 
   } = useTopicAnalysis();
 
@@ -64,10 +37,10 @@ export default function TopicAnalysisPage() {
   };
 
   const getProgressColor = (porcentaje: number) => {
-    if (porcentaje >= 95) return 'bg-yellow-500'; // Dominado
-    if (porcentaje >= 85) return 'bg-blue-500';   // Casi Dominado
-    if (porcentaje >= 70) return 'bg-green-500';  // En Progreso
-    return 'bg-red-500'; // Necesita Práctica
+    if (porcentaje >= 95) return 'bg-yellow-500';
+    if (porcentaje >= 85) return 'bg-blue-500';  
+    if (porcentaje >= 70) return 'bg-green-500'; 
+    return 'bg-red-500';
   };
 
   const getNivelIcon = (nivel: string) => {
@@ -79,6 +52,26 @@ export default function TopicAnalysisPage() {
       default: return '❓';
     }
   };
+
+  const handlePracticeClick = (temaId: string, academiaId: string, preguntasFalladas: string[]) => {
+    if (preguntasFalladas.length === 0) {
+      window.location.href = `/quiz?mode=test&academia=${academiaId}&tema=${temaId}`;
+    } else {
+      const questionIds = preguntasFalladas.join(',');
+      window.location.href = `/quiz?mode=practice&tema=${temaId}&questions=${questionIds}`;
+    }
+  };
+
+  // Agrupar temas por estado
+  const temasDominados = topicStats.filter(topic => topic.nivel_dominio === 'Dominado');
+  const temasCasiDominados = topicStats.filter(topic => topic.nivel_dominio === 'Casi Dominado');
+  const temasEnProgreso = topicStats.filter(topic => topic.nivel_dominio === 'En Progreso');
+  const temasNecesitanPractica = topicStats.filter(topic => topic.nivel_dominio === 'Necesita Práctica');
+
+  // Calcular estadísticas generales
+  const totalPreguntas = topicStats.reduce((sum, topic) => sum + topic.total_respondidas, 0);
+  const totalCorrectas = topicStats.reduce((sum, topic) => sum + topic.total_correctas, 0);
+  const promedioGeneral = totalPreguntas > 0 ? Math.round((totalCorrectas / totalPreguntas) * 100) : 0;
 
   const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium' | 'low' | 'achieved' }) => {
     const getBorderStyle = () => {
@@ -105,7 +98,7 @@ export default function TopicAnalysisPage() {
       if (priority === 'achieved') {
         return (
           <>
-            <RotateCcw className="mr-2 h-4 w-4" />
+            <RefreshCw className="mr-2 h-4 w-4" />
             Repasar
           </>
         );
@@ -182,32 +175,14 @@ export default function TopicAnalysisPage() {
           </div>
 
           {/* Info adicional */}
-          <div className="space-y-2">
-            {/* Intentos y última actividad */}
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
+          {topic.intentos_totales && (
+            <div className="text-xs text-muted-foreground">
               <span>Intentos: {topic.intentos_totales}</span>
               {topic.dias_sin_repasar < 30 && (
-                <span>Hace {topic.dias_sin_repasar} días</span>
+                <span className="ml-4">Hace {topic.dias_sin_repasar} días</span>
               )}
             </div>
-
-            {/* Últimos scores si están disponibles */}
-            {topic.ultimos_intentos.length > 0 && (
-              <div className="text-xs text-muted-foreground">
-                <span>Últimos: </span>
-                {topic.ultimos_intentos.slice(-3).map((score, index) => (
-                  <span key={index} className={cn(
-                    "inline-block w-6 h-6 rounded text-center text-xs leading-6 mr-1",
-                    score >= 85 ? "bg-green-100 text-green-700" : 
-                    score >= 70 ? "bg-yellow-100 text-yellow-700" : 
-                    "bg-red-100 text-red-700"
-                  )}>
-                    {score}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Botón de Acción */}
           <Button
@@ -226,38 +201,6 @@ export default function TopicAnalysisPage() {
       </Card>
     );
   };
-    // 🔍 DEBUG: Log para identificar el problema
-    console.log('=== PRACTICE CLICK DEBUG ===');
-    console.log('Tema ID:', temaId);
-    console.log('Academia ID:', academiaId);
-    console.log('Preguntas falladas desde análisis:', preguntasFalladas);
-    console.log('Cantidad de preguntas:', preguntasFalladas.length);
-    
-    if (preguntasFalladas.length === 0) {
-      // Si no hay preguntas falladas específicas, ir a test normal
-      window.location.href = `/quiz?mode=test&academia=${academiaId}&tema=${temaId}`;
-    } else {
-      // Ir a modo práctica con preguntas específicas
-      const questionIds = preguntasFalladas.join(',');
-      console.log('URL que se va a usar:', `/quiz?mode=practice&tema=${temaId}&questions=${questionIds}`);
-      window.location.href = `/quiz?mode=practice&tema=${temaId}&questions=${questionIds}`;
-    }
-  };
-
-  // Calcular estadísticas generales y agrupar por estado
-  const totalPreguntas = topicStats.reduce((sum, topic) => sum + topic.total_respondidas, 0);
-  const totalCorrectas = topicStats.reduce((sum, topic) => sum + topic.total_correctas, 0);
-  const totalIncorrectas = topicStats.reduce((sum, topic) => sum + topic.total_incorrectas, 0);
-  const promedioGeneral = totalPreguntas > 0 ? Math.round((totalCorrectas / totalPreguntas) * 100) : 0;
-
-  // Agrupar temas por estado
-  const temasDominados = topicStats.filter(topic => topic.nivel_dominio === 'Dominado');
-  const temasCasiDominados = topicStats.filter(topic => topic.nivel_dominio === 'Casi Dominado');
-  const temasEnProgreso = topicStats.filter(topic => topic.nivel_dominio === 'En Progreso');
-  const temasNecesitanPractica = topicStats.filter(topic => topic.nivel_dominio === 'Necesita Práctica');
-
-  // Estadísticas para mostrar
-  const temasConErrores = [...temasNecesitanPractica, ...temasEnProgreso, ...temasCasiDominados].length;
 
   if (loading) {
     return (
@@ -371,81 +314,6 @@ export default function TopicAnalysisPage() {
           </Card>
         </div>
 
-        {/* Filtros */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Filter className="h-5 w-5" />
-              Filtros y Ordenación
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Academia</label>
-                <Select
-                  value={filters.academia_id || 'all'}
-                  onValueChange={(value) => 
-                    setFilters(prev => ({ 
-                      ...prev, 
-                      academia_id: value === 'all' ? undefined : value 
-                    }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todas las academias" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las academias</SelectItem>
-                    {academias.map(academia => (
-                      <SelectItem key={academia.id} value={academia.id}>
-                        {academia.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Ordenar por</label>
-                <Select
-                  value={filters.ordenar_por}
-                  onValueChange={(value: any) => 
-                    setFilters(prev => ({ ...prev, ordenar_por: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="porcentaje_asc">Menor porcentaje primero</SelectItem>
-                    <SelectItem value="porcentaje_desc">Mayor porcentaje primero</SelectItem>
-                    <SelectItem value="incorrectas_desc">Más errores primero</SelectItem>
-                    <SelectItem value="total_desc">Más preguntas primero</SelectItem>
-                    <SelectItem value="nombre">Nombre A-Z</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="solo-errores"
-                  checked={filters.solo_con_errores}
-                  onCheckedChange={(checked) =>
-                    setFilters(prev => ({ ...prev, solo_con_errores: !!checked }))
-                  }
-                />
-                <label
-                  htmlFor="solo-errores"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Solo temas con errores
-                </label>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Secciones por Estado de Dominio */}
         <div className="space-y-6">
           {/* 🔥 SECCIÓN: NECESITAN PRÁCTICA */}
@@ -511,7 +379,7 @@ export default function TopicAnalysisPage() {
             </Card>
           )}
 
-          {/* 🏆 SECCIÓN: DOMINADOS (Colapsible) */}
+          {/* 🏆 SECCIÓN: DOMINADOS */}
           {temasDominados.length > 0 && (
             <Card>
               <CardHeader>
@@ -544,9 +412,7 @@ export default function TopicAnalysisPage() {
                   <div>
                     <h3 className="text-lg font-semibold">No hay datos disponibles</h3>
                     <p className="text-muted-foreground">
-                      {filters.solo_con_errores 
-                        ? "No hay temas con errores para mostrar"
-                        : "Completa algunos tests para ver tu análisis por temas"}
+                      Completa algunos tests para ver tu análisis por temas
                     </p>
                   </div>
                   <Button onClick={() => navigate("/test-setup")}>
@@ -566,7 +432,6 @@ export default function TopicAnalysisPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">🎯 Tu Progreso General</h3>
                 
-                {/* Estadísticas de progreso */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                     <div className="text-2xl font-bold text-yellow-600">{temasDominados.length}</div>
@@ -592,35 +457,23 @@ export default function TopicAnalysisPage() {
                     : ""
                   }
                   {temasNecesitanPractica.length > 0 
-                    ? `Tienes ${temasNecesitanPractica.length} tema${temasNecesitanPractica.length > 1 ? 's' : ''} que necesita${temasNecesitanPractica.length > 1 ? 'n' : ''} más práctica. ¡Enfócate en ellos para seguir mejorando!`
-                    : temasConErrores === 0 
-                    ? "¡Increíble! No tienes temas pendientes. Sigue practicando para mantener tu nivel."
-                    : "¡Buen progreso! Sigue practicando para dominar más temas."
+                    ? `Tienes ${temasNecesitanPractica.length} tema${temasNecesitanPractica.length > 1 ? 's' : ''} que necesita${temasNecesitanPractica.length > 1 ? 'n' : ''} más práctica.`
+                    : "¡Increíble! No tienes temas pendientes."
                   }
                 </p>
                 
-                {/* Botones de acción */}
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   {temasNecesitanPractica.length > 0 && (
                     <Button onClick={() => navigate("/practice")} className="bg-red-600 hover:bg-red-700">
                       <BookOpen className="mr-2 h-4 w-4" />
-                      Practicar Temas Urgentes ({temasNecesitanPractica.length})
+                      Practicar Urgentes ({temasNecesitanPractica.length})
                     </Button>
                   )}
                   
-                  {(temasEnProgreso.length > 0 || temasCasiDominados.length > 0) && (
-                    <Button onClick={() => navigate("/test-setup")} variant="outline">
-                      <Target className="mr-2 h-4 w-4" />
-                      Continuar Progreso
-                    </Button>
-                  )}
-                  
-                  {temasDominados.length > 0 && (
-                    <Button onClick={() => navigate("/test-setup")} variant="secondary">
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Repasar Dominados
-                    </Button>
-                  )}
+                  <Button onClick={() => navigate("/test-setup")} variant="outline">
+                    <Target className="mr-2 h-4 w-4" />
+                    Nuevo Test
+                  </Button>
                 </div>
               </div>
             </CardContent>
