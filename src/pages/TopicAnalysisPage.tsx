@@ -314,6 +314,63 @@ export default function TopicAnalysisPage() {
           </Card>
         </div>
 
+        {/* Sistema de Niveles - Compacto y Colapsible */}
+        <Card className="border-dashed border-2 border-muted">
+          <CardContent className="p-3">
+            <details className="group">
+              <summary className="flex items-center justify-between cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                <span className="flex items-center gap-2">
+                  <div className="text-xs">ℹ️</div>
+                  ¿Cómo funcionan los niveles?
+                </span>
+                <div className="transform transition-transform group-open:rotate-180">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </summary>
+              
+              <div className="mt-3 grid grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
+                <div className="flex items-center gap-2 p-2 bg-yellow-50 rounded border border-yellow-200">
+                  <span>🏆</span>
+                  <div>
+                    <div className="font-medium text-yellow-700">Dominado</div>
+                    <div className="text-yellow-600">≥95% + 2 tests</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2 p-2 bg-blue-50 rounded border border-blue-200">
+                  <span>⭐</span>
+                  <div>
+                    <div className="font-medium text-blue-700">Casi Dominado</div>
+                    <div className="text-blue-600">≥85% + 3 tests</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2 p-2 bg-green-50 rounded border border-green-200">
+                  <span>📈</span>
+                  <div>
+                    <div className="font-medium text-green-700">En Progreso</div>
+                    <div className="text-green-600">≥70%</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2 p-2 bg-red-50 rounded border border-red-200">
+                  <span>📚</span>
+                  <div>
+                    <div className="font-medium text-red-700">Necesita Práctica</div>
+                    <div className="text-red-600">&lt;70%</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-2 text-xs text-muted-foreground text-center">
+                <span>💡 Los niveles se actualizan automáticamente según tu progreso</span>
+              </div>
+            </details>
+          </CardContent>
+        </Card>
+
         {/* Secciones por Estado de Dominio */}
         <div className="space-y-6">
           {/* 🔥 SECCIÓN: NECESITAN PRÁCTICA */}
