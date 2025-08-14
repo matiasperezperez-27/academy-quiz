@@ -1,722 +1,419 @@
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useEffect, useState } from "react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
-  BookOpen, 
+  Trophy, 
+  Star, 
   Target, 
-  BarChart3,
-  ArrowLeft,
-  RefreshCw,
-  PlayCircle,
-  RotateCcw
+  PartyPopper, 
+  ArrowRight,
+  RotateCcw,
+  Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useTopicAnalysis, getNivelIcon, getNivelColor } from "@/hooks/useTopicAnalysis";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-import CelebrationModal from "@/components/CelebrationModal";
 
-export default function TopicAnalysisPage() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const navigate = (path: string) => {
-    window.location.href = path;
-  };
+interface CelebrationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  achievement: {
+    type: 'Dominado' | 'Casi Dominado' | 'En Progreso';
+    topicName: string;
+    accuracy: number;
+    attempts: number;
+    previousLevel?: string;
+  } | null;
+  onContinue?: () => void;
+  onPracticeMore?: () => void;
+  onNextTopic?: () => void;
+}
 
-  const { 
-    topicStats, 
-    academias, 
-    loading, 
-    refreshData,
-    resetSpecificTopicData 
-  } = useTopicAnalysis();
+// 🎊 Componente de Confeti CSS puro
+const ConfettiAnimation = () => {
+  const [confetti, setConfetti] = useState<Array<{id: number; left: number; delay: number; color: string}>>([]);
 
-  // 🎉 Estado para celebración con modal
-  const [celebrationModal, setCelebrationModal] = useState<{
-    isOpen: boolean;
-    achievement: {
-      type: 'Dominado' | 'Casi Dominado' | 'En Progreso';
-      topicName: string;
-      accuracy: number;
-      attempts: number;
-      previousLevel?: string;
-    } | null;
-  }>({
-    isOpen: false,
-    achievement: null
-  });
-
-  // 🔧 CORREGIDO: Usar Map para evitar re-renders múltiples
-  const [celebratedTopics, setCelebratedTopics] = useState<Map<string, boolean>>(new Map());
-
-  // 🎯 Detectar temas completados - CORREGIDO para evitar bucles
   useEffect(() => {
-    if (!topicStats.length || !user) return;
+    // Generar confeti aleatorio
+    const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
+    const newConfetti = Array.from({ length: 50 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 3,
+      color: colors[Math.floor(Math.random() * colors.length)]
+    }));
+    setConfetti(newConfetti);
+  }, []);
 
-    topicStats.forEach(topic => {
-      // ✅ Validaciones estrictas
-      if (!topic || !topic.tema_id || !topic.tema_nombre) return;
-      
-      const isFullyCompleted = topic.progreso_temario === 100 && topic.porcentaje_acierto === 100;
-      const topicKey = `${topic.tema_id}-${topic.progreso_temario}-${topic.porcentaje_acierto}`;
-      
-      // 🛡️ SOLO mostrar si está completado Y no lo hemos celebrado antes
-      if (isFullyCompleted && !celebratedTopics.has(topicKey)) {
-        
-        // ✅ Marcar como celebrado INMEDIATAMENTE para evitar bucles
-        setCelebratedTopics(prev => new Map(prev).set(topicKey, true));
-        
-        // 🎉 Preparar datos del achievement
-        const achievementData = {
-          type: 'Dominado' as const,
-          topicName: topic.tema_nombre,
-          accuracy: topic.porcentaje_acierto,
-          attempts: topic.intentos_totales || 1,
-          previousLevel: 'En Progreso'
-        };
+  return (
+    <div className="fixed inset-0 pointer-events-none z-50">
+      {confetti.map((piece) => (
+        <div
+          key={piece.id}
+          className="confetti-piece absolute w-2 h-2 opacity-80"
+          style={{
+            left: `${piece.left}%`,
+            backgroundColor: piece.color,
+            animationDelay: `${piece.delay}s`,
+            animationDuration: '3s',
+            animationTimingFunction: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+            animationIterationCount: '1',
+            animationFillMode: 'forwards',
+            transform: 'translateY(-100vh)',
+            animation: `confetti-fall 3s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${piece.delay}s forwards`
+          }}
+        />
+      ))}
+      <style>{`
+        @keyframes confetti-fall {
+          0% {
+            transform: translateY(-100vh) rotate(0deg);
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(100vh) rotate(720deg);
+            opacity: 0;
+          }
+        }
+        .confetti-piece {
+          border-radius: 2px;
+          animation: confetti-fall 3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+      `}</style>
+    </div>
+  );
+};
 
-        // ✅ Mostrar modal con delay para evitar conflictos
-        setTimeout(() => {
-          setCelebrationModal({
-            isOpen: true,
-            achievement: achievementData
-          });
-        }, 100);
+export default function CelebrationModal({
+  isOpen,
+  onClose,
+  achievement,
+  onContinue,
+  onPracticeMore,
+  onNextTopic
+}: CelebrationModalProps) {
+  
+  const [showConfetti, setShowConfetti] = useState(false);
 
-        // Toast como backup
-        toast({
-          title: "🏆 ¡Tema Completamente Dominado!",
-          description: `Has alcanzado la perfección en "${topic.tema_nombre}". ¡Felicidades!`,
-          duration: 3000,
-        });
-      }
-    });
-  }, [topicStats, user, toast, celebratedTopics]);
-
-  // Función para reiniciar progreso de un tema
-  const resetTopicProgress = async (temaId: string, temaNombre: string) => {
-    if (!user) return;
-
-    try {
-      const confirmReset = window.confirm(
-        `¿Estás seguro de que quieres reiniciar completamente el progreso del tema "${temaNombre}"?\n\n` +
-        `Esto eliminará:\n` +
-        `• Todas tus respuestas\n` +
-        `• Todas las sesiones\n` +
-        `• El progreso de dominio\n\n` +
-        `Esta acción NO se puede deshacer.`
-      );
-
-      if (!confirmReset) return;
-
-      toast({
-        title: "Reiniciando...",
-        description: "Eliminando progreso del tema...",
-      });
-
-      const success = await resetSpecificTopicData(temaId);
-
-      if (success) {
-        // 🔧 Limpiar celebraciones del tema reiniciado
-        setCelebratedTopics(prev => {
-          const newMap = new Map(prev);
-          // Eliminar todas las entradas relacionadas con este tema
-          Array.from(newMap.keys()).forEach(key => {
-            if (key.startsWith(temaId)) {
-              newMap.delete(key);
-            }
-          });
-          return newMap;
-        });
-
-        await refreshData();
-
-        toast({
-          title: "✅ Progreso Reiniciado",
-          description: `El tema "${temaNombre}" ha sido reiniciado completamente.`,
-          variant: "default"
-        });
-      } else {
-        throw new Error('No se pudo reiniciar el progreso');
-      }
-
-    } catch (error) {
-      console.error('Error resetting topic progress:', error);
-      toast({
-        title: "❌ Error",
-        description: "No se pudo reiniciar el progreso del tema.",
-        variant: "destructive"
-      });
+  // Activar confeti cuando se abre el modal
+  useEffect(() => {
+    if (isOpen && achievement) {
+      setShowConfetti(true);
+      const timer = setTimeout(() => setShowConfetti(false), 4000);
+      return () => clearTimeout(timer);
     }
-  };
+  }, [isOpen, achievement]);
 
-  const handlePracticeClick = (temaId: string, academiaId: string, preguntasFalladas: string[]) => {
-    if (preguntasFalladas.length === 0) {
-      window.location.href = `/quiz?mode=test&academia=${academiaId}&tema=${temaId}`;
-    } else {
-      const questionIds = preguntasFalladas.join(',');
-      window.location.href = `/quiz?mode=practice&tema=${temaId}&questions=${questionIds}`;
-    }
-  };
-
-  // 🎉 Manejadores del modal de celebración
-  const handleCelebrationClose = () => {
-    setCelebrationModal({ isOpen: false, achievement: null });
-  };
-
-  const handleContinuePractice = () => {
-    setCelebrationModal({ isOpen: false, achievement: null });
-    navigate("/topic-analysis");
-  };
-
-  const handleNextTopic = () => {
-    setCelebrationModal({ isOpen: false, achievement: null });
-    navigate("/test-setup");
-  };
-
-  const handlePracticeMore = () => {
-    setCelebrationModal({ isOpen: false, achievement: null });
-    navigate("/practice");
-  };
-
-  // 🧪 Botón temporal para probar el modal
-  const testModal = () => {
-    setCelebrationModal({
-      isOpen: true,
-      achievement: {
-        type: 'Dominado',
-        topicName: 'Tema de Prueba',
-        accuracy: 100,
-        attempts: 5,
-        previousLevel: 'En Progreso'
-      }
-    });
-  };
-
-  // Componente TopicCard (sin cambios)
-  const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium' | 'low' | 'achieved' }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-    
-    const getBorderStyle = () => {
-      switch (priority) {
-        case 'high': return 'border-l-4 border-l-red-500 hover:shadow-lg';
-        case 'medium': return 'border-l-4 border-l-green-500 hover:shadow-md';
-        case 'low': return 'border-l-4 border-l-blue-500 hover:shadow-md';
-        case 'achieved': return 'border-l-4 border-l-yellow-500 hover:shadow-sm bg-yellow-50/30';
-        default: return 'hover:shadow-md';
-      }
-    };
-
-    const getButtonVariant = () => {
-      switch (priority) {
-        case 'high': return 'default';
-        case 'medium': return 'secondary';
-        case 'low': return 'outline';
-        case 'achieved': return 'ghost';
-        default: return 'outline';
-      }
-    };
-
-    const getButtonText = () => {
-      const falladasCount = topic.preguntas_falladas_ids?.length || 0;
-      
-      if (priority === 'achieved') {
-        return (
-          <>
-            <RefreshCw className="mr-1.5 h-4 w-4" />
-            Repasar
-          </>
-        );
-      }
-      
-      if (falladasCount > 0) {
-        return (
-          <>
-            <BookOpen className="mr-1.5 h-4 w-4" />
-            Practicar ({falladasCount})
-          </>
-        );
-      }
-      
-      return (
-        <>
-          <PlayCircle className="mr-1.5 h-4 w-4" />
-          Hacer Test
-        </>
-      );
-    };
-
-    const isLongTitle = topic.tema_nombre && topic.tema_nombre.length > 25;
-    const shouldShowExpander = isLongTitle && !isExpanded;
-
-    const toggleExpanded = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      setIsExpanded(!isExpanded);
-    };
-
-    const preguntasRespondidas = topic.total_respondidas || 0;
-    const totalPreguntasTemario = topic.total_preguntas_temario || 0;
-    const preguntasPendientes = topic.preguntas_pendientes || 0;
-    const progresoTemario = topic.progreso_temario || 0;
-    const porcentajeDominio = topic.porcentaje_acierto || 0;
-
-    const isFullyCompleted = progresoTemario === 100 && porcentajeDominio === 100;
-
-    const getProgresoColor = (porcentaje: number) => {
-      if (porcentaje >= 90) return 'bg-blue-500';
-      if (porcentaje >= 70) return 'bg-green-500';
-      if (porcentaje >= 50) return 'bg-yellow-500';
-      return 'bg-orange-500';
-    };
-
-    const getDominioColor = (porcentaje: number) => {
-      if (porcentaje >= 95) return 'bg-yellow-500';
-      if (porcentaje >= 85) return 'bg-blue-500';  
-      if (porcentaje >= 70) return 'bg-green-500'; 
-      return 'bg-red-500';
-    };
-
-    return (
-      <Card className={cn("transition-all duration-200", getBorderStyle())}>
-        <CardHeader className="pb-2">
-          <div className="space-y-1.5">
-            {/* Título del tema */}
-            <div className="flex items-start gap-1.5">
-              <span className="text-base flex-shrink-0">{getNivelIcon(topic.nivel_dominio)}</span>
-              <div className="flex-1 min-w-0">
-                <CardTitle 
-                  className={cn(
-                    "text-sm leading-tight cursor-pointer transition-all duration-200",
-                    shouldShowExpander && "truncate hover:text-primary",
-                    isExpanded && "whitespace-normal"
-                  )}
-                  onClick={isLongTitle ? toggleExpanded : undefined}
-                >
-                  {topic.tema_nombre || 'Sin nombre'}
-                </CardTitle>
-              </div>
-              {/* Botón "Ver más" */}
-              {isLongTitle && (
-                <button
-                  onClick={toggleExpanded}
-                  className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 flex-shrink-0 transition-colors"
-                >
-                  {isExpanded ? (
-                    <>
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                      </svg>
-                      Menos
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                      Ver más
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
-            
-            {/* Academia + Badge */}
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground truncate">
-                {topic.academia_nombre || 'Sin academia'}
-              </p>
-              <Badge 
-                variant="outline" 
-                className={cn("text-xs ml-2 flex-shrink-0", getNivelColor(topic.nivel_dominio))}
-              >
-                {topic.nivel_dominio || 'Sin nivel'}
-              </Badge>
-            </div>
-          </div>
-        </CardHeader>
-        
-        <CardContent className="space-y-3 pt-0">
-          {/* Indicador de completado al 100% */}
-          {isFullyCompleted && (
-            <div className="p-2 bg-gradient-to-r from-yellow-50 to-orange-50 rounded border border-yellow-200 text-center">
-              <div className="flex items-center justify-center gap-2 text-sm font-medium text-yellow-800">
-                <span>🏆</span>
-                <span>¡Tema Completamente Dominado!</span>
-                <span>🎉</span>
-              </div>
-            </div>
-          )}
-
-          {/* Progreso del temario */}
-          <div className="space-y-1.5">
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-muted-foreground flex items-center gap-1">
-                📚 Progreso
-                {preguntasPendientes > 0 && (
-                  <span className="text-blue-600 font-medium">
-                    ({preguntasPendientes} pendientes)
-                  </span>
-                )}
-              </span>
-              <span className="font-bold text-sm">
-                {preguntasRespondidas}/{totalPreguntasTemario}
-              </span>
-            </div>
-            <div className="w-full bg-muted rounded-full h-2">
-              <div 
-                className={cn("h-2 rounded-full transition-all", getProgresoColor(progresoTemario))}
-                style={{ width: `${progresoTemario}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Dominio */}
-          <div className="space-y-1.5">
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-muted-foreground flex items-center gap-1">
-                🎯 Dominio
-                {(topic.total_incorrectas || 0) > 0 && (
-                  <span className="text-red-600 font-medium">
-                    ({topic.total_incorrectas} errores)
-                  </span>
-                )}
-              </span>
-              <span className="font-bold text-sm">{porcentajeDominio}%</span>
-            </div>
-            <div className="w-full bg-muted rounded-full h-2">
-              <div 
-                className={cn("h-2 rounded-full transition-all", getDominioColor(porcentajeDominio))}
-                style={{ width: `${porcentajeDominio}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Estadísticas */}
-          <div className="grid grid-cols-3 gap-1 text-center py-2 bg-muted/30 rounded">
-            <div className="space-y-0.5">
-              <p className="text-xs text-muted-foreground">Únicas</p>
-              <p className="text-sm font-bold">{preguntasRespondidas}</p>
-            </div>
-            <div className="space-y-0.5">
-              <p className="text-xs text-green-600">Dominadas</p>
-              <p className="text-sm font-bold text-green-600">{topic.total_correctas || 0}</p>
-            </div>
-            <div className="space-y-0.5">
-              <p className="text-xs text-red-600">Errores</p>
-              <p className="text-sm font-bold text-red-600">{topic.total_incorrectas || 0}</p>
-            </div>
-          </div>
-
-          {/* Info adicional */}
-          <div className="flex justify-between items-center text-xs text-muted-foreground">
-            <span>Intentos: {topic.intentos_totales || 0}</span>
-            {(topic.dias_sin_repasar || 0) < 7 ? (
-              <span className="text-green-600">Reciente</span>
-            ) : (topic.dias_sin_repasar || 0) < 30 ? (
-              <span>Hace {topic.dias_sin_repasar}d</span>
-            ) : (
-              <span className="text-orange-600">Hace tiempo</span>
-            )}
-          </div>
-
-          {/* Estado urgente */}
-          {priority === 'high' && (topic.total_incorrectas || 0) > 5 && (
-            <div className="text-center py-1 bg-red-50 rounded border border-red-200">
-              <span className="text-xs text-red-700 font-medium">
-                ⚠️ Requiere atención urgente
-              </span>
-            </div>
-          )}
-
-          {/* Botones de acción */}
-          <div className="space-y-2">
-            {/* Botón principal */}
-            <Button
-              onClick={() => handlePracticeClick(
-                topic.tema_id, 
-                topic.academia_id, 
-                topic.preguntas_falladas_ids || []
-              )}
-              className="w-full h-8"
-              variant={getButtonVariant()}
-              size="sm"
-            >
-              {getButtonText()}
-            </Button>
-
-            {/* Botón de reinicio */}
-            {isFullyCompleted && (
-              <Button
-                onClick={() => resetTopicProgress(topic.tema_id, topic.tema_nombre)}
-                variant="outline"
-                size="sm"
-                className="w-full h-7 text-xs border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-              >
-                <RotateCcw className="mr-1 h-3 w-3" />
-                Reiniciar Progreso
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  // Agrupar temas por estado con validación de datos
-  const temasDominados = topicStats.filter(topic => topic?.nivel_dominio === 'Dominado');
-  const temasCasiDominados = topicStats.filter(topic => topic?.nivel_dominio === 'Casi Dominado');
-  const temasEnProgreso = topicStats.filter(topic => topic?.nivel_dominio === 'En Progreso');
-  const temasNecesitanPractica = topicStats.filter(topic => topic?.nivel_dominio === 'Necesita Práctica');
-
-  // Calcular estadísticas generales con validación
-  const totalPreguntas = topicStats.reduce((sum, topic) => sum + (topic?.total_respondidas || 0), 0);
-  const totalCorrectas = topicStats.reduce((sum, topic) => sum + (topic?.total_correctas || 0), 0);
-  const promedioGeneral = totalPreguntas > 0 ? Math.round((totalCorrectas / totalPreguntas) * 100) : 0;
-
-  if (loading) {
-    return (
-      <main className="min-h-screen p-4 bg-background">
-        <div className="max-w-6xl mx-auto space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              <div className="h-8 w-64 bg-muted rounded animate-pulse" />
-              <div className="h-4 w-48 bg-muted rounded animate-pulse" />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <Card key={i} className="p-6">
-                <div className="space-y-3">
-                  <div className="h-4 w-32 bg-muted rounded animate-pulse" />
-                  <div className="h-6 w-20 bg-muted rounded animate-pulse" />
-                  <div className="h-2 w-full bg-muted rounded animate-pulse" />
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </main>
-    );
+  // Validación de seguridad
+  if (!achievement || !achievement.type || !achievement.topicName) {
+    return null;
   }
+
+  const getAchievementConfig = (type: string) => {
+    switch (type) {
+      case 'Dominado':
+        return {
+          icon: <Trophy className="h-16 w-16 text-yellow-500 drop-shadow-lg" />,
+          title: "🏆 ¡Tema Dominado!",
+          description: "Has alcanzado un nivel excepcional",
+          bgGradient: "bg-gradient-to-br from-yellow-50 via-orange-50 to-amber-50 dark:from-yellow-900/20 dark:via-orange-900/20 dark:to-amber-900/20",
+          borderColor: "border-yellow-200 dark:border-yellow-700",
+          textColor: "text-yellow-900 dark:text-yellow-100",
+          titleColor: "text-gray-900 dark:text-white",
+          descriptionColor: "text-gray-700 dark:text-gray-300",
+          accentColor: "text-yellow-600 dark:text-yellow-400",
+          emoji: "🎉"
+        };
+      case 'Casi Dominado':
+        return {
+          icon: <Star className="h-16 w-16 text-blue-500 drop-shadow-lg" />,
+          title: "⭐ ¡Casi lo Tienes!",
+          description: "Estás muy cerca de dominar este tema",
+          bgGradient: "bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-purple-900/20",
+          borderColor: "border-blue-200 dark:border-blue-700",
+          textColor: "text-blue-900 dark:text-blue-100",
+          titleColor: "text-gray-900 dark:text-white",
+          descriptionColor: "text-gray-700 dark:text-gray-300",
+          accentColor: "text-blue-600 dark:text-blue-400",
+          emoji: "🚀"
+        };
+      case 'En Progreso':
+        return {
+          icon: <Target className="h-16 w-16 text-green-500 drop-shadow-lg" />,
+          title: "🎯 ¡Buen Progreso!",
+          description: "Sigues mejorando constantemente",
+          bgGradient: "bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-green-900/20 dark:via-emerald-900/20 dark:to-teal-900/20",
+          borderColor: "border-green-200 dark:border-green-700",
+          textColor: "text-green-900 dark:text-green-100",
+          titleColor: "text-gray-900 dark:text-white",
+          descriptionColor: "text-gray-700 dark:text-gray-300",
+          accentColor: "text-green-600 dark:text-green-400",
+          emoji: "📈"
+        };
+      default:
+        return {
+          icon: <PartyPopper className="h-16 w-16 text-purple-500 drop-shadow-lg" />,
+          title: "🎊 ¡Felicidades!",
+          description: "Has logrado un nuevo hito",
+          bgGradient: "bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 dark:from-purple-900/20 dark:via-pink-900/20 dark:to-rose-900/20",
+          borderColor: "border-purple-200 dark:border-purple-700",
+          textColor: "text-purple-900 dark:text-purple-100",
+          titleColor: "text-gray-900 dark:text-white",
+          descriptionColor: "text-gray-700 dark:text-gray-300",
+          accentColor: "text-purple-600 dark:text-purple-400",
+          emoji: "🎉"
+        };
+    }
+  };
+
+  const config = getAchievementConfig(achievement.type);
+
+  const getMotivationalMessage = (type: string) => {
+    const messages = {
+      'Dominado': [
+        "¡Increíble! Has demostrado un dominio excepcional de este tema. 🌟",
+        "¡Excelencia pura! Este tema ya no tiene secretos para ti. 🚀",
+        "¡Maestría alcanzada! Tu dedicación ha dado frutos extraordinarios. 🏆"
+      ],
+      'Casi Dominado': [
+        "¡Excelente progreso! Solo un poco más y lo dominarás completamente. 💪",
+        "¡Impresionante! Estás en el camino correcto hacia la maestría. ⭐",
+        "¡Fantástico! La perfección está al alcance de tus manos. 🎯"
+      ],
+      'En Progreso': [
+        "¡Genial! Cada respuesta correcta te acerca más a la maestría. 📈",
+        "¡Sigue así! Tu progreso constante es admirable. 🎯",
+        "¡Excelente trabajo! Estás construyendo una base sólida. 💪"
+      ]
+    };
+    
+    const typeMessages = messages[type as keyof typeof messages] || messages['Dominado'];
+    return typeMessages[Math.floor(Math.random() * typeMessages.length)];
+  };
 
   return (
     <>
-      <main className="min-h-screen p-4 bg-background">
-        <div className="max-w-6xl mx-auto space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => window.history.back()}
-                  className="flex items-center gap-2"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Volver
-                </Button>
-                <h1 className="text-2xl sm:text-3xl font-bold">
-                  📊 Análisis por Temas
-                </h1>
-              </div>
-              <p className="text-muted-foreground">
-                Descubre en qué temas necesitas enfocar tu estudio
-              </p>
-            </div>
-            <div className="flex gap-2">
-              {/* 🧪 Botón temporal para probar */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={testModal}
-                className="text-xs"
-              >
-                🎉 Probar Modal
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={refreshData}
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Actualizar
-              </Button>
-            </div>
-          </div>
-
-          {/* Estadísticas Generales */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Promedio General</p>
-                    <p className="text-2xl font-bold">{promedioGeneral}%</p>
-                  </div>
-                  <Target className="h-8 w-8 text-primary" />
-                </div>
-              </CardContent>
-            </Card>
+      {/* 🎊 Confeti animado */}
+      {showConfetti && <ConfettiAnimation />}
+      
+      <Dialog open={isOpen && !!achievement} onOpenChange={onClose}>
+        <DialogContent 
+          className="sm:max-w-md max-w-[90vw] border-0 p-0 overflow-hidden bg-transparent shadow-2xl mx-4 my-4 max-h-[90vh]"
+          hideCloseButton={true}
+        >
+          <div className={cn(
+            "relative rounded-2xl border-2 overflow-hidden",
+            "bg-white dark:bg-gray-900",
+            config.borderColor,
+            "shadow-2xl",
+            "animate-in zoom-in-95 duration-300"
+          )}>
+            {/* Fondo decorativo con gradiente */}
+            <div className={cn("absolute inset-0 opacity-30", config.bgGradient)} />
             
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Respondidas</p>
-                    <p className="text-2xl font-bold">{totalPreguntas}</p>
-                  </div>
-                  <BarChart3 className="h-8 w-8 text-blue-600" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Temas Dominados</p>
-                    <p className="text-2xl font-bold text-yellow-600">{temasDominados.length}</p>
-                  </div>
-                  <div className="text-2xl">🏆</div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Necesitan Práctica</p>
-                    <p className="text-2xl font-bold text-red-600">{temasNecesitanPractica.length}</p>
-                  </div>
-                  <div className="text-2xl">📚</div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Secciones de temas igual que antes... */}
-          <div className="space-y-6">
-            {/* Necesitan Práctica */}
-            {temasNecesitanPractica.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg text-red-600">
-                    📚 Necesitan Práctica
-                    <Badge variant="destructive" className="ml-auto">
-                      {temasNecesitanPractica.length}
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {temasNecesitanPractica.map((topic) => (
-                      <TopicCard key={topic.tema_id} topic={topic} priority="high" />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* En Progreso */}
-            {temasEnProgreso.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg text-green-600">
-                    📈 En Progreso
-                    <Badge variant="secondary" className="ml-auto bg-green-100 text-green-700">
-                      {temasEnProgreso.length}
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {temasEnProgreso.map((topic) => (
-                      <TopicCard key={topic.tema_id} topic={topic} priority="medium" />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Casi Dominados */}
-            {temasCasiDominados.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg text-blue-600">
-                    ⭐ Casi Dominados
-                    <Badge variant="secondary" className="ml-auto bg-blue-100 text-blue-700">
-                      {temasCasiDominados.length}
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {temasCasiDominados.map((topic) => (
-                      <TopicCard key={topic.tema_id} topic={topic} priority="low" />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Dominados */}
-            {temasDominados.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg text-yellow-600">
-                    🏆 Temas Dominados
-                    <Badge variant="secondary" className="ml-auto bg-yellow-100 text-yellow-700">
-                      {temasDominados.length}
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {temasDominados.map((topic) => (
-                      <TopicCard key={topic.tema_id} topic={topic} priority="achieved" />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Mensaje si no hay datos */}
-            {topicStats.length === 0 && (
-              <Card>
-                <CardContent className="flex items-center justify-center p-12">
-                  <div className="text-center space-y-4">
-                    <BookOpen className="h-12 w-12 text-muted-foreground mx-auto" />
-                    <div>
-                      <h3 className="text-lg font-semibold">No hay datos disponibles</h3>
-                      <p className="text-muted-foreground">
-                        Completa algunos tests para ver tu análisis por temas
-                      </p>
+            {/* Contenido principal - MÁS COMPACTO PARA MÓVIL */}
+            <div className="relative z-10 p-4 sm:p-6">
+              <div className="text-center space-y-3 sm:space-y-4">
+                {/* Icono principal con animación - MÁS PEQUEÑO */}
+                <div className="flex justify-center">
+                  <div className={cn(
+                    "relative p-3 sm:p-4 rounded-full border-3 shadow-lg",
+                    "bg-white dark:bg-gray-800",
+                    config.borderColor,
+                    "animate-pulse"
+                  )}>
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-yellow-400/20 to-orange-400/20 animate-ping" />
+                    <div className="relative z-10">
+                      <Trophy className="h-10 w-10 sm:h-12 sm:w-12 text-yellow-500 drop-shadow-lg" />
                     </div>
-                    <Button onClick={() => navigate("/test-setup")}>
-                      <PlayCircle className="mr-2 h-4 w-4" />
-                      Hacer un Test
-                    </Button>
+                    {/* Sparkles decorativos - MÁS PEQUEÑOS */}
+                    <Sparkles className="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 text-yellow-400 animate-bounce" />
+                    <Sparkles className="absolute -bottom-1 -left-1 h-3 w-3 sm:h-4 sm:w-4 text-yellow-400 animate-bounce delay-75" />
                   </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
-      </main>
+                </div>
+                
+                {/* Título principal - MÁS COMPACTO */}
+                <h2 className={cn(
+                  "text-xl sm:text-2xl font-bold tracking-tight",
+                  config.titleColor
+                )}>
+                  {config.title}
+                </h2>
+                
+                {/* Información del tema - MÁS COMPACTO */}
+                <div className="space-y-2">
+                  <h3 className={cn(
+                    "text-base sm:text-lg font-semibold leading-tight px-2",
+                    config.accentColor
+                  )}>
+                    {achievement.topicName}
+                  </h3>
+                  <p className={cn(
+                    "text-sm",
+                    config.descriptionColor
+                  )}>
+                    {config.description}
+                  </p>
+                </div>
+              </div>
 
-      {/* 🎉 MODAL DE CELEBRACIÓN */}
-      <CelebrationModal
-        isOpen={celebrationModal.isOpen}
-        onClose={handleCelebrationClose}
-        achievement={celebrationModal.achievement}
-        onContinue={handleContinuePractice}
-        onNextTopic={handleNextTopic}
-        onPracticeMore={handlePracticeMore}
-      />
+              <div className="space-y-4 mt-4 sm:mt-6">
+                {/* Estadísticas del logro - MÁS COMPACTO */}
+                <div className={cn(
+                  "p-3 sm:p-4 rounded-xl border-2 shadow-lg",
+                  config.bgGradient,
+                  config.borderColor,
+                  "bg-white/50 dark:bg-gray-800/50"
+                )}>
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4 text-center">
+                    <div className="space-y-1">
+                      <div className={cn(
+                        "text-2xl sm:text-3xl font-bold",
+                        config.accentColor
+                      )}>
+                        {achievement.accuracy || 0}%
+                      </div>
+                      <div className={cn(
+                        "text-xs font-medium",
+                        config.descriptionColor
+                      )}>
+                        Precisión
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className={cn(
+                        "text-2xl sm:text-3xl font-bold",
+                        config.accentColor
+                      )}>
+                        {achievement.attempts || 0}
+                      </div>
+                      <div className={cn(
+                        "text-xs font-medium",
+                        config.descriptionColor
+                      )}>
+                        Sesiones
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {achievement.previousLevel && (
+                    <div className="mt-3 text-center">
+                      <Badge 
+                        variant="outline" 
+                        className={cn(
+                          "text-xs border-2",
+                          config.borderColor,
+                          config.textColor,
+                          "bg-white/70 dark:bg-gray-800/70"
+                        )}
+                      >
+                        {achievement.previousLevel} → {achievement.type}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+
+                {/* Mensaje motivacional - MÁS COMPACTO */}
+                <div className={cn(
+                  "text-center p-3 sm:p-4 rounded-xl border",
+                  "bg-gradient-to-r from-white/80 to-gray-50/80",
+                  "dark:bg-gradient-to-r dark:from-gray-800/80 dark:to-gray-700/80",
+                  "border-gray-200 dark:border-gray-600",
+                  "shadow-inner"
+                )}>
+                  <p className={cn(
+                    "text-xs sm:text-sm italic font-medium leading-relaxed",
+                    config.descriptionColor
+                  )}>
+                    {getMotivationalMessage(achievement.type)}
+                  </p>
+                </div>
+
+                {/* Botones de acción - MÁS COMPACTOS */}
+                <div className="space-y-2 sm:space-y-3">
+                  {achievement.type === 'Dominado' ? (
+                    <>
+                      <Button 
+                        onClick={onNextTopic}
+                        className={cn(
+                          "w-full h-10 sm:h-12 text-sm sm:text-base font-semibold",
+                          "bg-gradient-to-r from-blue-600 to-purple-600",
+                          "hover:from-blue-700 hover:to-purple-700",
+                          "text-white shadow-lg hover:shadow-xl",
+                          "transform hover:scale-[1.02] transition-all duration-200"
+                        )}
+                        size="lg"
+                      >
+                        <ArrowRight className="mr-2 h-4 w-4" />
+                        Siguiente Tema
+                      </Button>
+                      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                        <Button 
+                          onClick={onPracticeMore}
+                          variant="outline"
+                          className={cn(
+                            "h-8 sm:h-10 text-xs sm:text-sm font-medium border-2",
+                            config.borderColor,
+                            config.textColor,
+                            "hover:bg-gradient-to-r hover:from-white hover:to-gray-50",
+                            "dark:hover:from-gray-800 dark:hover:to-gray-700"
+                          )}
+                          size="sm"
+                        >
+                          <RotateCcw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                          Repasar
+                        </Button>
+                        <Button 
+                          onClick={onClose}
+                          variant="outline"
+                          className={cn(
+                            "h-8 sm:h-10 text-xs sm:text-sm font-medium border-2",
+                            "border-gray-300 dark:border-gray-600",
+                            "text-gray-700 dark:text-gray-300",
+                            "hover:bg-gray-50 dark:hover:bg-gray-700"
+                          )}
+                          size="sm"
+                        >
+                          Continuar
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Button 
+                        onClick={onContinue}
+                        className={cn(
+                          "w-full h-10 sm:h-12 text-sm sm:text-base font-semibold",
+                          "bg-gradient-to-r from-green-600 to-blue-600",
+                          "hover:from-green-700 hover:to-blue-700",
+                          "text-white shadow-lg hover:shadow-xl",
+                          "transform hover:scale-[1.02] transition-all duration-200"
+                        )}
+                        size="lg"
+                      >
+                        <Target className="mr-2 h-4 w-4" />
+                        Seguir Practicando
+                      </Button>
+                      <Button 
+                        onClick={onClose}
+                        variant="outline"
+                        className={cn(
+                          "w-full h-8 sm:h-10 text-xs sm:text-sm font-medium border-2",
+                          "border-gray-300 dark:border-gray-600",
+                          "text-gray-700 dark:text-gray-300",
+                          "hover:bg-gray-50 dark:hover:bg-gray-700"
+                        )}
+                        size="sm"
+                      >
+                        Ver Progreso
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
