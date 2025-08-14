@@ -79,7 +79,7 @@ export function useUnifiedStats() {
           scorePercentage: Math.round(Number(s.score_percentage) || 0),
           totalQuestions: s.total_questions,
           tema: s.temas?.nombre || 'Sin tema'
-        })), // 👈 SIN .reverse()
+        })).reverse(), // 👈 VUELVE el .reverse()
         
         // Actividades
         weeklyActivity,
