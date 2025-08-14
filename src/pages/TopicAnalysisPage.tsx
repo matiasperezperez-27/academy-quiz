@@ -147,6 +147,18 @@ const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium
               <p className="text-xs text-muted-foreground">
                 {topic.academia_nombre}
               </p>
+              {/* 👈 NUEVO: Mostrar progreso del temario en el header */}
+              {totalPreguntasTemario > 0 && (
+                <div className="flex items-center gap-2 text-xs">
+                  <BookOpen className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-muted-foreground">
+                    {preguntasRespondidas}/{totalPreguntasTemario} preguntas ({progresoTemario}%)
+                  </span>
+                  {progresoTemario === 100 && (
+                    <span className="text-green-600 font-medium">✓ Completo</span>
+                  )}
+                </div>
+              )}
             </div>
             <Badge 
               variant="outline" 
@@ -158,10 +170,47 @@ const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium
         </CardHeader>
         
         <CardContent className="space-y-4">
+          {/* Progreso del Temario - MÁS PROMINENTE */}
+          {totalPreguntasTemario > 0 && (
+            <div className="p-3 bg-muted/30 rounded-lg border space-y-2">
+              <div className="flex justify-between items-center text-sm">
+                <span className="font-medium text-foreground flex items-center gap-1">
+                  📚 Progreso del Temario
+                </span>
+                <span className="font-bold text-foreground">
+                  {preguntasRespondidas}/{totalPreguntasTemario}
+                </span>
+              </div>
+              <div className="w-full bg-background rounded-full h-3 border">
+                <div 
+                  className={cn("h-3 rounded-full transition-all flex items-center justify-end pr-1", getProgresoColor(progresoTemario))}
+                  style={{ width: `${progresoTemario}%` }}
+                >
+                  {progresoTemario > 20 && (
+                    <span className="text-xs font-bold text-white drop-shadow-sm">
+                      {progresoTemario}%
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="text-xs text-center">
+                {totalPreguntasTemario - preguntasRespondidas > 0 ? (
+                  <span className="text-muted-foreground">
+                    📖 {totalPreguntasTemario - preguntasRespondidas} preguntas por explorar
+                  </span>
+                ) : (
+                  <span className="text-green-600 font-medium">
+                    🎉 ¡Temario completado!
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Progreso de Precisión */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Precisión</span>
+              <span className="text-muted-foreground">🎯 Precisión</span>
               <span className="font-semibold">{topic.porcentaje_acierto}%</span>
             </div>
             <div className="w-full bg-muted rounded-full h-2">
@@ -171,30 +220,6 @@ const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium
               />
             </div>
           </div>
-
-          {/* Progreso del Temario */}
-          {totalPreguntasTemario > 0 && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Progreso del Temario</span>
-                <span className="font-semibold">
-                  {preguntasRespondidas}/{totalPreguntasTemario} ({progresoTemario}%)
-                </span>
-              </div>
-              <div className="w-full bg-muted rounded-full h-2">
-                <div 
-                  className={cn("h-2 rounded-full transition-all", getProgresoColor(progresoTemario))}
-                  style={{ width: `${progresoTemario}%` }}
-                />
-              </div>
-              <div className="text-xs text-muted-foreground text-center">
-                {totalPreguntasTemario - preguntasRespondidas > 0 
-                  ? `${totalPreguntasTemario - preguntasRespondidas} preguntas sin explorar`
-                  : "¡Temario completado!"
-                }
-              </div>
-            </div>
-          )}
 
           {/* Estadísticas */}
           <div className="grid grid-cols-3 gap-2 text-center">
