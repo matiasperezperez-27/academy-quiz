@@ -76,7 +76,7 @@ export function useUnifiedStats() {
         recentSessions: completedSessions.slice(0, 15).map(s => ({
           id: s.id,
           date: new Date(s.created_at).toLocaleDateString('es-ES'),
-          scorePercentage: s.score_percentage || 0,
+          scorePercentage: Math.round(Number(s.score_percentage) || 0), // 👈 Convertir string a número
           totalQuestions: s.total_questions,
           tema: s.temas?.nombre || 'Sin tema'
         })).reverse(),
