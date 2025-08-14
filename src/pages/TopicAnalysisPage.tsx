@@ -81,6 +81,10 @@ export default function TopicAnalysisPage() {
 // TOPIC CARD OPTIMIZADO PARA MÓVIL - VERSION COMPACTA
 // ========================================
 
+// ========================================
+// TOPIC CARD OPTIMIZADO PARA MÓVIL - VERSION COMPACTA
+// ========================================
+
 const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium' | 'low' | 'achieved' }) => {
   const getBorderStyle = () => {
     switch (priority) {
@@ -204,9 +208,9 @@ const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium
           <div className="flex justify-between items-center text-xs">
             <span className="text-muted-foreground flex items-center gap-1">
               🎯 Dominio
-              {falladasCount > 0 && (
+              {topic.total_incorrectas > 0 && (
                 <span className="text-red-600 font-medium">
-                  ({falladasCount} errores)
+                  ({topic.total_incorrectas} errores)
                 </span>
               )}
             </span>
