@@ -73,23 +73,6 @@ export default function TopicAnalysisPage() {
   const totalCorrectas = topicStats.reduce((sum, topic) => sum + topic.total_correctas, 0);
   const promedioGeneral = totalPreguntas > 0 ? Math.round((totalCorrectas / totalPreguntas) * 100) : 0;
 
-// ========================================
-// COMPONENTE TOPIC CARD ACTUALIZADO PARA MOSTRAR PROGRESO DEL TEMARIO
-// ========================================
-
-// ========================================
-// TOPIC CARD OPTIMIZADO PARA MÓVIL - VERSION COMPACTA
-// ========================================
-
-// ========================================
-// TOPIC CARD OPTIMIZADO PARA MÓVIL - VERSION COMPACTA
-// ========================================
-
-// ========================================
-// TOPIC CARD OPTIMIZADO PARA MÓVIL - VERSION COMPACTA
-// ========================================
-
-import React, { useState } from "react";
 
 const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium' | 'low' | 'achieved' }) => {
   const [isExpanded, setIsExpanded] = useState(false);
