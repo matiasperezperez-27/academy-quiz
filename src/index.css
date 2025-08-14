@@ -103,3 +103,63 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Añadir al final de src/index.css */
+
+/* Ajustes para navegación móvil */
+@media (max-width: 640px) {
+  .pb-16 {
+    padding-bottom: 4rem !important;
+  }
+  
+  /* Ocultar scrollbar horizontal en móvil */
+  body {
+    overflow-x: hidden;
+  }
+  
+  /* Ajustar gráficos para móvil */
+  .recharts-responsive-container {
+    margin-left: -8px;
+    margin-right: -8px;
+  }
+}
+
+/* Animaciones suaves */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.bottom-nav-enter {
+  animation: slideUp 0.3s ease-out;
+}
+
+/* Efecto de ripple para botones de navegación */
+.nav-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.nav-button:active::after {
+  width: 300px;
+  height: 300px;
+}
