@@ -58,7 +58,7 @@ export default function TopicAnalysisPage() {
       if (!topic || !topic.tema_id || !topic.tema_nombre) return;
       
       const isFullyCompleted = topic.progreso_temario === 100 && topic.porcentaje_acierto === 100;
-      const wasAlreadyCompleted = completedTopics.has(topic.tema_id);
+      const wasAlreadyCompleted = false;
 
       if (isFullyCompleted && !wasAlreadyCompleted) {
         setCompletedTopics(prev => new Set([...prev, topic.tema_id]));
