@@ -19,7 +19,7 @@ export const StatsOverview = ({ stats }: StatsOverviewProps) => {
     },
     {
       title: "Tests Completados",
-      value: stats.totalSessions,
+      value: stats.recentSessions?.filter(session => session.totalQuestions > 0).length || 0,
       icon: <Trophy className="h-5 w-5" />,
       color: "text-yellow-600",
       bgColor: "bg-yellow-50"
