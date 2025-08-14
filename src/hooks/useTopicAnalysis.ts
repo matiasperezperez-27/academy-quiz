@@ -80,44 +80,11 @@ export function useTopicAnalysis() {
         .eq('user_id', user.id);
 
       if (statsError) throw statsError;
-      
-      // Obtener total de preguntas por tema
-      const { data: totalPreguntasData, error: totalPreguntasError } = await supabase
-        .from('preguntas')
-        .select('tema_id');
 
-      if (totalPreguntasError) {
-        console.error('Error obteniendo total preguntas:', totalPreguntasError);
-      } else {
-        console.log('Total preguntas data:', totalPreguntasData); // 👈 DEBUG
-      }
+      // 👈 DEBUG: Ver IDs de temas desde user_answers
+      console.log('IDs de temas desde user_answers:', [...new Set(rawStats?.map(r => r.preguntas.tema_id))]);
 
-      // Contar preguntas por tema
-      const conteoPreguntas = (totalPreguntasData || []).reduce((acc, pregunta) => {
-        acc[pregunta.tema_id] = (acc[pregunta.tema_id] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      console.log('Conteo final:', conteoPreguntas); // 👈 DEBUG
-      
-      // Obtener preguntas falladas para práctica dirigida
-      const { data: preguntasFalladas, error: falladasError } = await supabase
-        .from('preguntas_falladas')
-        .select(`
-          pregunta_id,
-          preguntas!inner(
-            tema_id,
-            temas!inner(nombre),
-            academias!inner(nombre)
-          )
-        `)
-        .eq('user_id', user.id);
-
-      if (falladasError) throw falladasError;
-
-      const falladasSet = new Set((preguntasFalladas || []).map(f => f.pregunta_id));
-
-      // Procesar datos por tema
+      // Procesar datos por tema PRIMERO para obtener los IDs
       const statsMap = new Map<string, {
         tema_id: string;
         tema_nombre: string;
@@ -171,7 +138,58 @@ export function useTopicAnalysis() {
         if (!tema.ultima_respuesta || new Date(answer.answered_at) > new Date(tema.ultima_respuesta)) {
           tema.ultima_respuesta = answer.answered_at;
         }
+      });
 
+      // 👈 DEBUG: Ver IDs en statsMap
+      console.log('IDs en statsMap:', Array.from(statsMap.keys()));
+
+      // Obtener total de preguntas solo para los temas que ya tienes
+      const temasIds = Array.from(statsMap.keys());
+      const { data: totalPreguntasData, error: totalPreguntasError } = await supabase
+        .from('preguntas')
+        .select('tema_id')
+        .in('tema_id', temasIds); // 👈 SOLO los temas que ya tienes respuestas
+
+      if (totalPreguntasError) {
+        console.error('Error obteniendo total preguntas:', totalPreguntasError);
+      } else {
+        console.log('Total preguntas data:', totalPreguntasData);
+      }
+
+      // 👈 DEBUG: Ver IDs de temas desde preguntas
+      console.log('IDs de temas desde preguntas:', [...new Set(totalPreguntasData?.map(p => p.tema_id))]);
+
+      // Contar preguntas por tema
+      const conteoPreguntas = (totalPreguntasData || []).reduce((acc, pregunta) => {
+        acc[pregunta.tema_id] = (acc[pregunta.tema_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      console.log('Conteo final:', conteoPreguntas);
+      
+      // Obtener preguntas falladas para práctica dirigida
+      const { data: preguntasFalladas, error: falladasError } = await supabase
+        .from('preguntas_falladas')
+        .select(`
+          pregunta_id,
+          preguntas!inner(
+            tema_id,
+            temas!inner(nombre),
+            academias!inner(nombre)
+          )
+        `)
+        .eq('user_id', user.id);
+
+      if (falladasError) throw falladasError;
+
+      const falladasSet = new Set((preguntasFalladas || []).map(f => f.pregunta_id));
+
+      // Actualizar statsMap con preguntas falladas
+      rawStats?.forEach(answer => {
+        const pregunta = answer.preguntas;
+        const temaId = pregunta.tema_id;
+        const tema = statsMap.get(temaId)!;
+        
         // SOLO agregar de preguntas_falladas (para ser consistente con useQuiz)
         if (falladasSet.has(pregunta.id)) {
           tema.preguntas_falladas.add(pregunta.id);
