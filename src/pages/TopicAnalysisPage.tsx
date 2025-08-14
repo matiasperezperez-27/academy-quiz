@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { useTopicAnalysis, getNivelIcon, getNivelColor } from "@/hooks/useTopicAnalysis";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import CelebrationModal from "@/components/CelebrationModal";
 
 export default function TopicAnalysisPage() {
   const { user } = useAuth();
@@ -31,21 +32,55 @@ export default function TopicAnalysisPage() {
     resetSpecificTopicData 
   } = useTopicAnalysis();
 
-  // Estado para celebración simple (sin modal por ahora)
+  // 🎉 Estado para celebración con modal
+  const [celebrationModal, setCelebrationModal] = useState<{
+    isOpen: boolean;
+    achievement: {
+      type: 'Dominado' | 'Casi Dominado' | 'En Progreso';
+      topicName: string;
+      accuracy: number;
+      attempts: number;
+      previousLevel?: string;
+    } | null;
+  }>({
+    isOpen: false,
+    achievement: null
+  });
+
   const [completedTopics, setCompletedTopics] = useState<Set<string>>(new Set());
 
-  // Detectar temas completados al 100% y mostrar toast en lugar de modal
+  // 🎯 Detectar temas completados al 100% y mostrar modal de celebración
   useEffect(() => {
     if (!topicStats.length) return;
 
     topicStats.forEach(topic => {
+      // ✅ Validaciones estrictas
+      if (!topic || !topic.tema_id || !topic.tema_nombre) return;
+      
       const isFullyCompleted = topic.progreso_temario === 100 && topic.porcentaje_acierto === 100;
       const wasAlreadyCompleted = completedTopics.has(topic.tema_id);
 
       if (isFullyCompleted && !wasAlreadyCompleted) {
         setCompletedTopics(prev => new Set([...prev, topic.tema_id]));
         
-        // Mostrar toast de celebración en lugar de modal
+        // 🎉 Mostrar modal de celebración CON VALIDACIONES
+        const achievementData = {
+          type: 'Dominado' as const,
+          topicName: topic.tema_nombre || 'Tema desconocido',
+          accuracy: topic.porcentaje_acierto || 100,
+          attempts: topic.intentos_totales || 1,
+          previousLevel: 'En Progreso'
+        };
+
+        // ✅ Solo mostrar si los datos son válidos
+        if (achievementData.topicName && achievementData.type) {
+          setCelebrationModal({
+            isOpen: true,
+            achievement: achievementData
+          });
+        }
+
+        // También mostrar toast como backup
         toast({
           title: "🏆 ¡Tema Completamente Dominado!",
           description: `Has alcanzado la perfección en "${topic.tema_nombre}". ¡Felicidades!`,
@@ -115,7 +150,27 @@ export default function TopicAnalysisPage() {
     }
   };
 
-  // Componente TopicCard
+  // 🎉 Manejadores del modal de celebración
+  const handleCelebrationClose = () => {
+    setCelebrationModal({ isOpen: false, achievement: null });
+  };
+
+  const handleContinuePractice = () => {
+    setCelebrationModal({ isOpen: false, achievement: null });
+    navigate("/topic-analysis");
+  };
+
+  const handleNextTopic = () => {
+    setCelebrationModal({ isOpen: false, achievement: null });
+    navigate("/test-setup");
+  };
+
+  const handlePracticeMore = () => {
+    setCelebrationModal({ isOpen: false, achievement: null });
+    navigate("/practice");
+  };
+
+  // Componente TopicCard (igual que antes)
   const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium' | 'low' | 'achieved' }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     
@@ -422,199 +477,211 @@ export default function TopicAnalysisPage() {
   }
 
   return (
-    <main className="min-h-screen p-4 bg-background">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => window.history.back()}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Volver
-              </Button>
-              <h1 className="text-2xl sm:text-3xl font-bold">
-                📊 Análisis por Temas
-              </h1>
+    <>
+      <main className="min-h-screen p-4 bg-background">
+        <div className="max-w-6xl mx-auto space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => window.history.back()}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Volver
+                </Button>
+                <h1 className="text-2xl sm:text-3xl font-bold">
+                  📊 Análisis por Temas
+                </h1>
+              </div>
+              <p className="text-muted-foreground">
+                Descubre en qué temas necesitas enfocar tu estudio
+              </p>
             </div>
-            <p className="text-muted-foreground">
-              Descubre en qué temas necesitas enfocar tu estudio
-            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={refreshData}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Actualizar
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={refreshData}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Actualizar
-          </Button>
-        </div>
 
-        {/* Estadísticas Generales */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Promedio General</p>
-                  <p className="text-2xl font-bold">{promedioGeneral}%</p>
-                </div>
-                <Target className="h-8 w-8 text-primary" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Respondidas</p>
-                  <p className="text-2xl font-bold">{totalPreguntas}</p>
-                </div>
-                <BarChart3 className="h-8 w-8 text-blue-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Temas Dominados</p>
-                  <p className="text-2xl font-bold text-yellow-600">{temasDominados.length}</p>
-                </div>
-                <div className="text-2xl">🏆</div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Necesitan Práctica</p>
-                  <p className="text-2xl font-bold text-red-600">{temasNecesitanPractica.length}</p>
-                </div>
-                <div className="text-2xl">📚</div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Secciones por Estado de Dominio */}
-        <div className="space-y-6">
-          {/* Necesitan Práctica */}
-          {temasNecesitanPractica.length > 0 && (
+          {/* Estadísticas Generales */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg text-red-600">
-                  📚 Necesitan Práctica
-                  <Badge variant="destructive" className="ml-auto">
-                    {temasNecesitanPractica.length}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {temasNecesitanPractica.map((topic) => (
-                    <TopicCard key={topic.tema_id} topic={topic} priority="high" />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* En Progreso */}
-          {temasEnProgreso.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg text-green-600">
-                  📈 En Progreso
-                  <Badge variant="secondary" className="ml-auto bg-green-100 text-green-700">
-                    {temasEnProgreso.length}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {temasEnProgreso.map((topic) => (
-                    <TopicCard key={topic.tema_id} topic={topic} priority="medium" />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Casi Dominados */}
-          {temasCasiDominados.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg text-blue-600">
-                  ⭐ Casi Dominados
-                  <Badge variant="secondary" className="ml-auto bg-blue-100 text-blue-700">
-                    {temasCasiDominados.length}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {temasCasiDominados.map((topic) => (
-                    <TopicCard key={topic.tema_id} topic={topic} priority="low" />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Dominados */}
-          {temasDominados.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg text-yellow-600">
-                  🏆 Temas Dominados
-                  <Badge variant="secondary" className="ml-auto bg-yellow-100 text-yellow-700">
-                    {temasDominados.length}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {temasDominados.map((topic) => (
-                    <TopicCard key={topic.tema_id} topic={topic} priority="achieved" />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Mensaje si no hay datos */}
-          {topicStats.length === 0 && (
-            <Card>
-              <CardContent className="flex items-center justify-center p-12">
-                <div className="text-center space-y-4">
-                  <BookOpen className="h-12 w-12 text-muted-foreground mx-auto" />
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold">No hay datos disponibles</h3>
-                    <p className="text-muted-foreground">
-                      Completa algunos tests para ver tu análisis por temas
-                    </p>
+                    <p className="text-sm text-muted-foreground">Promedio General</p>
+                    <p className="text-2xl font-bold">{promedioGeneral}%</p>
                   </div>
-                  <Button onClick={() => navigate("/test-setup")}>
-                    <PlayCircle className="mr-2 h-4 w-4" />
-                    Hacer un Test
-                  </Button>
+                  <Target className="h-8 w-8 text-primary" />
                 </div>
               </CardContent>
             </Card>
-          )}
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Respondidas</p>
+                    <p className="text-2xl font-bold">{totalPreguntas}</p>
+                  </div>
+                  <BarChart3 className="h-8 w-8 text-blue-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Temas Dominados</p>
+                    <p className="text-2xl font-bold text-yellow-600">{temasDominados.length}</p>
+                  </div>
+                  <div className="text-2xl">🏆</div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Necesitan Práctica</p>
+                    <p className="text-2xl font-bold text-red-600">{temasNecesitanPractica.length}</p>
+                  </div>
+                  <div className="text-2xl">📚</div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Resto del contenido igual que antes... */}
+          <div className="space-y-6">
+            {/* Necesitan Práctica */}
+            {temasNecesitanPractica.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg text-red-600">
+                    📚 Necesitan Práctica
+                    <Badge variant="destructive" className="ml-auto">
+                      {temasNecesitanPractica.length}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {temasNecesitanPractica.map((topic) => (
+                      <TopicCard key={topic.tema_id} topic={topic} priority="high" />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* En Progreso */}
+            {temasEnProgreso.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg text-green-600">
+                    📈 En Progreso
+                    <Badge variant="secondary" className="ml-auto bg-green-100 text-green-700">
+                      {temasEnProgreso.length}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {temasEnProgreso.map((topic) => (
+                      <TopicCard key={topic.tema_id} topic={topic} priority="medium" />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Casi Dominados */}
+            {temasCasiDominados.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg text-blue-600">
+                    ⭐ Casi Dominados
+                    <Badge variant="secondary" className="ml-auto bg-blue-100 text-blue-700">
+                      {temasCasiDominados.length}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {temasCasiDominados.map((topic) => (
+                      <TopicCard key={topic.tema_id} topic={topic} priority="low" />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Dominados */}
+            {temasDominados.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg text-yellow-600">
+                    🏆 Temas Dominados
+                    <Badge variant="secondary" className="ml-auto bg-yellow-100 text-yellow-700">
+                      {temasDominados.length}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {temasDominados.map((topic) => (
+                      <TopicCard key={topic.tema_id} topic={topic} priority="achieved" />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Mensaje si no hay datos */}
+            {topicStats.length === 0 && (
+              <Card>
+                <CardContent className="flex items-center justify-center p-12">
+                  <div className="text-center space-y-4">
+                    <BookOpen className="h-12 w-12 text-muted-foreground mx-auto" />
+                    <div>
+                      <h3 className="text-lg font-semibold">No hay datos disponibles</h3>
+                      <p className="text-muted-foreground">
+                        Completa algunos tests para ver tu análisis por temas
+                      </p>
+                    </div>
+                    <Button onClick={() => navigate("/test-setup")}>
+                      <PlayCircle className="mr-2 h-4 w-4" />
+                      Hacer un Test
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+
+      {/* 🎉 MODAL DE CELEBRACIÓN SEGURO */}
+      <CelebrationModal
+        isOpen={celebrationModal.isOpen}
+        onClose={handleCelebrationClose}
+        achievement={celebrationModal.achievement}
+        onContinue={handleContinuePractice}
+        onNextTopic={handleNextTopic}
+        onPracticeMore={handlePracticeMore}
+      />
+    </>
   );
 }

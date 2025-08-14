@@ -21,7 +21,7 @@ interface CelebrationModalProps {
     accuracy: number;
     attempts: number;
     previousLevel?: string;
-  };
+  } | null; // ✅ Permitir null explícitamente
   onContinue?: () => void;
   onPracticeMore?: () => void;
   onNextTopic?: () => void;
@@ -36,6 +36,11 @@ export default function CelebrationModal({
   onNextTopic
 }: CelebrationModalProps) {
   
+  // 🛡️ VALIDACIÓN: Si no hay achievement o es null, no mostrar nada
+  if (!achievement || !achievement.type || !achievement.topicName) {
+    return null;
+  }
+
   const getAchievementConfig = (type: string) => {
     switch (type) {
       case 'Dominado':
@@ -84,7 +89,7 @@ export default function CelebrationModal({
   const config = getAchievementConfig(achievement.type);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen && !!achievement} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader className="text-center space-y-4">
           <div className="flex justify-center">
@@ -121,13 +126,13 @@ export default function CelebrationModal({
             <div className="grid grid-cols-2 gap-4 text-center">
               <div>
                 <div className="text-2xl font-bold text-primary">
-                  {achievement.accuracy}%
+                  {achievement.accuracy || 0}%
                 </div>
                 <div className="text-sm text-muted-foreground">Precisión</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-primary">
-                  {achievement.attempts}
+                  {achievement.attempts || 0}
                 </div>
                 <div className="text-sm text-muted-foreground">Intentos</div>
               </div>
