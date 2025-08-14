@@ -159,30 +159,48 @@ export default function SimpleDashboard() {
     <main className="min-h-screen p-4 bg-background">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        // En src/pages/Index.tsx, modificar el header:
-{/* Header - SIMPLIFICADO */}
-<div className="flex items-center justify-between">
-  <div className="space-y-1">
-    <h1 className="text-2xl sm:text-3xl font-bold">
-      {getGreeting()}, {getUserDisplayName()}! 👋
-    </h1>
-    <p className="text-muted-foreground">
-      ¿Listo para tu próximo desafío de aprendizaje?
-    </p>
-  </div>
-  <Button
-    variant="ghost"
-    size="sm"
-    onClick={loadBasicStats}
-    disabled={loading}
-    className="flex items-center gap-2"
-  >
-    <RefreshCw
-      className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
-    />
-    <span className="hidden sm:inline">Actualizar</span>
-  </Button>
-</div>
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-bold">
+              {getGreeting()}, {getUserDisplayName()}! 👋
+            </h1>
+            <p className="text-muted-foreground">
+              ¿Listo para tu próximo desafío de aprendizaje?
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* 4. CÓDIGO AÑADIDO PARA EL ENLACE DE ADMIN */}
+            {isAdmin && (
+              <Button asChild variant="ghost" size="sm" className="flex items-center gap-2">
+                <Link to="/admin">
+                  <Shield className="h-4 w-4" />
+                  <span className="hidden sm:inline">Admin</span>
+                </Link>
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={loadBasicStats}
+              disabled={loading}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+              />
+              <span className="hidden sm:inline">Actualizar</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={signOut}
+              className="flex items-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Cerrar Sesión</span>
+            </Button>
+          </div>
+        </div>
 
         {/* Error Display */}
         {error && (
