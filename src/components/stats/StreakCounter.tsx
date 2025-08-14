@@ -36,11 +36,11 @@ export const StreakCounter = ({
               <span className={cn("text-4xl font-bold", getStreakColor())}>
                 {streak}
               </span>
-              <span className="text-muted-foreground">
+              <span className="text-stone-950">
                 {streak === 1 ? "día" : "días"}
               </span>
             </div>
-            <p className="text-sm text-muted-foreground">{getStreakMessage()}</p>
+            <p className="text-sm text-stone-950">{getStreakMessage()}</p>
           </div>
           
           {streak > 0 && <div className="flex flex-col items-center justify-center p-4 bg-white/80 rounded-lg">
