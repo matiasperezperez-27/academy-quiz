@@ -73,201 +73,224 @@ export default function TopicAnalysisPage() {
   const totalCorrectas = topicStats.reduce((sum, topic) => sum + topic.total_correctas, 0);
   const promedioGeneral = totalPreguntas > 0 ? Math.round((totalCorrectas / totalPreguntas) * 100) : 0;
 
+// ========================================
+// COMPONENTE TOPIC CARD ACTUALIZADO PARA MOSTRAR PROGRESO DEL TEMARIO
+// ========================================
+
 const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium' | 'low' | 'achieved' }) => {
-    const getBorderStyle = () => {
-      switch (priority) {
-        case 'high': return 'border-l-4 border-l-red-500 hover:shadow-lg';
-        case 'medium': return 'border-l-4 border-l-green-500 hover:shadow-md';
-        case 'low': return 'border-l-4 border-l-blue-500 hover:shadow-md';
-        case 'achieved': return 'border-l-4 border-l-yellow-500 hover:shadow-sm bg-yellow-50/30';
-        default: return 'hover:shadow-md';
-      }
-    };
+  const getBorderStyle = () => {
+    switch (priority) {
+      case 'high': return 'border-l-4 border-l-red-500 hover:shadow-lg';
+      case 'medium': return 'border-l-4 border-l-green-500 hover:shadow-md';
+      case 'low': return 'border-l-4 border-l-blue-500 hover:shadow-md';
+      case 'achieved': return 'border-l-4 border-l-yellow-500 hover:shadow-sm bg-yellow-50/30';
+      default: return 'hover:shadow-md';
+    }
+  };
 
-    const getButtonVariant = () => {
-      switch (priority) {
-        case 'high': return 'default';
-        case 'medium': return 'secondary';
-        case 'low': return 'outline';
-        case 'achieved': return 'ghost';
-        default: return 'outline';
-      }
-    };
+  const getButtonVariant = () => {
+    switch (priority) {
+      case 'high': return 'default';
+      case 'medium': return 'secondary';
+      case 'low': return 'outline';
+      case 'achieved': return 'ghost';
+      default: return 'outline';
+    }
+  };
 
-    const getButtonText = () => {
-      if (priority === 'achieved') {
-        return (
-          <>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Repasar
-          </>
-        );
-      }
-      
-      if (topic.preguntas_falladas_ids.length > 0) {
-        return (
-          <>
-            <BookOpen className="mr-2 h-4 w-4" />
-            Practicar ({topic.preguntas_falladas_ids.length} errores)
-          </>
-        );
-      }
-      
+  const getButtonText = () => {
+    if (priority === 'achieved') {
       return (
         <>
-          <PlayCircle className="mr-2 h-4 w-4" />
-          Hacer Test
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Repasar
         </>
       );
-    };
-
-    // Calcular progreso del temario (preguntas respondidas vs total del temario)
-    const totalPreguntasTemario = topic.total_preguntas_temario || 0;
-    const preguntasRespondidas = topic.total_respondidas || 0;
-    const progresoTemario = totalPreguntasTemario > 0 
-      ? Math.round((preguntasRespondidas / totalPreguntasTemario) * 100) 
-      : 0;
-
-    const getProgresoColor = (porcentaje: number) => {
-      if (porcentaje >= 90) return 'bg-blue-500';
-      if (porcentaje >= 70) return 'bg-green-500';
-      if (porcentaje >= 50) return 'bg-yellow-500';
-      return 'bg-orange-500';
-    };
-
+    }
+    
+    if (topic.preguntas_falladas_ids.length > 0) {
+      return (
+        <>
+          <BookOpen className="mr-2 h-4 w-4" />
+          Practicar ({topic.preguntas_falladas_ids.length} errores)
+        </>
+      );
+    }
+    
     return (
-      <Card className={cn("transition-all duration-200", getBorderStyle())}>
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <div className="space-y-1 flex-1">
-              <CardTitle className="text-base leading-tight flex items-center gap-2">
-                <span className="text-lg">{getNivelIcon(topic.nivel_dominio)}</span>
-                {topic.tema_nombre}
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                {topic.academia_nombre}
-              </p>
-              {/* 👈 NUEVO: Mostrar progreso del temario en el header */}
-              {totalPreguntasTemario > 0 && (
-                <div className="flex items-center gap-2 text-xs">
-                  <BookOpen className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-muted-foreground">
-                    {preguntasRespondidas}/{totalPreguntasTemario} preguntas ({progresoTemario}%)
-                  </span>
-                  {progresoTemario === 100 && (
-                    <span className="text-green-600 font-medium">✓ Completo</span>
-                  )}
-                </div>
-              )}
-            </div>
-            <Badge 
-              variant="outline" 
-              className={cn("text-xs", getNivelColor(topic.nivel_dominio))}
-            >
-              {topic.nivel_dominio}
-            </Badge>
-          </div>
-        </CardHeader>
-        
-        <CardContent className="space-y-4">
-          {/* Progreso del Temario - MÁS PROMINENTE */}
-          {totalPreguntasTemario > 0 ? (
-            <div className="p-3 bg-muted/30 rounded-lg border space-y-2">
-              <div className="flex justify-between items-center text-sm">
-                <span className="font-medium text-foreground flex items-center gap-1">
-                  📚 Progreso del Temario
-                </span>
-                <span className="font-bold text-foreground">
-                  {preguntasRespondidas}/{totalPreguntasTemario}
-                </span>
-              </div>
-              <div className="w-full bg-background rounded-full h-3 border">
-                <div 
-                  className={cn("h-3 rounded-full transition-all flex items-center justify-end pr-1", getProgresoColor(progresoTemario))}
-                  style={{ width: `${progresoTemario}%` }}
-                >
-                  {progresoTemario > 20 && (
-                    <span className="text-xs font-bold text-white drop-shadow-sm">
-                      {progresoTemario}%
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="text-xs text-center">
-                {totalPreguntasTemario - preguntasRespondidas > 0 ? (
-                  <span className="text-muted-foreground">
-                    📖 {totalPreguntasTemario - preguntasRespondidas} preguntas por explorar
-                  </span>
-                ) : (
-                  <span className="text-green-600 font-medium">
-                    🎉 ¡Temario completado!
-                  </span>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="text-xs text-muted-foreground text-center p-3 bg-muted/20 rounded border-dashed border">
-              📝 Este tema aún no tiene preguntas disponibles en la base de datos
-            </div>
-          )}
-
-          {/* Progreso de Precisión */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">🎯 Precisión</span>
-              <span className="font-semibold">{topic.porcentaje_acierto}%</span>
-            </div>
-            <div className="w-full bg-muted rounded-full h-2">
-              <div 
-                className={cn("h-2 rounded-full transition-all", getProgressColor(topic.porcentaje_acierto))}
-                style={{ width: `${topic.porcentaje_acierto}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Estadísticas */}
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Respondidas</p>
-              <p className="text-sm font-bold">{topic.total_respondidas}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-green-600">Correctas</p>
-              <p className="text-sm font-bold text-green-600">{topic.total_correctas}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-red-600">Errores</p>
-              <p className="text-sm font-bold text-red-600">{topic.total_incorrectas}</p>
-            </div>
-          </div>
-
-          {/* Info adicional */}
-          {topic.intentos_totales && (
-            <div className="text-xs text-muted-foreground">
-              <span>Intentos: {topic.intentos_totales}</span>
-              {topic.dias_sin_repasar < 30 && (
-                <span className="ml-4">Hace {topic.dias_sin_repasar} días</span>
-              )}
-            </div>
-          )}
-
-          {/* Botón de Acción */}
-          <Button
-            onClick={() => handlePracticeClick(
-              topic.tema_id, 
-              topic.academia_id, 
-              topic.preguntas_falladas_ids
-            )}
-            className="w-full"
-            variant={getButtonVariant()}
-            size="sm"
-          >
-            {getButtonText()}
-          </Button>
-        </CardContent>
-      </Card>
+      <>
+        <PlayCircle className="mr-2 h-4 w-4" />
+        Hacer Test
+      </>
     );
   };
+
+  // 🎯 USAR LOS NUEVOS CAMPOS CORREGIDOS
+  const preguntasRespondidas = topic.total_respondidas;           // Preguntas únicas respondidas
+  const totalPreguntasTemario = topic.total_preguntas_temario;    // Total de preguntas del tema
+  const preguntasPendientes = topic.preguntas_pendientes;         // Preguntas que faltan
+  const progresoTemario = topic.progreso_temario;                 // % de completitud del temario
+  const porcentajeDominio = topic.porcentaje_acierto;             // % de dominio de las respondidas
+
+  const getProgresoColor = (porcentaje: number) => {
+    if (porcentaje >= 90) return 'bg-blue-500';
+    if (porcentaje >= 70) return 'bg-green-500';
+    if (porcentaje >= 50) return 'bg-yellow-500';
+    return 'bg-orange-500';
+  };
+
+  const getDominioColor = (porcentaje: number) => {
+    if (porcentaje >= 95) return 'bg-yellow-500';
+    if (porcentaje >= 85) return 'bg-blue-500';  
+    if (porcentaje >= 70) return 'bg-green-500'; 
+    return 'bg-red-500';
+  };
+
+  return (
+    <Card className={cn("transition-all duration-200", getBorderStyle())}>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="space-y-1 flex-1">
+            <CardTitle className="text-base leading-tight flex items-center gap-2">
+              <span className="text-lg">{getNivelIcon(topic.nivel_dominio)}</span>
+              {topic.tema_nombre}
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              {topic.academia_nombre}
+            </p>
+            
+            {/* 🎯 INFORMACIÓN DEL PROGRESO DEL TEMARIO - CORREGIDA */}
+            <div className="flex items-center gap-2 text-xs">
+              <BookOpen className="h-3 w-3 text-muted-foreground" />
+              <span className="text-muted-foreground">
+                {preguntasRespondidas}/{totalPreguntasTemario} preguntas ({progresoTemario}%)
+              </span>
+              {progresoTemario === 100 ? (
+                <span className="text-green-600 font-medium">✓ Completo</span>
+              ) : (
+                <span className="text-blue-600 font-medium">
+                  {preguntasPendientes} pendientes
+                </span>
+              )}
+            </div>
+          </div>
+          <Badge 
+            variant="outline" 
+            className={cn("text-xs", getNivelColor(topic.nivel_dominio))}
+          >
+            {topic.nivel_dominio}
+          </Badge>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="space-y-4">
+        {/* 🎯 PROGRESO DEL TEMARIO - CORREGIDO */}
+        <div className="p-3 bg-muted/30 rounded-lg border space-y-2">
+          <div className="flex justify-between items-center text-sm">
+            <span className="font-medium text-foreground flex items-center gap-1">
+              📚 Progreso del Temario
+            </span>
+            <span className="font-bold text-foreground">
+              {preguntasRespondidas}/{totalPreguntasTemario}
+            </span>
+          </div>
+          <div className="w-full bg-background rounded-full h-3 border">
+            <div 
+              className={cn("h-3 rounded-full transition-all flex items-center justify-end pr-1", getProgresoColor(progresoTemario))}
+              style={{ width: `${progresoTemario}%` }}
+            >
+              {progresoTemario > 20 && (
+                <span className="text-xs font-bold text-white drop-shadow-sm">
+                  {progresoTemario}%
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="text-xs text-center">
+            {preguntasPendientes > 0 ? (
+              <span className="text-muted-foreground">
+                📖 {preguntasPendientes} pregunta{preguntasPendientes > 1 ? 's' : ''} por explorar
+              </span>
+            ) : (
+              <span className="text-green-600 font-medium">
+                🎉 ¡Temario completado!
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* 🎯 PROGRESO DE DOMINIO (de las preguntas que has respondido) */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">🎯 Dominio (de las respondidas)</span>
+            <span className="font-semibold">{porcentajeDominio}%</span>
+          </div>
+          <div className="w-full bg-muted rounded-full h-2">
+            <div 
+              className={cn("h-2 rounded-full transition-all", getDominioColor(porcentajeDominio))}
+              style={{ width: `${porcentajeDominio}%` }}
+            />
+          </div>
+        </div>
+
+        {/* 🎯 ESTADÍSTICAS CORREGIDAS */}
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">Únicas</p>
+            <p className="text-sm font-bold">{preguntasRespondidas}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs text-green-600">Dominadas</p>
+            <p className="text-sm font-bold text-green-600">{topic.total_correctas}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs text-red-600">Solo Errores</p>
+            <p className="text-sm font-bold text-red-600">{topic.total_incorrectas}</p>
+          </div>
+        </div>
+
+        {/* 🎯 INFORMACIÓN ADICIONAL */}
+        <div className="text-xs text-muted-foreground grid grid-cols-2 gap-2">
+          <span>Intentos: {topic.intentos_totales}</span>
+          {topic.dias_sin_repasar < 30 && (
+            <span>Hace {topic.dias_sin_repasar} días</span>
+          )}
+        </div>
+
+        {/* 🎯 INDICADOR VISUAL DEL ESTADO */}
+        {preguntasPendientes > 0 && (
+          <div className="p-2 bg-blue-50 rounded border border-blue-200 text-center">
+            <p className="text-xs text-blue-700 font-medium">
+              📋 Te quedan {preguntasPendientes} preguntas nuevas por hacer
+            </p>
+          </div>
+        )}
+
+        {topic.preguntas_falladas_ids.length > 0 && (
+          <div className="p-2 bg-red-50 rounded border border-red-200 text-center">
+            <p className="text-xs text-red-700 font-medium">
+              🚨 {topic.preguntas_falladas_ids.length} preguntas para repasar
+            </p>
+          </div>
+        )}
+
+        {/* Botón de Acción */}
+        <Button
+          onClick={() => handlePracticeClick(
+            topic.tema_id, 
+            topic.academia_id, 
+            topic.preguntas_falladas_ids
+          )}
+          className="w-full"
+          variant={getButtonVariant()}
+          size="sm"
+        >
+          {getButtonText()}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+};
 
   if (loading) {
     return (
