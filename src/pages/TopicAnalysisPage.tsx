@@ -47,48 +47,52 @@ export default function TopicAnalysisPage() {
     achievement: null
   });
 
-  const [completedTopics, setCompletedTopics] = useState<Set<string>>(new Set());
+  // 🔧 CORREGIDO: Usar Map para evitar re-renders múltiples
+  const [celebratedTopics, setCelebratedTopics] = useState<Map<string, boolean>>(new Map());
 
-  // 🎯 Detectar temas completados al 100% y mostrar modal de celebración
+  // 🎯 Detectar temas completados - CORREGIDO para evitar bucles
   useEffect(() => {
-    if (!topicStats.length) return;
+    if (!topicStats.length || !user) return;
 
     topicStats.forEach(topic => {
       // ✅ Validaciones estrictas
       if (!topic || !topic.tema_id || !topic.tema_nombre) return;
       
       const isFullyCompleted = topic.progreso_temario === 100 && topic.porcentaje_acierto === 100;
-      const wasAlreadyCompleted = false;
-
-      if (isFullyCompleted && !wasAlreadyCompleted) {
-        setCompletedTopics(prev => new Set([...prev, topic.tema_id]));
+      const topicKey = `${topic.tema_id}-${topic.progreso_temario}-${topic.porcentaje_acierto}`;
+      
+      // 🛡️ SOLO mostrar si está completado Y no lo hemos celebrado antes
+      if (isFullyCompleted && !celebratedTopics.has(topicKey)) {
         
-        // 🎉 Mostrar modal de celebración CON VALIDACIONES
+        // ✅ Marcar como celebrado INMEDIATAMENTE para evitar bucles
+        setCelebratedTopics(prev => new Map(prev).set(topicKey, true));
+        
+        // 🎉 Preparar datos del achievement
         const achievementData = {
           type: 'Dominado' as const,
-          topicName: topic.tema_nombre || 'Tema desconocido',
-          accuracy: topic.porcentaje_acierto || 100,
+          topicName: topic.tema_nombre,
+          accuracy: topic.porcentaje_acierto,
           attempts: topic.intentos_totales || 1,
           previousLevel: 'En Progreso'
         };
 
-        // ✅ Solo mostrar si los datos son válidos
-        if (achievementData.topicName && achievementData.type) {
+        // ✅ Mostrar modal con delay para evitar conflictos
+        setTimeout(() => {
           setCelebrationModal({
             isOpen: true,
             achievement: achievementData
           });
-        }
+        }, 100);
 
-        // También mostrar toast como backup
+        // Toast como backup
         toast({
           title: "🏆 ¡Tema Completamente Dominado!",
           description: `Has alcanzado la perfección en "${topic.tema_nombre}". ¡Felicidades!`,
-          duration: 5000,
+          duration: 3000,
         });
       }
     });
-  }, [topicStats, completedTopics, toast]);
+  }, [topicStats, user, toast, celebratedTopics]);
 
   // Función para reiniciar progreso de un tema
   const resetTopicProgress = async (temaId: string, temaNombre: string) => {
@@ -114,10 +118,16 @@ export default function TopicAnalysisPage() {
       const success = await resetSpecificTopicData(temaId);
 
       if (success) {
-        setCompletedTopics(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(temaId);
-          return newSet;
+        // 🔧 Limpiar celebraciones del tema reiniciado
+        setCelebratedTopics(prev => {
+          const newMap = new Map(prev);
+          // Eliminar todas las entradas relacionadas con este tema
+          Array.from(newMap.keys()).forEach(key => {
+            if (key.startsWith(temaId)) {
+              newMap.delete(key);
+            }
+          });
+          return newMap;
         });
 
         await refreshData();
@@ -170,7 +180,21 @@ export default function TopicAnalysisPage() {
     navigate("/practice");
   };
 
-  // Componente TopicCard (igual que antes)
+  // 🧪 Botón temporal para probar el modal
+  const testModal = () => {
+    setCelebrationModal({
+      isOpen: true,
+      achievement: {
+        type: 'Dominado',
+        topicName: 'Tema de Prueba',
+        accuracy: 100,
+        attempts: 5,
+        previousLevel: 'En Progreso'
+      }
+    });
+  };
+
+  // Componente TopicCard (sin cambios)
   const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium' | 'low' | 'achieved' }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     
@@ -501,15 +525,26 @@ export default function TopicAnalysisPage() {
                 Descubre en qué temas necesitas enfocar tu estudio
               </p>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={refreshData}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Actualizar
-            </Button>
+            <div className="flex gap-2">
+              {/* 🧪 Botón temporal para probar */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={testModal}
+                className="text-xs"
+              >
+                🎉 Probar Modal
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={refreshData}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Actualizar
+              </Button>
+            </div>
           </div>
 
           {/* Estadísticas Generales */}
@@ -563,7 +598,7 @@ export default function TopicAnalysisPage() {
             </Card>
           </div>
 
-          {/* Resto del contenido igual que antes... */}
+          {/* Secciones de temas igual que antes... */}
           <div className="space-y-6">
             {/* Necesitan Práctica */}
             {temasNecesitanPractica.length > 0 && (
@@ -673,7 +708,7 @@ export default function TopicAnalysisPage() {
         </div>
       </main>
 
-      {/* 🎉 MODAL DE CELEBRACIÓN SEGURO */}
+      {/* 🎉 MODAL DE CELEBRACIÓN */}
       <CelebrationModal
         isOpen={celebrationModal.isOpen}
         onClose={handleCelebrationClose}
