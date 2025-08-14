@@ -48,7 +48,7 @@ export const MonthlyActivityChart = ({ data }: MonthlyActivityChartProps) => {
         />
         <Bar 
           dataKey="questionsAnswered" 
-          fill="#22c55e" 
+          fill="#1E88E5" 
           name="Preguntas Respondidas"
           radius={[4, 4, 0, 0]}
         />
