@@ -158,8 +158,7 @@ export default function SimpleDashboard() {
   return (
     <main className="min-h-screen p-4 bg-background">
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        // En src/pages/Index.tsx, modificar el header:
+
 {/* Header - SIMPLIFICADO */}
 <div className="flex items-center justify-between">
   <div className="space-y-1">
