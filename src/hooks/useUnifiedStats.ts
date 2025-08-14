@@ -74,14 +74,15 @@ export function useUnifiedStats() {
         points: basicStats.points,
         lastActivityDate: basicStats.last_activity,
         
-        // Datos procesados para gráficos
-        recentSessions: completedSessions.slice(0, 15).map(s => ({
+        // Datos procesados para gráficos - Últimos 10 tests
+        recentSessions: completedSessions.slice(0, 10).map((s, index) => ({
           id: s.id,
-          date: new Date(s.created_at).toLocaleDateString('es-ES'),
+          testNumber: completedSessions.length - index, // Test más reciente tendrá el número más alto
           scorePercentage: s.score_percentage || 0,
           totalQuestions: s.total_questions,
-          tema: s.temas?.nombre || 'Sin tema'
-        })).reverse(),
+          tema: s.temas?.nombre || 'Sin tema',
+          date: new Date(s.created_at).toLocaleDateString('es-ES')
+        })).reverse(), // Reverse para que vaya de más antiguo a más reciente
         
         // Actividades
         weeklyActivity,

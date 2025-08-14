@@ -6,6 +6,7 @@ import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 interface PerformanceChartProps {
   sessions: Array<{
     id: string;
+    testNumber: number;
     date: string;
     scorePercentage: number;
     totalQuestions: number;
@@ -14,7 +15,7 @@ interface PerformanceChartProps {
   title?: string;
 }
 
-export const PerformanceChart = ({ sessions, title = "Evolución del Rendimiento" }: PerformanceChartProps) => {
+export const PerformanceChart = ({ sessions, title = "Evolución - Últimos 10 Tests" }: PerformanceChartProps) => {
   if (!sessions || sessions.length === 0) {
     return (
       <Card>
@@ -57,15 +58,17 @@ export const PerformanceChart = ({ sessions, title = "Evolución del Rendimiento
           <LineChart data={sessions} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis 
-              dataKey="date" 
+              dataKey="testNumber" 
               className="text-xs"
               tick={{ fill: 'currentColor' }}
-              interval="preserveStartEnd"
+              interval={0}
+              label={{ value: 'Test #', position: 'insideBottom', offset: -5, style: { textAnchor: 'middle' } }}
             />
             <YAxis 
               domain={[0, 100]}
               className="text-xs"
               tick={{ fill: 'currentColor' }}
+              label={{ value: 'Puntuación (%)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
             />
             <Tooltip 
               contentStyle={{ 
@@ -80,8 +83,10 @@ export const PerformanceChart = ({ sessions, title = "Evolución del Rendimiento
                 `${Number(value).toFixed(0)}%`, 
                 'Puntuación'
               ]}
-              labelFormatter={(label) => `Fecha: ${label}`}
-              active={true}
+              labelFormatter={(label) => {
+                const testData = sessions.find(s => s.testNumber === label);
+                return `Test #${label} - ${testData?.tema || 'Sin tema'}`;
+              }}
             />
             <Line 
               type="monotone" 
