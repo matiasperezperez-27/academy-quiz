@@ -14,10 +14,12 @@ export function useUnifiedStats() {
       setLoading(true);
 
       // 1. Usar el mismo RPC que en Index.tsx para datos básicos
-      const { data: basicStats, error: rpcError } = await supabase
+      const { data: basicStatsRaw, error: rpcError } = await supabase
         .rpc("get_user_stats", { p_user_id: user.id });
 
       if (rpcError) throw rpcError;
+      
+      const basicStats = basicStatsRaw as any;
 
       // 2. Obtener TODAS las sesiones para cálculos completos
       const { data: allSessions, error: allSessionsError } = await supabase

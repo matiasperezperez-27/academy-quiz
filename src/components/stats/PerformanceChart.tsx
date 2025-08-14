@@ -73,7 +73,11 @@ export const PerformanceChart = ({ sessions, title = "Evolución del Rendimiento
                 borderRadius: '6px'
               }}
               labelStyle={{ color: 'hsl(var(--foreground))' }}
-              formatter={(value: any) => [`${value}%`, 'Puntuación']}
+              formatter={(value: any, name: any, props: any) => [
+                `${value}%`, 
+                'Puntuación'
+              ]}
+              labelFormatter={(label: string) => `Fecha: ${label}`}
             />
             <Line 
               type="monotone" 
