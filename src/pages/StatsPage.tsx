@@ -9,12 +9,12 @@ import { StatsOverview } from "@/components/stats/StatsOverview";
 import { MonthlyActivityChart } from "@/components/stats/MonthlyActivityChart";
 import { ComparisonCard } from "@/components/stats/ComparisonCard";
 import { RecommendationsCard } from "@/components/stats/RecommendationsCard";
-import { useStatsData } from "@/hooks/useStatsData";
+import { useUnifiedStats } from "@/hooks/useUnifiedStats";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function StatsPage() {
-  const { stats, loading, refresh } = useStatsData();
+  const { stats, loading, refresh } = useUnifiedStats();
 
   if (loading) {
     return (
