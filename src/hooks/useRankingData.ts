@@ -31,7 +31,7 @@ export function useRankingData(limit: number = 50) {
       
       // Call the get_user_rankings function
       const { data: rankingsData, error: rankingsError } = await supabase
-        .rpc('get_user_rankings', { limit_count: limit });
+        .rpc('get_user_rankings' as any, { limit_count: limit }) as { data: RankingUser[] | null, error: any };
       
       if (rankingsError) throw rankingsError;
       
