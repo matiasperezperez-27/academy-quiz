@@ -143,20 +143,23 @@ export function useUnifiedStats() {
   const processMonthlyActivity = (sessions) => {
     const monthlyData = new Map();
     
-    sessions.forEach(session => {
+    // 👈 FILTRAR solo sesiones completadas
+    const completedSessionsOnly = sessions.filter(s => s.is_completed && s.total_questions > 0);
+    
+    completedSessionsOnly.forEach(session => {
       const date = new Date(session.created_at);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       
       if (!monthlyData.has(monthKey)) {
         monthlyData.set(monthKey, {
-          sessions: 0,
+          completedTests: 0, // 👈 CAMBIADO: de sessions a completedTests
           totalQuestions: 0,
           totalCorrect: 0
         });
       }
       
       const data = monthlyData.get(monthKey);
-      data.sessions++;
+      data.completedTests++; // 👈 CAMBIADO
       data.totalQuestions += session.total_questions || 0;
       data.totalCorrect += session.correct_answers || 0;
     });
@@ -167,7 +170,7 @@ export function useUnifiedStats() {
           month: 'short', 
           year: 'numeric' 
         }),
-        sessions: data.sessions,
+        completedTests: data.completedTests, // 👈 CAMBIADO
         questionsAnswered: data.totalQuestions,
         averageAccuracy: data.totalQuestions > 0 
           ? Math.round((data.totalCorrect / data.totalQuestions) * 100)

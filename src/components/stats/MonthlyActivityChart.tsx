@@ -4,7 +4,7 @@ import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 interface MonthlyActivityChartProps {
   data: Array<{
     month: string;
-    sessions: number;
+    completedTests: number; // 👈 CAMBIADO: de sessions a completedTests
     questionsAnswered: number;
     averageAccuracy: number;
   }>;
@@ -41,15 +41,15 @@ export const MonthlyActivityChart = ({ data }: MonthlyActivityChartProps) => {
         />
         <Legend />
         <Bar 
-          dataKey="sessions" 
+          dataKey="completedTests" 
           fill="hsl(var(--primary))" 
-          name="Sesiones"
+          name="Tests Completados"
           radius={[4, 4, 0, 0]}
         />
         <Bar 
           dataKey="questionsAnswered" 
-          fill="hsl(var(--secondary))" 
-          name="Preguntas"
+          fill="#22c55e" 
+          name="Preguntas Respondidas"
           radius={[4, 4, 0, 0]}
         />
       </BarChart>
