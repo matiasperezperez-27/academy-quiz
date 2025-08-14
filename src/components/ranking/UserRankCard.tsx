@@ -58,7 +58,7 @@ export function UserRankCard({
           </p>
           <p className="text-2xl font-bold text-primary">{user.puntos} pts</p>
         </div>
-        <div className="flex justify-between text-xs text-white">
+        <div className="flex justify-between text-xs text-black">
           <span>{user.total_sessions} tests</span>
           <span>{Math.round(user.accuracy)}% precisión</span>
         </div>
