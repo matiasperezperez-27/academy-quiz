@@ -81,24 +81,24 @@ export function useTopicAnalysis() {
 
       if (statsError) throw statsError;
       
-// Obtener total de preguntas por tema
-const { data: totalPreguntasData, error: totalPreguntasError } = await supabase
-  .from('preguntas')
-  .select('tema_id');
+      // Obtener total de preguntas por tema
+      const { data: totalPreguntasData, error: totalPreguntasError } = await supabase
+        .from('preguntas')
+        .select('tema_id');
 
-if (totalPreguntasError) {
-  console.error('Error obteniendo total preguntas:', totalPreguntasError);
-} else {
-  console.log('Total preguntas data:', totalPreguntasData); // 👈 DEBUG
-}
+      if (totalPreguntasError) {
+        console.error('Error obteniendo total preguntas:', totalPreguntasError);
+      } else {
+        console.log('Total preguntas data:', totalPreguntasData); // 👈 DEBUG
+      }
 
-// Contar preguntas por tema
-const conteoPreguntas = (totalPreguntasData || []).reduce((acc, pregunta) => {
-  acc[pregunta.tema_id] = (acc[pregunta.tema_id] || 0) + 1;
-  return acc;
-}, {} as Record<string, number>);
+      // Contar preguntas por tema
+      const conteoPreguntas = (totalPreguntasData || []).reduce((acc, pregunta) => {
+        acc[pregunta.tema_id] = (acc[pregunta.tema_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
 
-console.log('Conteo final:', conteoPreguntas); // 👈 DEBUG
+      console.log('Conteo final:', conteoPreguntas); // 👈 DEBUG
       
       // Obtener preguntas falladas para práctica dirigida
       const { data: preguntasFalladas, error: falladasError } = await supabase
@@ -195,7 +195,11 @@ console.log('Conteo final:', conteoPreguntas); // 👈 DEBUG
 
         const intentosTotales = tema.sesiones.size;
         
-        return {
+        // 👈 DEBUG: Ver qué pasa con el conteo
+        const totalPreguntasTemario = conteoPreguntas[tema.tema_id] || 0;
+        console.log(`DEBUG - Tema: ${tema.tema_nombre}, ID: ${tema.tema_id}, Total preguntas: ${totalPreguntasTemario}`);
+        
+        const finalTopic = {
           tema_id: tema.tema_id,
           tema_nombre: tema.tema_nombre,
           academia_id: tema.academia_id,
@@ -211,9 +215,17 @@ console.log('Conteo final:', conteoPreguntas); // 👈 DEBUG
           intentos_totales: intentosTotales,
           ultimos_intentos: ultimosScores,
           dias_sin_repasar: diasSinRepasar,
-          total_preguntas_temario: conteoPreguntas[tema.tema_id] || 0
+          total_preguntas_temario: totalPreguntasTemario
         };
+
+        return finalTopic;
       });
+
+      // 👈 DEBUG: Ver el resultado final
+      console.log('ProcessedStats final:', processedStats.map(t => ({ 
+        nombre: t.tema_nombre, 
+        total_preguntas: t.total_preguntas_temario 
+      })));
 
       // Obtener lista de academias para filtros
       const { data: academiasData } = await supabase
