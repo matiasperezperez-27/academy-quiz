@@ -1,8 +1,8 @@
 // ========================================
-// HOOK COMPLETO PARA ANÁLISIS POR TEMAS - VERSIÓN FINAL
+// HOOK ANÁLISIS POR TEMAS - VERSIÓN SIMPLIFICADA Y SEGURA
 // ========================================
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -25,7 +25,7 @@ export interface TopicStats {
   preguntas_pendientes: number;           // Preguntas que faltan por hacer
   progreso_temario: number;               // % de completitud del temario
   
-  // Campos adicionales para el sistema de confianza
+  // Campos adicionales
   intentos_totales: number;
   ultimos_intentos: number[];
   dias_sin_repasar: number;
@@ -37,6 +37,14 @@ export interface TopicAnalysisFilters {
   solo_con_errores: boolean;
 }
 
+// Función auxiliar para determinar nivel de dominio
+const getNivelDominio = (porcentaje: number, intentos: number, diasSinRepasar: number): TopicStats['nivel_dominio'] => {
+  if (porcentaje >= 90 && intentos >= 2) return 'Dominado';
+  if (porcentaje >= 80 && intentos >= 3) return 'Casi Dominado';
+  if (porcentaje >= 70) return 'En Progreso';
+  return 'Necesita Práctica';
+};
+
 export function useTopicAnalysis() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -44,17 +52,9 @@ export function useTopicAnalysis() {
   const [academias, setAcademias] = useState<Array<{id: string; nombre: string}>>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<TopicAnalysisFilters>({
-    ordenar_por: 'porcentaje_asc', // Mostrar primero los que necesitan más práctica
+    ordenar_por: 'porcentaje_asc',
     solo_con_errores: false
   });
-
-  const getNivelDominio = (porcentaje: number, intentos: number, diasSinRepasar: number): TopicStats['nivel_dominio'] => {
-    // Sistema de Confianza Progresivo - CRITERIOS ACTUALIZADOS
-    if (porcentaje >= 90 && intentos >= 2) return 'Dominado';
-    if (porcentaje >= 80 && intentos >= 3) return 'Casi Dominado';
-    if (porcentaje >= 70) return 'En Progreso';
-    return 'Necesita Práctica';
-  };
 
   const loadTopicAnalysis = useCallback(async () => {
     if (!user) return;
@@ -62,7 +62,7 @@ export function useTopicAnalysis() {
     try {
       setLoading(true);
 
-      // 🎯 PASO 1: Obtener TODAS las preguntas únicas que el usuario ha respondido
+      // 1. Obtener todas las respuestas del usuario
       const { data: preguntasRespondidasRaw, error: statsError } = await supabase
         .from('user_answers')
         .select(`
@@ -83,16 +83,13 @@ export function useTopicAnalysis() {
 
       if (statsError) throw statsError;
 
-      console.log('🔍 TOTAL DE RESPUESTAS:', preguntasRespondidasRaw?.length || 0);
-
-      // 🎯 PASO 2: Agrupar por PREGUNTA ÚNICA para eliminar duplicados
+      // 2. Agrupar por pregunta única para eliminar duplicados
       const preguntasUnicasMap = new Map();
 
       preguntasRespondidasRaw?.forEach(answer => {
         const preguntaId = answer.pregunta_id;
         const pregunta = answer.preguntas;
         
-        // Si es la primera vez que vemos esta pregunta, la agregamos
         if (!preguntasUnicasMap.has(preguntaId)) {
           preguntasUnicasMap.set(preguntaId, {
             pregunta_id: preguntaId,
@@ -110,7 +107,6 @@ export function useTopicAnalysis() {
 
         const preguntaUnica = preguntasUnicasMap.get(preguntaId);
         
-        // Actualizar estado de la pregunta
         if (answer.is_correct) {
           preguntaUnica.tieneAlMenosUnAcierto = true;
         }
@@ -125,19 +121,15 @@ export function useTopicAnalysis() {
           preguntaUnica.scores.push(answer.user_sessions.score_percentage);
         }
         
-        // Mantener la respuesta más reciente
         if (new Date(answer.answered_at) > new Date(preguntaUnica.ultimaRespuesta)) {
           preguntaUnica.ultimaRespuesta = answer.answered_at;
         }
       });
 
-      console.log('🎯 PREGUNTAS ÚNICAS RESPONDIDAS:', preguntasUnicasMap.size);
-
-      // 🎯 PASO 3: Obtener TODOS los temas que el usuario ha tocado
+      // 3. Obtener temas que el usuario ha respondido
       const temasRespondidos = [...new Set(Array.from(preguntasUnicasMap.values()).map(p => p.tema_id))];
-      console.log('📚 TEMAS RESPONDIDOS:', temasRespondidos.length);
 
-      // 🎯 PASO 4: Obtener el TOTAL de preguntas por tema del temario completo
+      // 4. Obtener total de preguntas por tema
       const { data: totalPreguntasPorTema, error: totalError } = await supabase
         .from('preguntas')
         .select(`
@@ -152,17 +144,14 @@ export function useTopicAnalysis() {
 
       if (totalError) throw totalError;
 
-      // Contar preguntas totales por tema
+      // 5. Contar preguntas totales por tema
       const conteoTemario = new Map();
       const infoTemas = new Map();
 
       totalPreguntasPorTema?.forEach(pregunta => {
         const temaId = pregunta.tema_id;
-        
-        // Contar total de preguntas del tema
         conteoTemario.set(temaId, (conteoTemario.get(temaId) || 0) + 1);
         
-        // Guardar info del tema
         if (!infoTemas.has(temaId)) {
           infoTemas.set(temaId, {
             tema_nombre: pregunta.temas.nombre,
@@ -172,9 +161,7 @@ export function useTopicAnalysis() {
         }
       });
 
-      console.log('📊 CONTEO DEL TEMARIO:', Object.fromEntries(conteoTemario));
-
-      // 🎯 PASO 5: Agrupar preguntas únicas por tema
+      // 6. Agrupar preguntas únicas por tema
       const statsPorTema = new Map();
 
       Array.from(preguntasUnicasMap.values()).forEach(preguntaUnica => {
@@ -198,8 +185,6 @@ export function useTopicAnalysis() {
         }
 
         const tema = statsPorTema.get(temaId);
-        
-        // 🎯 CONTAR PREGUNTA ÚNICA (cada pregunta cuenta solo 1 vez)
         tema.preguntasUnicasRespondidas++;
         
         if (preguntaUnica.tieneAlMenosUnAcierto) {
@@ -208,17 +193,15 @@ export function useTopicAnalysis() {
           tema.preguntasSoloErrores++;
         }
         
-        // Agregar sesiones
         preguntaUnica.sesiones.forEach(s => tema.sesionesTotales.add(s));
         tema.scoresAcumulados.push(...preguntaUnica.scores);
         
-        // Actualizar última actividad
         if (!tema.ultimaActividad || new Date(preguntaUnica.ultimaRespuesta) > new Date(tema.ultimaActividad)) {
           tema.ultimaActividad = preguntaUnica.ultimaRespuesta;
         }
       });
 
-      // 🎯 PASO 6: Obtener preguntas falladas actuales (para práctica dirigida)
+      // 7. Obtener preguntas falladas actuales
       const { data: preguntasFalladas, error: falladasError } = await supabase
         .from('preguntas_falladas')
         .select(`
@@ -229,7 +212,6 @@ export function useTopicAnalysis() {
 
       if (falladasError) throw falladasError;
 
-      // Agrupar preguntas falladas por tema
       const falladasPorTema = new Map();
       preguntasFalladas?.forEach(fallada => {
         const temaId = fallada.preguntas.tema_id;
@@ -239,75 +221,49 @@ export function useTopicAnalysis() {
         falladasPorTema.get(temaId).push(fallada.pregunta_id);
       });
 
-      // 🎯 PASO 7: Generar estadísticas finales corregidas
+      // 8. Generar estadísticas finales
       const estadisticasFinales = Array.from(statsPorTema.values()).map(tema => {
         const preguntasUnicasRespondidas = tema.preguntasUnicasRespondidas;
         const preguntasConAcierto = tema.preguntasConAcierto;
         const totalPreguntasTemario = tema.totalPreguntasEnTemario;
         const preguntasPendientes = Math.max(0, totalPreguntasTemario - preguntasUnicasRespondidas);
         
-        // 🎯 PORCENTAJE DE DOMINIO (preguntas con acierto / preguntas respondidas)
         const porcentajeDominio = preguntasUnicasRespondidas > 0 
           ? Math.round((preguntasConAcierto / preguntasUnicasRespondidas) * 100) 
           : 0;
         
-        // 🎯 PROGRESO DEL TEMARIO (preguntas respondidas / total del temario)
         const progresoTemario = totalPreguntasTemario > 0 
           ? Math.round((preguntasUnicasRespondidas / totalPreguntasTemario) * 100) 
           : 0;
         
-        // Días sin repasar
         const diasSinRepasar = tema.ultimaActividad 
           ? Math.floor((new Date().getTime() - new Date(tema.ultimaActividad).getTime()) / (1000 * 60 * 60 * 24))
           : 999;
 
         const preguntasFalladasIds = falladasPorTema.get(tema.tema_id) || [];
 
-        // 🎯 LOGGING PARA DEBUG
-        console.log(`\n📈 TEMA: ${tema.tema_nombre}`);
-        console.log(`   🎯 Preguntas únicas respondidas: ${preguntasUnicasRespondidas}`);
-        console.log(`   ✅ Preguntas con acierto: ${preguntasConAcierto}`);
-        console.log(`   ❌ Preguntas solo errores: ${tema.preguntasSoloErrores}`);
-        console.log(`   📚 Total en temario: ${totalPreguntasTemario}`);
-        console.log(`   ⏳ Preguntas pendientes: ${preguntasPendientes}`);
-        console.log(`   🎯 Porcentaje dominio: ${porcentajeDominio}%`);
-        console.log(`   📊 Progreso temario: ${progresoTemario}%`);
-        console.log(`   🚨 Preguntas falladas: ${preguntasFalladasIds.length}`);
-
         return {
           tema_id: tema.tema_id,
           tema_nombre: tema.tema_nombre,
           academia_id: tema.academia_id,
           academia_nombre: tema.academia_nombre,
-          
-          // 🎯 VALORES CORREGIDOS
-          total_respondidas: preguntasUnicasRespondidas,        // ✅ Preguntas únicas del temario respondidas
-          total_correctas: preguntasConAcierto,                 // ✅ Preguntas con al menos 1 acierto
-          total_incorrectas: tema.preguntasSoloErrores,         // ✅ Preguntas que solo tienen errores
-          porcentaje_acierto: porcentajeDominio,                // ✅ % de dominio de las respondidas
-          
-          // 🎯 NUEVOS CAMPOS PARA EL PROGRESO DEL TEMARIO
-          total_preguntas_temario: totalPreguntasTemario,       // ✅ Total de preguntas del tema completo
-          preguntas_pendientes: preguntasPendientes,            // ✅ Preguntas que faltan por hacer
-          progreso_temario: progresoTemario,                    // ✅ % de completitud del temario
-          
+          total_respondidas: preguntasUnicasRespondidas,
+          total_correctas: preguntasConAcierto,
+          total_incorrectas: tema.preguntasSoloErrores,
+          porcentaje_acierto: porcentajeDominio,
+          total_preguntas_temario: totalPreguntasTemario,
+          preguntas_pendientes: preguntasPendientes,
+          progreso_temario: progresoTemario,
           nivel_dominio: getNivelDominio(porcentajeDominio, tema.sesionesTotales.size, diasSinRepasar),
           ultima_respuesta: tema.ultimaActividad,
           preguntas_falladas_ids: preguntasFalladasIds,
-          
-          // Campos adicionales
           intentos_totales: tema.sesionesTotales.size,
           ultimos_intentos: tema.scoresAcumulados.slice(-5).map(s => Math.round(s)),
           dias_sin_repasar: diasSinRepasar
         };
       });
 
-      console.log('\n🎉 RESUMEN FINAL:');
-      estadisticasFinales.forEach(tema => {
-        console.log(`${tema.tema_nombre}: ${tema.total_respondidas}/${tema.total_preguntas_temario} (${tema.progreso_temario}%) - Dominio: ${tema.porcentaje_acierto}%`);
-      });
-
-      // Obtener academias para filtros
+      // 9. Obtener academias para filtros
       const { data: academiasData } = await supabase
         .from('academias')
         .select('id, nombre')
@@ -328,12 +284,11 @@ export function useTopicAnalysis() {
     }
   }, [user, toast]);
 
-  // 🔄 FUNCIÓN PARA REINICIAR PROGRESO DE UN TEMA ESPECÍFICO
+  // Función para reiniciar progreso de un tema
   const resetSpecificTopicData = useCallback(async (temaId: string): Promise<boolean> => {
     if (!user) return false;
 
     try {
-      // 1. Obtener IDs de preguntas del tema
       const { data: preguntasIds, error: preguntasError } = await supabase
         .from('preguntas')
         .select('id')
@@ -342,50 +297,32 @@ export function useTopicAnalysis() {
       if (preguntasError) throw preguntasError;
 
       const questionIds = preguntasIds?.map(p => p.id) || [];
+      if (questionIds.length === 0) return false;
 
-      if (questionIds.length === 0) {
-        throw new Error('No se encontraron preguntas para este tema');
-      }
-
-      console.log(`🗑️ Reiniciando tema ${temaId}, ${questionIds.length} preguntas`);
-
-      // 2. Eliminar respuestas del usuario para estas preguntas
-      const { error: answersError } = await supabase
+      // Eliminar respuestas
+      await supabase
         .from('user_answers')
         .delete()
         .eq('user_id', user.id)
         .in('pregunta_id', questionIds);
 
-      if (answersError) {
-        console.warn('Error eliminando respuestas:', answersError);
-      }
-
-      // 3. Eliminar preguntas falladas
-      const { error: falladasError } = await supabase
+      // Eliminar preguntas falladas
+      await supabase
         .from('preguntas_falladas')
         .delete()
         .eq('user_id', user.id)
         .in('pregunta_id', questionIds);
 
-      if (falladasError) {
-        console.warn('Error eliminando preguntas falladas:', falladasError);
-      }
-
-      // 4. Eliminar sesiones del tema
-      const { error: sessionsError } = await supabase
+      // Eliminar sesiones
+      await supabase
         .from('user_sessions')
         .delete()
         .eq('user_id', user.id)
         .eq('tema_id', temaId);
 
-      if (sessionsError) {
-        console.warn('Error eliminando sesiones:', sessionsError);
-      }
-
-      console.log('✅ Progreso del tema reiniciado exitosamente');
       return true;
     } catch (error) {
-      console.error('Error in resetSpecificTopicData:', error);
+      console.error('Error resetting topic:', error);
       return false;
     }
   }, [user]);
@@ -394,17 +331,14 @@ export function useTopicAnalysis() {
   const filteredStats = useCallback(() => {
     let filtered = [...topicStats];
 
-    // Filtrar por academia
     if (filters.academia_id) {
       filtered = filtered.filter(topic => topic.academia_id === filters.academia_id);
     }
 
-    // Filtrar solo temas con errores
     if (filters.solo_con_errores) {
       filtered = filtered.filter(topic => topic.total_incorrectas > 0);
     }
 
-    // Ordenar
     switch (filters.ordenar_por) {
       case 'nombre':
         filtered.sort((a, b) => a.tema_nombre.localeCompare(b.tema_nombre));
@@ -441,96 +375,7 @@ export function useTopicAnalysis() {
   };
 }
 
-// ========================================
-// HOOK PARA SISTEMA DE CELEBRACIONES
-// ========================================
-
-export function useCelebrationSystem(topicStats: TopicStats[]) {
-  const [celebrationQueue, setCelebrationQueue] = useState<any[]>([]);
-  const [currentCelebration, setCurrentCelebration] = useState<any>(null);
-  const [processedTopics, setProcessedTopics] = useState<Set<string>>(new Set());
-
-  // Detectar nuevos logros
-  useEffect(() => {
-    if (!topicStats.length) return;
-
-    const newAchievements: any[] = [];
-
-    topicStats.forEach(topic => {
-      const topicKey = `${topic.tema_id}-${topic.progreso_temario}-${topic.porcentaje_acierto}`;
-      
-      if (processedTopics.has(topicKey)) return;
-
-      // 🎉 COMPLETADO AL 100%
-      if (topic.progreso_temario === 100 && topic.porcentaje_acierto === 100) {
-        newAchievements.push({
-          type: 'Dominado',
-          topicId: topic.tema_id,
-          topicName: topic.tema_nombre,
-          accuracy: topic.porcentaje_acierto,
-          attempts: topic.intentos_totales,
-          previousLevel: 'En Progreso'
-        });
-      }
-      // 🎯 PROGRESO SIGNIFICATIVO (opcional)
-      else if (topic.progreso_temario >= 80 && topic.porcentaje_acierto >= 90) {
-        newAchievements.push({
-          type: 'Casi Dominado',
-          topicId: topic.tema_id,
-          topicName: topic.tema_nombre,
-          accuracy: topic.porcentaje_acierto,
-          attempts: topic.intentos_totales,
-          previousLevel: 'En Progreso'
-        });
-      }
-
-      setProcessedTopics(prev => new Set([...prev, topicKey]));
-    });
-
-    if (newAchievements.length > 0) {
-      setCelebrationQueue(prev => [...prev, ...newAchievements]);
-    }
-  }, [topicStats, processedTopics]);
-
-  // Procesar cola de celebraciones
-  useEffect(() => {
-    if (celebrationQueue.length > 0 && !currentCelebration) {
-      const [nextCelebration, ...rest] = celebrationQueue;
-      setCurrentCelebration(nextCelebration);
-      setCelebrationQueue(rest);
-    }
-  }, [celebrationQueue, currentCelebration]);
-
-  const dismissCurrentCelebration = () => {
-    setCurrentCelebration(null);
-  };
-
-  const resetTopicFromCelebrations = (topicId: string) => {
-    // Remover el tema de las celebraciones procesadas para que pueda celebrarse de nuevo
-    setProcessedTopics(prev => {
-      const newSet = new Set(prev);
-      // Remover todas las entradas que contengan este topicId
-      Array.from(newSet).forEach(key => {
-        if (key.startsWith(topicId)) {
-          newSet.delete(key);
-        }
-      });
-      return newSet;
-    });
-  };
-
-  return {
-    currentCelebration,
-    dismissCurrentCelebration,
-    hasPendingCelebrations: celebrationQueue.length > 0,
-    resetTopicFromCelebrations
-  };
-}
-
-// ========================================
-// FUNCIONES AUXILIARES EXPORTADAS
-// ========================================
-
+// Funciones auxiliares exportadas
 export const getNivelIcon = (nivel: string) => {
   switch (nivel) {
     case 'Dominado': return '🏆';
@@ -549,24 +394,4 @@ export const getNivelColor = (nivel: string) => {
     case 'Necesita Práctica': return 'text-red-600 bg-red-100 border-red-200';
     default: return 'text-gray-600 bg-gray-100 border-gray-200';
   }
-};
-
-export const getRandomMotivationalMessage = (type: string): string => {
-  const messages = {
-    'Dominado': [
-      "¡Increíble! Has demostrado un dominio excepcional. 🌟",
-      "¡Excelencia pura! Este tema ya no tiene secretos para ti. 🚀",
-      "¡Maestría alcanzada! Tu dedicación ha dado frutos. 🏆"
-    ],
-    'Casi Dominado': [
-      "¡Excelente progreso! Solo un poco más y lo dominarás. 💪",
-      "¡Impresionante! Estás en el camino correcto. ⭐",
-      "¡Fantástico! La maestría está al alcance. 🎯"
-    ]
-  };
-  
-  const typeMessages = messages[type as keyof typeof messages];
-  if (!typeMessages) return "¡Felicidades por tu progreso!";
-  
-  return typeMessages[Math.floor(Math.random() * typeMessages.length)];
 };
