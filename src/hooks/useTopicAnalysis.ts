@@ -81,20 +81,24 @@ export function useTopicAnalysis() {
 
       if (statsError) throw statsError;
       
-      // Obtener total de preguntas por tema
-      const { data: totalPreguntasData, error: totalPreguntasError } = await supabase
-        .from('preguntas')
-        .select('tema_id, temas!inner(academia_id)')
-        .order('tema_id');
+// Obtener total de preguntas por tema
+const { data: totalPreguntasData, error: totalPreguntasError } = await supabase
+  .from('preguntas')
+  .select('tema_id');
 
-      if (totalPreguntasError) throw totalPreguntasError;
+if (totalPreguntasError) {
+  console.error('Error obteniendo total preguntas:', totalPreguntasError);
+} else {
+  console.log('Total preguntas data:', totalPreguntasData); // 👈 DEBUG
+}
 
-      // Contar preguntas por tema
-      const conteoTemasPorAcademia = (totalPreguntasData || []).reduce((acc, pregunta) => {
-        const key = `${pregunta.tema_id}`;
-        acc[key] = (acc[key] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+// Contar preguntas por tema
+const conteoPreguntas = (totalPreguntasData || []).reduce((acc, pregunta) => {
+  acc[pregunta.tema_id] = (acc[pregunta.tema_id] || 0) + 1;
+  return acc;
+}, {} as Record<string, number>);
+
+console.log('Conteo final:', conteoPreguntas); // 👈 DEBUG
       
       // Obtener preguntas falladas para práctica dirigida
       const { data: preguntasFalladas, error: falladasError } = await supabase
@@ -207,7 +211,7 @@ export function useTopicAnalysis() {
           intentos_totales: intentosTotales,
           ultimos_intentos: ultimosScores,
           dias_sin_repasar: diasSinRepasar,
-          total_preguntas_temario: conteoTemasPorAcademia[tema.tema_id] || 0
+          total_preguntas_temario: conteoPreguntas[tema.tema_id] || 0
         };
       });
 
