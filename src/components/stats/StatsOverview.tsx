@@ -9,6 +9,11 @@ interface StatsOverviewProps {
 export const StatsOverview = ({ stats }: StatsOverviewProps) => {
   if (!stats) return null;
 
+  // Calcular sesiones completadas correctamente
+  const completedSessions = stats.recentSessions?.filter(session => 
+    session.totalQuestions > 0 && session.scorePercentage !== null
+  ).length || 0;
+
   const cards = [
     {
       title: "Precisión General",
@@ -19,7 +24,7 @@ export const StatsOverview = ({ stats }: StatsOverviewProps) => {
     },
     {
       title: "Tests Completados",
-      value: stats.recentSessions?.filter(session => session.totalQuestions > 0).length || 0,
+      value: completedSessions, // 👈 CAMBIADO: Ahora usa sesiones completadas
       icon: <Trophy className="h-5 w-5" />,
       color: "text-yellow-600",
       bgColor: "bg-yellow-50"
