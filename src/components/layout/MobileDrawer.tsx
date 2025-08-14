@@ -26,6 +26,7 @@ import { useAdmin } from "@/hooks/useAdmin";
 import { useNavigate } from "react-router-dom";
 import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
+import { useTheme } from "@/context/ThemeContext";
 
 interface MobileDrawerProps {
   open: boolean;
@@ -36,7 +37,7 @@ const MobileDrawer = ({ open, onClose }: MobileDrawerProps) => {
   const { user, signOut } = useAuth();
   const { isAdmin } = useAdmin();
   const navigate = useNavigate();
-  const [darkMode, setDarkMode] = useState(false);
+  const { theme, toggleTheme } = useTheme();
   const [notifications, setNotifications] = useState(true);
 
   const handleNavigation = (path: string) => {
@@ -127,10 +128,10 @@ const MobileDrawer = ({ open, onClose }: MobileDrawerProps) => {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {darkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                  {theme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
                   <span className="text-sm">Modo Oscuro</span>
                 </div>
-                <Switch checked={darkMode} onCheckedChange={setDarkMode} />
+                <Switch checked={theme === 'dark'} onCheckedChange={toggleTheme} />
               </div>
 
               <div className="flex items-center justify-between">
