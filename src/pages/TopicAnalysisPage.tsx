@@ -171,7 +171,7 @@ const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium
         
         <CardContent className="space-y-4">
           {/* Progreso del Temario - MÁS PROMINENTE */}
-          {totalPreguntasTemario > 0 && (
+          {totalPreguntasTemario > 0 ? (
             <div className="p-3 bg-muted/30 rounded-lg border space-y-2">
               <div className="flex justify-between items-center text-sm">
                 <span className="font-medium text-foreground flex items-center gap-1">
@@ -204,6 +204,10 @@ const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium
                   </span>
                 )}
               </div>
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground text-center p-3 bg-muted/20 rounded border-dashed border">
+              📝 Este tema aún no tiene preguntas disponibles en la base de datos
             </div>
           )}
 
