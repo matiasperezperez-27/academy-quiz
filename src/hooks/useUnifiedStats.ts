@@ -76,10 +76,10 @@ export function useUnifiedStats() {
         recentSessions: completedSessions.slice(0, 15).map(s => ({
           id: s.id,
           date: new Date(s.created_at).toLocaleDateString('es-ES'),
-          scorePercentage: Math.round(Number(s.score_percentage) || 0),
+          scorePercentage: s.score_percentage || 0,
           totalQuestions: s.total_questions,
           tema: s.temas?.nombre || 'Sin tema'
-        })).reverse(), // 👈 VUELVE el .reverse()
+        })).reverse(),
         
         // Actividades
         weeklyActivity,
