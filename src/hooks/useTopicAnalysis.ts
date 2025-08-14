@@ -20,6 +20,7 @@ export interface TopicStats {
   intentos_totales: number;
   ultimos_intentos: number[];
   dias_sin_repasar: number;
+  total_preguntas_temario: number;
 }
 
 export interface TopicAnalysisFilters {
@@ -79,7 +80,22 @@ export function useTopicAnalysis() {
         .eq('user_id', user.id);
 
       if (statsError) throw statsError;
+      
+      // Obtener total de preguntas por tema
+      const { data: totalPreguntasData, error: totalPreguntasError } = await supabase
+        .from('preguntas')
+        .select('tema_id, temas!inner(academia_id)')
+        .order('tema_id');
 
+      if (totalPreguntasError) throw totalPreguntasError;
+
+      // Contar preguntas por tema
+      const conteoTemasPorAcademia = (totalPreguntasData || []).reduce((acc, pregunta) => {
+        const key = `${pregunta.tema_id}`;
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
       // Obtener preguntas falladas para práctica dirigida
       const { data: preguntasFalladas, error: falladasError } = await supabase
         .from('preguntas_falladas')
@@ -190,7 +206,8 @@ export function useTopicAnalysis() {
           // NUEVOS CAMPOS
           intentos_totales: intentosTotales,
           ultimos_intentos: ultimosScores,
-          dias_sin_repasar: diasSinRepasar
+          dias_sin_repasar: diasSinRepasar,
+          total_preguntas_temario: conteoTemasPorAcademia[tema.tema_id] || 0
         };
       });
 

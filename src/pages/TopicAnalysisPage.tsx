@@ -73,7 +73,7 @@ export default function TopicAnalysisPage() {
   const totalCorrectas = topicStats.reduce((sum, topic) => sum + topic.total_correctas, 0);
   const promedioGeneral = totalPreguntas > 0 ? Math.round((totalCorrectas / totalPreguntas) * 100) : 0;
 
-  const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium' | 'low' | 'achieved' }) => {
+const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium' | 'low' | 'achieved' }) => {
     const getBorderStyle = () => {
       switch (priority) {
         case 'high': return 'border-l-4 border-l-red-500 hover:shadow-lg';
@@ -121,6 +121,20 @@ export default function TopicAnalysisPage() {
       );
     };
 
+    // Calcular progreso del temario (preguntas respondidas vs total del temario)
+    const totalPreguntasTemario = topic.total_preguntas_temario || 0;
+    const preguntasRespondidas = topic.total_respondidas || 0;
+    const progresoTemario = totalPreguntasTemario > 0 
+      ? Math.round((preguntasRespondidas / totalPreguntasTemario) * 100) 
+      : 0;
+
+    const getProgresoColor = (porcentaje: number) => {
+      if (porcentaje >= 90) return 'bg-blue-500';
+      if (porcentaje >= 70) return 'bg-green-500';
+      if (porcentaje >= 50) return 'bg-yellow-500';
+      return 'bg-orange-500';
+    };
+
     return (
       <Card className={cn("transition-all duration-200", getBorderStyle())}>
         <CardHeader className="pb-3">
@@ -144,7 +158,7 @@ export default function TopicAnalysisPage() {
         </CardHeader>
         
         <CardContent className="space-y-4">
-          {/* Progreso Visual */}
+          {/* Progreso de Precisión */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Precisión</span>
@@ -158,10 +172,34 @@ export default function TopicAnalysisPage() {
             </div>
           </div>
 
+          {/* Progreso del Temario */}
+          {totalPreguntasTemario > 0 && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Progreso del Temario</span>
+                <span className="font-semibold">
+                  {preguntasRespondidas}/{totalPreguntasTemario} ({progresoTemario}%)
+                </span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-2">
+                <div 
+                  className={cn("h-2 rounded-full transition-all", getProgresoColor(progresoTemario))}
+                  style={{ width: `${progresoTemario}%` }}
+                />
+              </div>
+              <div className="text-xs text-muted-foreground text-center">
+                {totalPreguntasTemario - preguntasRespondidas > 0 
+                  ? `${totalPreguntasTemario - preguntasRespondidas} preguntas sin explorar`
+                  : "¡Temario completado!"
+                }
+              </div>
+            </div>
+          )}
+
           {/* Estadísticas */}
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Total</p>
+              <p className="text-xs text-muted-foreground">Respondidas</p>
               <p className="text-sm font-bold">{topic.total_respondidas}</p>
             </div>
             <div className="space-y-1">
