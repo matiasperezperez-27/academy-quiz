@@ -85,7 +85,14 @@ export default function TopicAnalysisPage() {
 // TOPIC CARD OPTIMIZADO PARA MÓVIL - VERSION COMPACTA
 // ========================================
 
+// ========================================
+// TOPIC CARD OPTIMIZADO PARA MÓVIL - VERSION COMPACTA
+// ========================================
+
+import React, { useState } from "react";
+
 const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium' | 'low' | 'achieved' }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
   const getBorderStyle = () => {
     switch (priority) {
       case 'high': return 'border-l-4 border-l-red-500 hover:shadow-lg';
@@ -135,6 +142,15 @@ const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium
     );
   };
 
+  // Detectar si el título es largo
+  const isLongTitle = topic.tema_nombre.length > 25;
+  const shouldShowExpander = isLongTitle && !isExpanded;
+
+  const toggleExpanded = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsExpanded(!isExpanded);
+  };
+
   // Valores corregidos
   const preguntasRespondidas = topic.total_respondidas;
   const totalPreguntasTemario = topic.total_preguntas_temario;
@@ -162,10 +178,43 @@ const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="space-y-1 flex-1 min-w-0">
-            <CardTitle className="text-sm leading-tight flex items-center gap-1.5">
-              <span className="text-base">{getNivelIcon(topic.nivel_dominio)}</span>
-              <span className="truncate">{topic.tema_nombre}</span>
-            </CardTitle>
+            <div className="flex items-start gap-1.5">
+              <span className="text-base flex-shrink-0">{getNivelIcon(topic.nivel_dominio)}</span>
+              <div className="flex-1 min-w-0">
+                <CardTitle 
+                  className={cn(
+                    "text-sm leading-tight cursor-pointer transition-all duration-200",
+                    shouldShowExpander && "truncate hover:text-primary",
+                    isExpanded && "whitespace-normal"
+                  )}
+                  onClick={isLongTitle ? toggleExpanded : undefined}
+                >
+                  {topic.tema_nombre}
+                </CardTitle>
+                {isLongTitle && (
+                  <button
+                    onClick={toggleExpanded}
+                    className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 mt-0.5 transition-colors"
+                  >
+                    {isExpanded ? (
+                      <>
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                        </svg>
+                        Menos
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                        Ver más
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
             <p className="text-xs text-muted-foreground truncate">
               {topic.academia_nombre}
             </p>
