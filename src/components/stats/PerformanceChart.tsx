@@ -54,12 +54,13 @@ export const PerformanceChart = ({ sessions, title = "Evolución del Rendimiento
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={sessions}>
+          <LineChart data={sessions} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis 
               dataKey="date" 
               className="text-xs"
               tick={{ fill: 'currentColor' }}
+              interval="preserveStartEnd"
             />
             <YAxis 
               domain={[0, 100]}
@@ -70,14 +71,17 @@ export const PerformanceChart = ({ sessions, title = "Evolución del Rendimiento
               contentStyle={{ 
                 backgroundColor: 'hsl(var(--background))',
                 border: '1px solid hsl(var(--border))',
-                borderRadius: '6px'
+                borderRadius: '6px',
+                color: 'hsl(var(--foreground))'
               }}
               labelStyle={{ color: 'hsl(var(--foreground))' }}
-              formatter={(value: any, name: any, props: any) => [
-                `${value}%`, 
+              itemStyle={{ color: 'hsl(var(--primary))' }}
+              formatter={(value, name, props) => [
+                `${Number(value).toFixed(0)}%`, 
                 'Puntuación'
               ]}
-              labelFormatter={(label: string) => `Fecha: ${label}`}
+              labelFormatter={(label) => `Fecha: ${label}`}
+              active={true}
             />
             <Line 
               type="monotone" 
@@ -85,7 +89,8 @@ export const PerformanceChart = ({ sessions, title = "Evolución del Rendimiento
               stroke="hsl(var(--primary))" 
               strokeWidth={2}
               dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4 }}
-              activeDot={{ r: 6 }}
+              activeDot={{ r: 6, fill: 'hsl(var(--primary))' }}
+              connectNulls={false}
             />
           </LineChart>
         </ResponsiveContainer>
