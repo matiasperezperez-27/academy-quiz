@@ -159,55 +159,59 @@ const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium
   return (
     <Card className={cn("transition-all duration-200", getBorderStyle())}>
       <CardHeader className="pb-2">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1 flex-1 min-w-0">
-            <div className="flex items-start gap-1.5">
-              <span className="text-base flex-shrink-0">{getNivelIcon(topic.nivel_dominio)}</span>
-              <div className="flex-1 min-w-0">
-                <CardTitle 
-                  className={cn(
-                    "text-sm leading-tight cursor-pointer transition-all duration-200",
-                    shouldShowExpander && "truncate hover:text-primary",
-                    isExpanded && "whitespace-normal"
-                  )}
-                  onClick={isLongTitle ? toggleExpanded : undefined}
-                >
-                  {topic.tema_nombre}
-                </CardTitle>
-                {isLongTitle && (
-                  <button
-                    onClick={toggleExpanded}
-                    className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 mt-0.5 transition-colors"
-                  >
-                    {isExpanded ? (
-                      <>
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                        </svg>
-                        Menos
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                        Ver más
-                      </>
-                    )}
-                  </button>
+        <div className="space-y-1.5">
+          {/* 🎯 TÍTULO DEL TEMA - ESPACIO COMPLETO */}
+          <div className="flex items-start gap-1.5">
+            <span className="text-base flex-shrink-0">{getNivelIcon(topic.nivel_dominio)}</span>
+            <div className="flex-1 min-w-0">
+              <CardTitle 
+                className={cn(
+                  "text-sm leading-tight cursor-pointer transition-all duration-200",
+                  shouldShowExpander && "truncate hover:text-primary",
+                  isExpanded && "whitespace-normal"
                 )}
-              </div>
+                onClick={isLongTitle ? toggleExpanded : undefined}
+              >
+                {topic.tema_nombre}
+              </CardTitle>
             </div>
+            {/* 🎯 BOTÓN "VER MÁS" A LA DERECHA */}
+            {isLongTitle && (
+              <button
+                onClick={toggleExpanded}
+                className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 flex-shrink-0 transition-colors"
+              >
+                {isExpanded ? (
+                  <>
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    </svg>
+                    Menos
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                    Ver más
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+          
+          {/* 🎯 ACADEMIA + BADGE EN LA MISMA LÍNEA */}
+          <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground truncate">
               {topic.academia_nombre}
             </p>
+            <Badge 
+              variant="outline" 
+              className={cn("text-xs ml-2 flex-shrink-0", getNivelColor(topic.nivel_dominio))}
+            >
+              {topic.nivel_dominio}
+            </Badge>
           </div>
-          <Badge 
-            variant="outline" 
-            className={cn("text-xs ml-2 flex-shrink-0", getNivelColor(topic.nivel_dominio))}
-          >
-            {topic.nivel_dominio}
-          </Badge>
         </div>
       </CardHeader>
       
