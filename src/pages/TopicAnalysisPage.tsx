@@ -12,162 +12,116 @@ import {
   RotateCcw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTopicAnalysis, getNivelIcon, getNivelColor } from "@/hooks/useTopicAnalysis";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import CelebrationModal from "@/components/CelebrationModal";
 
-// Funciones helper simuladas - en producción vendrían de tu hook
-const getNivelIcon = (nivel) => {
-  switch (nivel) {
-    case 'Dominado': return '🏆';
-    case 'Casi Dominado': return '⭐';
-    case 'En Progreso': return '📈';
-    case 'Necesita Práctica': return '📚';
-    default: return '📝';
-  }
-};
-
-const getNivelColor = (nivel) => {
-  switch (nivel) {
-    case 'Dominado': return 'bg-yellow-100 text-yellow-700 border-yellow-300';
-    case 'Casi Dominado': return 'bg-blue-100 text-blue-700 border-blue-300';
-    case 'En Progreso': return 'bg-green-100 text-green-700 border-green-300';
-    case 'Necesita Práctica': return 'bg-red-100 text-red-700 border-red-300';
-    default: return 'bg-gray-100 text-gray-700 border-gray-300';
-  }
-};
-
-// Hook simulado para datos - en producción vendría de tu API
-const useTopicAnalysis = () => {
-  const [topicStats, setTopicStats] = useState([
-    {
-      tema_id: "1",
-      tema_nombre: "La Constitución Española de 1978",
-      academia_nombre: "Oposiciones Jurídicas",
-      nivel_dominio: "Dominado",
-      progreso_temario: 100,
-      porcentaje_acierto: 100,
-      total_respondidas: 45,
-      total_preguntas_temario: 45,
-      preguntas_pendientes: 0,
-      total_correctas: 45,
-      total_incorrectas: 0,
-      intentos_totales: 12,
-      dias_sin_repasar: 2,
-      preguntas_falladas_ids: [],
-      academia_id: "1"
-    },
-    {
-      tema_id: "2", 
-      tema_nombre: "Derecho Administrativo General",
-      academia_nombre: "Oposiciones Jurídicas",
-      nivel_dominio: "Necesita Práctica",
-      progreso_temario: 65,
-      porcentaje_acierto: 45,
-      total_respondidas: 28,
-      total_preguntas_temario: 43,
-      preguntas_pendientes: 15,
-      total_correctas: 12,
-      total_incorrectas: 16,
-      intentos_totales: 8,
-      dias_sin_repasar: 5,
-      preguntas_falladas_ids: ["2-1", "2-5", "2-8"],
-      academia_id: "1"
-    }
-  ]);
-  
-  const [loading, setLoading] = useState(false);
-  
-  const refreshData = async () => {
-    setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setLoading(false);
-  };
-  
-  const resetSpecificTopicData = async (temaId) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setTopicStats(prev => prev.map(topic => 
-      topic.tema_id === temaId 
-        ? { ...topic, progreso_temario: 0, porcentaje_acierto: 0, total_correctas: 0, nivel_dominio: "Necesita Práctica" }
-        : topic
-    ));
-    return true;
-  };
-  
-  return { topicStats, loading, refreshData, resetSpecificTopicData };
-};
-
 export default function TopicAnalysisPage() {
-  // Hooks simulados - en producción vendrían de tu aplicación
-  const user = { id: 1, name: 'Usuario' }; // useAuth simulado
-  const toast = ({ title, description, variant, duration }) => {
-    console.log('Toast:', { title, description, variant, duration });
-  }; // useToast simulado
-  
-  const navigate = (path) => {
-    console.log('Navegando a:', path);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = (path: string) => {
+    window.location.href = path;
   };
 
   const { 
     topicStats, 
+    academias, 
     loading, 
     refreshData,
     resetSpecificTopicData 
   } = useTopicAnalysis();
 
   // 🎉 Estado para celebración con modal
-  const [celebrationModal, setCelebrationModal] = useState({
+  const [celebrationModal, setCelebrationModal] = useState<{
+    isOpen: boolean;
+    achievement: {
+      type: 'Dominado' | 'Casi Dominado' | 'En Progreso';
+      topicName: string;
+      accuracy: number;
+      attempts: number;
+      previousLevel?: string;
+    } | null;
+  }>({
     isOpen: false,
     achievement: null
   });
 
-  // 🔧 Usar Map para evitar re-renders múltiples
-  const [celebratedTopics, setCelebratedTopics] = useState(new Map());
+  // 🔧 CORREGIDO: Usar Map para evitar re-renders múltiples
+  const [celebratedTopics, setCelebratedTopics] = useState<Map<string, boolean>>(new Map());
 
-  // 🎯 Detectar temas completados
+  // 🎯 Detectar temas completados - CORREGIDO para evitar bucles
   useEffect(() => {
-    if (!topicStats.length) return;
+    if (!topicStats.length || !user) return;
 
     topicStats.forEach(topic => {
+      // ✅ Validaciones estrictas
       if (!topic || !topic.tema_id || !topic.tema_nombre) return;
       
       const isFullyCompleted = topic.progreso_temario === 100 && topic.porcentaje_acierto === 100;
       const topicKey = `${topic.tema_id}-${topic.progreso_temario}-${topic.porcentaje_acierto}`;
       
+      // 🛡️ SOLO mostrar si está completado Y no lo hemos celebrado antes
       if (isFullyCompleted && !celebratedTopics.has(topicKey)) {
+        
+        // ✅ Marcar como celebrado INMEDIATAMENTE para evitar bucles
         setCelebratedTopics(prev => new Map(prev).set(topicKey, true));
         
+        // 🎉 Preparar datos del achievement
         const achievementData = {
-          type: 'Dominado',
+          type: 'Dominado' as const,
           topicName: topic.tema_nombre,
           accuracy: topic.porcentaje_acierto,
           attempts: topic.intentos_totales || 1,
           previousLevel: 'En Progreso'
         };
 
+        // ✅ Mostrar modal con delay para evitar conflictos
         setTimeout(() => {
           setCelebrationModal({
             isOpen: true,
             achievement: achievementData
           });
         }, 100);
+
+        // Toast como backup
+        toast({
+          title: "🏆 ¡Tema Completamente Dominado!",
+          description: `Has alcanzado la perfección en "${topic.tema_nombre}". ¡Felicidades!`,
+          duration: 3000,
+        });
       }
     });
-  }, [topicStats, celebratedTopics]);
+  }, [topicStats, user, toast, celebratedTopics]);
 
   // Función para reiniciar progreso de un tema
-  const resetTopicProgress = async (temaId, temaNombre) => {
+  const resetTopicProgress = async (temaId: string, temaNombre: string) => {
+    if (!user) return;
+
     try {
       const confirmReset = window.confirm(
         `¿Estás seguro de que quieres reiniciar completamente el progreso del tema "${temaNombre}"?\n\n` +
+        `Esto eliminará:\n` +
+        `• Todas tus respuestas\n` +
+        `• Todas las sesiones\n` +
+        `• El progreso de dominio\n\n` +
         `Esta acción NO se puede deshacer.`
       );
 
       if (!confirmReset) return;
 
+      toast({
+        title: "Reiniciando...",
+        description: "Eliminando progreso del tema...",
+      });
+
       const success = await resetSpecificTopicData(temaId);
 
       if (success) {
+        // 🔧 Limpiar celebraciones del tema reiniciado
         setCelebratedTopics(prev => {
           const newMap = new Map(prev);
+          // Eliminar todas las entradas relacionadas con este tema
           Array.from(newMap.keys()).forEach(key => {
             if (key.startsWith(temaId)) {
               newMap.delete(key);
@@ -177,19 +131,32 @@ export default function TopicAnalysisPage() {
         });
 
         await refreshData();
+
+        toast({
+          title: "✅ Progreso Reiniciado",
+          description: `El tema "${temaNombre}" ha sido reiniciado completamente.`,
+          variant: "default"
+        });
+      } else {
+        throw new Error('No se pudo reiniciar el progreso');
       }
 
     } catch (error) {
       console.error('Error resetting topic progress:', error);
+      toast({
+        title: "❌ Error",
+        description: "No se pudo reiniciar el progreso del tema.",
+        variant: "destructive"
+      });
     }
   };
 
-  const handlePracticeClick = (temaId, academiaId, preguntasFalladas) => {
+  const handlePracticeClick = (temaId: string, academiaId: string, preguntasFalladas: string[]) => {
     if (preguntasFalladas.length === 0) {
-      console.log(`Navegando a test: academia=${academiaId}&tema=${temaId}`);
+      window.location.href = `/quiz?mode=test&academia=${academiaId}&tema=${temaId}`;
     } else {
       const questionIds = preguntasFalladas.join(',');
-      console.log(`Navegando a práctica: tema=${temaId}&questions=${questionIds}`);
+      window.location.href = `/quiz?mode=practice&tema=${temaId}&questions=${questionIds}`;
     }
   };
 
@@ -219,16 +186,16 @@ export default function TopicAnalysisPage() {
       isOpen: true,
       achievement: {
         type: 'Dominado',
-        topicName: 'Tema 02. La Constitución Española de 1978.',
+        topicName: 'Tema de Prueba',
         accuracy: 100,
-        attempts: 32,
+        attempts: 5,
         previousLevel: 'En Progreso'
       }
     });
   };
 
-  // Componente TopicCard
-  const TopicCard = ({ topic, priority }) => {
+  // Componente TopicCard (sin cambios)
+  const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium' | 'low' | 'achieved' }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     
     const getBorderStyle = () => {
@@ -283,7 +250,7 @@ export default function TopicAnalysisPage() {
     const isLongTitle = topic.tema_nombre && topic.tema_nombre.length > 25;
     const shouldShowExpander = isLongTitle && !isExpanded;
 
-    const toggleExpanded = (e) => {
+    const toggleExpanded = (e: React.MouseEvent) => {
       e.stopPropagation();
       setIsExpanded(!isExpanded);
     };
@@ -296,14 +263,14 @@ export default function TopicAnalysisPage() {
 
     const isFullyCompleted = progresoTemario === 100 && porcentajeDominio === 100;
 
-    const getProgresoColor = (porcentaje) => {
+    const getProgresoColor = (porcentaje: number) => {
       if (porcentaje >= 90) return 'bg-blue-500';
       if (porcentaje >= 70) return 'bg-green-500';
       if (porcentaje >= 50) return 'bg-yellow-500';
       return 'bg-orange-500';
     };
 
-    const getDominioColor = (porcentaje) => {
+    const getDominioColor = (porcentaje: number) => {
       if (porcentaje >= 95) return 'bg-yellow-500';
       if (porcentaje >= 85) return 'bg-blue-500';  
       if (porcentaje >= 70) return 'bg-green-500'; 
@@ -314,6 +281,7 @@ export default function TopicAnalysisPage() {
       <Card className={cn("transition-all duration-200", getBorderStyle())}>
         <CardHeader className="pb-2">
           <div className="space-y-1.5">
+            {/* Título del tema */}
             <div className="flex items-start gap-1.5">
               <span className="text-base flex-shrink-0">{getNivelIcon(topic.nivel_dominio)}</span>
               <div className="flex-1 min-w-0">
@@ -328,6 +296,7 @@ export default function TopicAnalysisPage() {
                   {topic.tema_nombre || 'Sin nombre'}
                 </CardTitle>
               </div>
+              {/* Botón "Ver más" */}
               {isLongTitle && (
                 <button
                   onClick={toggleExpanded}
@@ -352,6 +321,7 @@ export default function TopicAnalysisPage() {
               )}
             </div>
             
+            {/* Academia + Badge */}
             <div className="flex items-center justify-between">
               <p className="text-xs text-muted-foreground truncate">
                 {topic.academia_nombre || 'Sin academia'}
@@ -367,6 +337,7 @@ export default function TopicAnalysisPage() {
         </CardHeader>
         
         <CardContent className="space-y-3 pt-0">
+          {/* Indicador de completado al 100% */}
           {isFullyCompleted && (
             <div className="p-2 bg-gradient-to-r from-yellow-50 to-orange-50 rounded border border-yellow-200 text-center">
               <div className="flex items-center justify-center gap-2 text-sm font-medium text-yellow-800">
@@ -377,6 +348,7 @@ export default function TopicAnalysisPage() {
             </div>
           )}
 
+          {/* Progreso del temario */}
           <div className="space-y-1.5">
             <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground flex items-center gap-1">
@@ -399,6 +371,7 @@ export default function TopicAnalysisPage() {
             </div>
           </div>
 
+          {/* Dominio */}
           <div className="space-y-1.5">
             <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground flex items-center gap-1">
@@ -419,6 +392,7 @@ export default function TopicAnalysisPage() {
             </div>
           </div>
 
+          {/* Estadísticas */}
           <div className="grid grid-cols-3 gap-1 text-center py-2 bg-muted/30 rounded">
             <div className="space-y-0.5">
               <p className="text-xs text-muted-foreground">Únicas</p>
@@ -434,6 +408,7 @@ export default function TopicAnalysisPage() {
             </div>
           </div>
 
+          {/* Info adicional */}
           <div className="flex justify-between items-center text-xs text-muted-foreground">
             <span>Intentos: {topic.intentos_totales || 0}</span>
             {(topic.dias_sin_repasar || 0) < 7 ? (
@@ -445,6 +420,7 @@ export default function TopicAnalysisPage() {
             )}
           </div>
 
+          {/* Estado urgente */}
           {priority === 'high' && (topic.total_incorrectas || 0) > 5 && (
             <div className="text-center py-1 bg-red-50 rounded border border-red-200">
               <span className="text-xs text-red-700 font-medium">
@@ -453,7 +429,9 @@ export default function TopicAnalysisPage() {
             </div>
           )}
 
+          {/* Botones de acción */}
           <div className="space-y-2">
+            {/* Botón principal */}
             <Button
               onClick={() => handlePracticeClick(
                 topic.tema_id, 
@@ -467,6 +445,7 @@ export default function TopicAnalysisPage() {
               {getButtonText()}
             </Button>
 
+            {/* Botón de reinicio */}
             {isFullyCompleted && (
               <Button
                 onClick={() => resetTopicProgress(topic.tema_id, topic.tema_nombre)}
@@ -484,13 +463,13 @@ export default function TopicAnalysisPage() {
     );
   };
 
-  // Agrupar temas por estado
+  // Agrupar temas por estado con validación de datos
   const temasDominados = topicStats.filter(topic => topic?.nivel_dominio === 'Dominado');
   const temasCasiDominados = topicStats.filter(topic => topic?.nivel_dominio === 'Casi Dominado');
   const temasEnProgreso = topicStats.filter(topic => topic?.nivel_dominio === 'En Progreso');
   const temasNecesitanPractica = topicStats.filter(topic => topic?.nivel_dominio === 'Necesita Práctica');
 
-  // Calcular estadísticas generales
+  // Calcular estadísticas generales con validación
   const totalPreguntas = topicStats.reduce((sum, topic) => sum + (topic?.total_respondidas || 0), 0);
   const totalCorrectas = topicStats.reduce((sum, topic) => sum + (topic?.total_correctas || 0), 0);
   const promedioGeneral = totalPreguntas > 0 ? Math.round((totalCorrectas / totalPreguntas) * 100) : 0;
@@ -547,6 +526,7 @@ export default function TopicAnalysisPage() {
               </p>
             </div>
             <div className="flex gap-2">
+              {/* 🧪 Botón temporal para probar */}
               <Button
                 variant="outline"
                 size="sm"
@@ -618,7 +598,7 @@ export default function TopicAnalysisPage() {
             </Card>
           </div>
 
-          {/* Secciones de temas */}
+          {/* Secciones de temas igual que antes... */}
           <div className="space-y-6">
             {/* Necesitan Práctica */}
             {temasNecesitanPractica.length > 0 && (
@@ -728,7 +708,7 @@ export default function TopicAnalysisPage() {
         </div>
       </main>
 
-      {/* 🎉 MODAL DE CELEBRACIÓN OPTIMIZADO */}
+      {/* 🎉 MODAL DE CELEBRACIÓN */}
       <CelebrationModal
         isOpen={celebrationModal.isOpen}
         onClose={handleCelebrationClose}
@@ -740,4 +720,3 @@ export default function TopicAnalysisPage() {
     </>
   );
 }
-
