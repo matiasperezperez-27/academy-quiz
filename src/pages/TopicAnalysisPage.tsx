@@ -52,8 +52,8 @@ const useTopicAnalysis = () => {
       total_incorrectas: 0,
       intentos_totales: 12,
       dias_sin_repasar: 2,
-      preguntas_falladas_ids: [],
-      academia_id: "1"
+      preguntas_falladas_ids: [], // Usar IDs reales de UUIDs en producción
+      academia_id: "1" // Debe ser UUID real en producción
     },
     {
       tema_id: "2", 
@@ -69,8 +69,8 @@ const useTopicAnalysis = () => {
       total_incorrectas: 16,
       intentos_totales: 8,
       dias_sin_repasar: 5,
-      preguntas_falladas_ids: ["2-1", "2-5", "2-8"],
-      academia_id: "1"
+      preguntas_falladas_ids: [], // Usar IDs reales de UUIDs en producción
+      academia_id: "1" // Debe ser UUID real en producción
     }
   ]);
   

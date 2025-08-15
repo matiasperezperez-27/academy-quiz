@@ -188,10 +188,20 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
         console.log("🔍 LOADING SPECIFIC - INPUT:", specificQuestionIds);
         console.log("🔍 LOADING SPECIFIC - COUNT:", specificQuestionIds.length);
         
+        // Validar que todos los IDs sean UUIDs válidos
+        const validUUIDs = specificQuestionIds.filter(id => {
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          return uuidRegex.test(id);
+        });
+        
+        if (validUUIDs.length === 0) {
+          throw new Error("No se encontraron IDs de preguntas válidos para practicar");
+        }
+        
         const { data: specificQuestions, error: specificError } = await supabase
           .from("preguntas")
           .select("*")
-          .in("id", specificQuestionIds);
+          .in("id", validUUIDs);
 
         console.log("🔍 LOADED FROM DB:", specificQuestions?.length);
         console.log("🔍 QUESTIONS IDS:", specificQuestions?.map(q => q.id));
@@ -222,7 +232,7 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
           questions: shuffle(specificQuestions as Pregunta[]), 
           isLoading: false,
           startTime: Date.now(),
-          specificQuestionIds: specificQuestionIds,
+          specificQuestionIds: validUUIDs,
           // 🎯 IMPORTANTE: Guardar academia y tema para uso posterior
           currentAcademiaId: specificQuestions[0]?.academia_id || null,
           currentTemaId: specificQuestions[0]?.tema_id || null
