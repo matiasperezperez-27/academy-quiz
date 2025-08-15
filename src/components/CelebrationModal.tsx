@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -208,7 +209,13 @@ export default function CelebrationModal({
   onNextTopic
 }: CelebrationModalProps) {
   
+  const navigate = useNavigate();
   const [showEffects, setShowEffects] = useState(false);
+
+  const handleNextTopic = () => {
+    navigate('/test-setup');
+    onClose();
+  };
 
   // Activar efectos cuando se abre el modal
   useEffect(() => {
@@ -438,7 +445,7 @@ export default function CelebrationModal({
                   {achievement.type === 'Dominado' ? (
                     <>
                       <Button 
-                        onClick={onNextTopic}
+                        onClick={handleNextTopic}
                         className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
                         size="lg"
                       >
