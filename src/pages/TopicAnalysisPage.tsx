@@ -102,72 +102,130 @@ export default function TopicAnalysisPage() {
     console.log('Toast:', { title, description, variant, duration });
   }; // useToast simulado
   
-// Función de navegación mejorada con logs y fallback
-const navigate = (path: string) => {
-  console.log('🚀 Navegando a:', path);
-  
-  try {
-    // Opción 1: Navegación con window.location.href
-    window.location.href = path;
-  } catch (error) {
-    console.error('❌ Error navegando con window.location.href:', error);
-    
-    try {
-      // Opción 2: Fallback con window.location.assign
-      window.location.assign(path);
-    } catch (fallbackError) {
-      console.error('❌ Error navegando con window.location.assign:', fallbackError);
-      
-      // Opción 3: Último recurso - abrir en nueva pestaña
-      window.open(path, '_self');
-    }
-  }
-};
+  const navigate = (path) => {
+    console.log('Navegando a:', path);
+  };
 
-// Manejadores del modal de celebración mejorados
-const handleCelebrationClose = () => {
-  console.log('🔒 Cerrando modal de celebración');
-  setCelebrationModal({ isOpen: false, achievement: null });
-};
+  const { 
+    topicStats, 
+    loading, 
+    refreshData,
+    resetSpecificTopicData 
+  } = useTopicAnalysis();
 
-const handleContinuePractice = () => {
-  console.log('🎯 Continuar practicando');
-  setCelebrationModal({ isOpen: false, achievement: null });
-  navigate("/topic-analysis");
-};
-
-const handleNextTopic = () => {
-  console.log('⭐ Ir al siguiente tema - iniciando navegación');
-  setCelebrationModal({ isOpen: false, achievement: null });
-  
-  // Pequeño delay para asegurar que el modal se cierre antes de navegar
-  setTimeout(() => {
-    console.log('⭐ Ejecutando navegación a /test-setup');
-    navigate("/test-setup");
-  }, 100);
-};
-
-const handlePracticeMore = () => {
-  console.log('📚 Practicar más');
-  setCelebrationModal({ isOpen: false, achievement: null });
-  navigate("/practice");
-};
-
-// Función de prueba adicional para verificar rutas
-const testNavigation = () => {
-  console.log('🧪 Probando navegación...');
-  
-  const routes = ['/test-setup', '/practice', '/topic-analysis'];
-  
-  routes.forEach(route => {
-    console.log(`Verificando ruta: ${route}`);
-    // Solo log, no navegar realmente en el test
+  // 🎉 Estado para celebración con modal
+  const [celebrationModal, setCelebrationModal] = useState({
+    isOpen: false,
+    achievement: null
   });
-  
-  // Probar la navegación real al test-setup
-  console.log('🧪 Navegando a /test-setup como prueba...');
-  navigate("/test-setup");
-};
+
+  // 🔧 Usar Map para evitar re-renders múltiples
+  const [celebratedTopics, setCelebratedTopics] = useState(new Map());
+
+  // 🎯 Detectar temas completados
+  useEffect(() => {
+    if (!topicStats.length) return;
+
+    topicStats.forEach(topic => {
+      if (!topic || !topic.tema_id || !topic.tema_nombre) return;
+      
+      const isFullyCompleted = topic.progreso_temario === 100 && topic.porcentaje_acierto === 100;
+      const topicKey = `${topic.tema_id}-${topic.progreso_temario}-${topic.porcentaje_acierto}`;
+      
+      if (isFullyCompleted && !celebratedTopics.has(topicKey)) {
+        setCelebratedTopics(prev => new Map(prev).set(topicKey, true));
+        
+        const achievementData = {
+          type: 'Dominado',
+          topicName: topic.tema_nombre,
+          accuracy: topic.porcentaje_acierto,
+          attempts: topic.intentos_totales || 1,
+          previousLevel: 'En Progreso'
+        };
+
+        setTimeout(() => {
+          setCelebrationModal({
+            isOpen: true,
+            achievement: achievementData
+          });
+        }, 100);
+      }
+    });
+  }, [topicStats, celebratedTopics]);
+
+  // Función para reiniciar progreso de un tema
+  const resetTopicProgress = async (temaId, temaNombre) => {
+    try {
+      const confirmReset = window.confirm(
+        `¿Estás seguro de que quieres reiniciar completamente el progreso del tema "${temaNombre}"?\n\n` +
+        `Esta acción NO se puede deshacer.`
+      );
+
+      if (!confirmReset) return;
+
+      const success = await resetSpecificTopicData(temaId);
+
+      if (success) {
+        setCelebratedTopics(prev => {
+          const newMap = new Map(prev);
+          Array.from(newMap.keys()).forEach(key => {
+            if (key.startsWith(temaId)) {
+              newMap.delete(key);
+            }
+          });
+          return newMap;
+        });
+
+        await refreshData();
+      }
+
+    } catch (error) {
+      console.error('Error resetting topic progress:', error);
+    }
+  };
+
+  const handlePracticeClick = (temaId, academiaId, preguntasFalladas) => {
+    if (preguntasFalladas.length === 0) {
+      console.log(`Navegando a test: academia=${academiaId}&tema=${temaId}`);
+    } else {
+      const questionIds = preguntasFalladas.join(',');
+      console.log(`Navegando a práctica: tema=${temaId}&questions=${questionIds}`);
+    }
+  };
+
+  // 🎉 Manejadores del modal de celebración
+  const handleCelebrationClose = () => {
+    setCelebrationModal({ isOpen: false, achievement: null });
+  };
+
+  const handleContinuePractice = () => {
+    setCelebrationModal({ isOpen: false, achievement: null });
+    navigate("/topic-analysis");
+  };
+
+  const handleNextTopic = () => {
+    setCelebrationModal({ isOpen: false, achievement: null });
+    navigate("/test-setup");
+  };
+
+  const handlePracticeMore = () => {
+    setCelebrationModal({ isOpen: false, achievement: null });
+    navigate("/practice");
+  };
+
+  // 🧪 Botón temporal para probar el modal
+  const testModal = () => {
+    setCelebrationModal({
+      isOpen: true,
+      achievement: {
+        type: 'Dominado',
+        topicName: 'Tema 02. La Constitución Española de 1978.',
+        accuracy: 100,
+        attempts: 32,
+        previousLevel: 'En Progreso'
+      }
+    });
+  };
 
   // Componente TopicCard
   const TopicCard = ({ topic, priority }) => {
