@@ -11,7 +11,6 @@ import {
   RotateCcw,
   Sparkles
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface CelebrationModalProps {
   isOpen: boolean;
@@ -28,58 +27,175 @@ interface CelebrationModalProps {
   onNextTopic?: () => void;
 }
 
-// 🎊 Componente de Confeti CSS puro
+// 🎊 Componente de Confeti CSS mejorado
 const ConfettiAnimation = () => {
-  const [confetti, setConfetti] = useState<Array<{id: number; left: number; delay: number; color: string}>>([]);
+  const [confetti, setConfetti] = useState<Array<{
+    id: number; 
+    left: number; 
+    delay: number; 
+    color: string;
+    size: number;
+    rotation: number;
+  }>>([]);
 
   useEffect(() => {
-    // Generar confeti aleatorio
-    const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
-    const newConfetti = Array.from({ length: 50 }, (_, i) => ({
+    const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#FF69B4', '#32CD32'];
+    const newConfetti = Array.from({ length: 80 }, (_, i) => ({
       id: i,
       left: Math.random() * 100,
-      delay: Math.random() * 3,
-      color: colors[Math.floor(Math.random() * colors.length)]
+      delay: Math.random() * 2.5,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      size: Math.random() * 8 + 4, // Entre 4px y 12px
+      rotation: Math.random() * 360
     }));
     setConfetti(newConfetti);
   }, []);
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-50">
-      {confetti.map((piece) => (
-        <div
-          key={piece.id}
-          className="confetti-piece absolute w-2 h-2 opacity-80"
-          style={{
-            left: `${piece.left}%`,
-            backgroundColor: piece.color,
-            animationDelay: `${piece.delay}s`,
-            animationDuration: '3s',
-            animationTimingFunction: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-            animationIterationCount: '1',
-            animationFillMode: 'forwards',
-            transform: 'translateY(-100vh)',
-            animation: `confetti-fall 3s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${piece.delay}s forwards`
-          }}
-        />
-      ))}
+    <>
+      {/* Portal para confeti que se renderiza fuera del modal */}
+      <div 
+        className="fixed inset-0 pointer-events-none overflow-hidden"
+        style={{ zIndex: 9999 }}
+      >
+        {confetti.map((piece) => (
+          <div
+            key={piece.id}
+            className="absolute animate-confetti-fall"
+            style={{
+              left: `${piece.left}%`,
+              top: '-20px',
+              width: `${piece.size}px`,
+              height: `${piece.size}px`,
+              backgroundColor: piece.color,
+              borderRadius: '2px',
+              animationDelay: `${piece.delay}s`,
+              animationDuration: '4s',
+              animationFillMode: 'forwards',
+              transform: `rotate(${piece.rotation}deg)`,
+              boxShadow: '0 0 6px rgba(0,0,0,0.1)'
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Estilos CSS para la animación */}
       <style>{`
         @keyframes confetti-fall {
           0% {
-            transform: translateY(-100vh) rotate(0deg);
+            transform: translateY(-20px) rotate(0deg);
             opacity: 1;
+          }
+          10% {
+            opacity: 1;
+          }
+          90% {
+            opacity: 0.8;
           }
           100% {
             transform: translateY(100vh) rotate(720deg);
             opacity: 0;
           }
         }
-        .confetti-piece {
-          border-radius: 2px;
-          animation: confetti-fall 3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        
+        .animate-confetti-fall {
+          animation: confetti-fall 4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
         }
       `}</style>
-    </div>
+    </>
+  );
+};
+
+// 🎆 Componente de fuegos artificiales adicional
+const FireworksAnimation = () => {
+  const [particles, setParticles] = useState<Array<{
+    id: number;
+    x: number;
+    y: number;
+    delay: number;
+    color: string;
+  }>>([]);
+
+  useEffect(() => {
+    const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#FF69B4'];
+    const newParticles = Array.from({ length: 15 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: 20 + Math.random() * 40,
+      delay: Math.random() * 2,
+      color: colors[Math.floor(Math.random() * colors.length)]
+    }));
+    setParticles(newParticles);
+  }, []);
+
+  return (
+    <>
+      <div 
+        className="fixed inset-0 pointer-events-none"
+        style={{ zIndex: 9998 }}
+      >
+        {particles.map((particle) => (
+          <div
+            key={particle.id}
+            className="absolute animate-firework"
+            style={{
+              left: `${particle.x}%`,
+              top: `${particle.y}%`,
+              animationDelay: `${particle.delay}s`
+            }}
+          >
+            {/* Múltiples partículas para simular explosión */}
+            {[...Array(8)].map((_, j) => (
+              <div
+                key={j}
+                className="absolute w-1 h-1 rounded-full animate-particle-burst"
+                style={{
+                  backgroundColor: particle.color,
+                  animationDelay: `${particle.delay + 0.1 * j}s`,
+                  transform: `rotate(${j * 45}deg)`
+                }}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+
+      <style>{`
+        @keyframes firework {
+          0% {
+            transform: scale(0);
+            opacity: 1;
+          }
+          50% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: scale(1.5);
+            opacity: 0;
+          }
+        }
+        
+        @keyframes particle-burst {
+          0% {
+            transform: translateX(0) translateY(0) scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: translateX(30px) translateY(30px) scale(0);
+            opacity: 0;
+          }
+        }
+        
+        .animate-firework {
+          animation: firework 1.5s ease-out forwards;
+        }
+        
+        .animate-particle-burst {
+          animation: particle-burst 1s ease-out forwards;
+        }
+      `}</style>
+    </>
   );
 };
 
@@ -92,14 +208,27 @@ export default function CelebrationModal({
   onNextTopic
 }: CelebrationModalProps) {
   
-  const [showConfetti, setShowConfetti] = useState(false);
+  const [showEffects, setShowEffects] = useState(false);
 
-  // Activar confeti cuando se abre el modal
+  // Activar efectos cuando se abre el modal
   useEffect(() => {
     if (isOpen && achievement) {
-      setShowConfetti(true);
-      const timer = setTimeout(() => setShowConfetti(false), 4000);
-      return () => clearTimeout(timer);
+      // Pequeño delay para asegurar que el modal esté renderizado
+      const timer = setTimeout(() => {
+        setShowEffects(true);
+      }, 100);
+      
+      // Limpiar efectos después de la animación
+      const cleanupTimer = setTimeout(() => {
+        setShowEffects(false);
+      }, 6000);
+      
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(cleanupTimer);
+      };
+    } else {
+      setShowEffects(false);
     }
   }, [isOpen, achievement]);
 
@@ -108,7 +237,6 @@ export default function CelebrationModal({
     return null;
   }
 
-  // AJUSTE 1: Icono más pequeño
   const getAchievementConfig = (type: string) => {
     switch (type) {
       case 'Dominado':
@@ -193,109 +321,84 @@ export default function CelebrationModal({
 
   return (
     <>
-      {/* 🎊 Confeti animado */}
-      {showConfetti && <ConfettiAnimation />}
+      {/* 🎊 Efectos de celebración */}
+      {showEffects && (
+        <>
+          <ConfettiAnimation />
+          {achievement.type === 'Dominado' && <FireworksAnimation />}
+        </>
+      )}
       
       <Dialog open={isOpen && !!achievement} onOpenChange={onClose}>
-        {/* AJUSTE 2: Ancho máximo del modal reducido */}
         <DialogContent 
-        showCloseButton={false}
-        className="sm:max-w-md max-w-[90vw] border-0 p-0 overflow-hidden bg-transparent shadow-2xl">
-          <div className={cn(
-            "relative rounded-2xl border-2 overflow-hidden",
-            "bg-white dark:bg-gray-900",
-            config.borderColor,
-            "shadow-2xl",
-            "animate-in zoom-in-95 duration-300"
-          )}>
+          className="sm:max-w-md max-w-[90vw] border-0 p-0 overflow-hidden bg-transparent shadow-2xl"
+          style={{ zIndex: 9997 }}
+        >
+          <div className={`
+            relative rounded-2xl border-2 overflow-hidden
+            bg-white dark:bg-gray-900
+            ${config.borderColor}
+            shadow-2xl
+            animate-in zoom-in-95 duration-300
+          `}>
             {/* Fondo decorativo con gradiente */}
-            <div className={cn("absolute inset-0 opacity-30", config.bgGradient)} />
+            <div className={`absolute inset-0 opacity-30 ${config.bgGradient}`} />
             
-            {/* AJUSTE 3: Relleno principal reducido */}
             <div className="relative z-10 p-4 sm:p-5">
-              {/* AJUSTE 4: Espacio vertical del header reducido */}
               <DialogHeader className="text-center space-y-3">
                 {/* Icono principal con animación */}
                 <div className="flex justify-center">
-                  <div className={cn(
-                    // AJUSTE 5: Relleno del círculo del icono reducido
-                    "relative p-4 rounded-full border-4 shadow-xl",
-                    "bg-white dark:bg-gray-800",
-                    config.borderColor,
-                    "animate-pulse"
-                  )}>
+                  <div className={`
+                    relative p-4 rounded-full border-4 shadow-xl
+                    bg-white dark:bg-gray-800
+                    ${config.borderColor}
+                    animate-bounce
+                  `}>
                     <div className="absolute inset-0 rounded-full bg-gradient-to-r from-yellow-400/20 to-orange-400/20 animate-ping" />
                     <div className="relative z-10">
                       {config.icon}
                     </div>
-                    {/* Sparkles decorativos */}
                     <Sparkles className="absolute -top-2 -right-2 h-5 w-5 text-yellow-400 animate-bounce" />
                     <Sparkles className="absolute -bottom-2 -left-2 h-3 w-3 text-yellow-400 animate-bounce delay-75" />
                   </div>
                 </div>
                 
-                {/* Título principal */}
-                <DialogTitle className={cn(
-                  "text-2xl font-bold tracking-tight",
-                  config.titleColor
-                )}>
+                <DialogTitle className={`text-2xl font-bold tracking-tight ${config.titleColor}`}>
                   {config.title}
                 </DialogTitle>
                 
-                {/* AJUSTE 6: Espacio vertical de la info reducido */}
                 <div className="space-y-1.5">
-                  <h3 className={cn(
-                    "text-lg font-semibold leading-tight",
-                    config.accentColor
-                  )}>
+                  <h3 className={`text-lg font-semibold leading-tight ${config.accentColor}`}>
                     {achievement.topicName}
                   </h3>
-                  <p className={cn(
-                    "text-sm",
-                    config.descriptionColor
-                  )}>
+                  <p className={`text-sm ${config.descriptionColor}`}>
                     {config.description}
                   </p>
                 </div>
               </DialogHeader>
 
-              {/* AJUSTE 7: Espacio general y margen superior reducidos */}
               <div className="space-y-4 mt-6">
                 {/* Estadísticas del logro */}
-                {/* AJUSTE 8: Relleno de la tarjeta de estadísticas reducido */}
-                <div className={cn(
-                  "p-4 rounded-xl border-2 shadow-lg",
-                  config.bgGradient,
-                  config.borderColor,
-                  "bg-white/50 dark:bg-gray-800/50"
-                )}>
-                  {/* AJUSTE 9: Gap entre estadísticas reducido */}
+                <div className={`
+                  p-4 rounded-xl border-2 shadow-lg
+                  ${config.bgGradient}
+                  ${config.borderColor}
+                  bg-white/50 dark:bg-gray-800/50
+                `}>
                   <div className="grid grid-cols-2 gap-4 text-center">
                     <div className="space-y-1">
-                      <div className={cn(
-                        "text-2xl font-bold",
-                        config.accentColor
-                      )}>
+                      <div className={`text-2xl font-bold ${config.accentColor}`}>
                         {achievement.accuracy || 0}%
                       </div>
-                      <div className={cn(
-                        "text-xs font-medium",
-                        config.descriptionColor
-                      )}>
+                      <div className={`text-xs font-medium ${config.descriptionColor}`}>
                         Precisión
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <div className={cn(
-                        "text-2xl font-bold",
-                        config.accentColor
-                      )}>
+                      <div className={`text-2xl font-bold ${config.accentColor}`}>
                         {achievement.attempts || 0}
                       </div>
-                      <div className={cn(
-                        "text-xs font-medium",
-                        config.descriptionColor
-                      )}>
+                      <div className={`text-xs font-medium ${config.descriptionColor}`}>
                         Tests
                       </div>
                     </div>
@@ -305,12 +408,12 @@ export default function CelebrationModal({
                     <div className="mt-3 text-center">
                       <Badge 
                         variant="outline" 
-                        className={cn(
-                          "text-xs border-2",
-                          config.borderColor,
-                          config.textColor,
-                          "bg-white/70 dark:bg-gray-800/70"
-                        )}
+                        className={`
+                          text-xs border-2
+                          ${config.borderColor}
+                          ${config.textColor}
+                          bg-white/70 dark:bg-gray-800/70
+                        `}
                       >
                         Progreso: {achievement.previousLevel} → {achievement.type}
                       </Badge>
@@ -319,17 +422,13 @@ export default function CelebrationModal({
                 </div>
 
                 {/* Mensaje motivacional */}
-                {/* AJUSTE 10: Relleno de la tarjeta motivacional reducido */}
-                <div className={cn(
-                  "text-center p-4 rounded-xl border",
-                  "bg-white/80 dark:bg-gray-800/80",
-                  "border-gray-200 dark:border-gray-600",
-                  "shadow-inner"
-                )}>
-                  <p className={cn(
-                    "text-sm italic font-medium",
-                    config.descriptionColor
-                  )}>
+                <div className={`
+                  text-center p-4 rounded-xl border
+                  bg-white/80 dark:bg-gray-800/80
+                  border-gray-200 dark:border-gray-600
+                  shadow-inner
+                `}>
+                  <p className={`text-sm italic font-medium ${config.descriptionColor}`}>
                     {getMotivationalMessage(achievement.type)}
                   </p>
                 </div>
@@ -340,13 +439,7 @@ export default function CelebrationModal({
                     <>
                       <Button 
                         onClick={onNextTopic}
-                        className={cn(
-                          "w-full h-12 text-base font-semibold",
-                          "bg-gradient-to-r from-blue-600 to-purple-600",
-                          "hover:from-blue-700 hover:to-purple-700",
-                          "text-white shadow-lg hover:shadow-xl",
-                          "transform hover:scale-[1.02] transition-all duration-200"
-                        )}
+                        className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
                         size="lg"
                       >
                         <ArrowRight className="mr-2 h-5 w-5" />
@@ -356,13 +449,7 @@ export default function CelebrationModal({
                         <Button 
                           onClick={onPracticeMore}
                           variant="outline"
-                          className={cn(
-                            "h-10 font-medium border-2",
-                            config.borderColor,
-                            config.textColor,
-                            "hover:bg-gradient-to-r hover:from-white hover:to-gray-50",
-                            "dark:hover:from-gray-800 dark:hover:to-gray-700"
-                          )}
+                          className={`h-10 font-medium border-2 ${config.borderColor} ${config.textColor} hover:bg-gradient-to-r hover:from-white hover:to-gray-50 dark:hover:from-gray-800 dark:hover:to-gray-700`}
                           size="sm"
                         >
                           <RotateCcw className="mr-2 h-4 w-4" />
@@ -371,12 +458,7 @@ export default function CelebrationModal({
                         <Button 
                           onClick={onClose}
                           variant="outline"
-                          className={cn(
-                            "h-10 font-medium border-2",
-                            "border-gray-300 dark:border-gray-600",
-                            "text-gray-700 dark:text-gray-300",
-                            "hover:bg-gray-50 dark:hover:bg-gray-700"
-                          )}
+                          className="h-10 font-medium border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                           size="sm"
                         >
                           Continuar
@@ -387,13 +469,7 @@ export default function CelebrationModal({
                     <>
                       <Button 
                         onClick={onContinue}
-                        className={cn(
-                          "w-full h-12 text-base font-semibold",
-                          "bg-gradient-to-r from-green-600 to-blue-600",
-                          "hover:from-green-700 hover:to-blue-700",
-                          "text-white shadow-lg hover:shadow-xl",
-                          "transform hover:scale-[1.02] transition-all duration-200"
-                        )}
+                        className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
                         size="lg"
                       >
                         <Target className="mr-2 h-5 w-5" />
@@ -402,12 +478,7 @@ export default function CelebrationModal({
                       <Button 
                         onClick={onClose}
                         variant="outline"
-                        className={cn(
-                          "w-full h-10 font-medium border-2",
-                          "border-gray-300 dark:border-gray-600",
-                          "text-gray-700 dark:text-gray-300",
-                          "hover:bg-gray-50 dark:hover:bg-gray-700"
-                        )}
+                        className="w-full h-10 font-medium border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                         size="sm"
                       >
                         Ver Progreso General
