@@ -12,98 +12,18 @@ import {
   RotateCcw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTopicAnalysis, getNivelIcon, getNivelColor } from "@/hooks/useTopicAnalysis";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import CelebrationModal from "@/components/CelebrationModal";
 
-// Funciones helper simuladas - en producción vendrían de tu hook
-const getNivelIcon = (nivel) => {
-  switch (nivel) {
-    case 'Dominado': return '🏆';
-    case 'Casi Dominado': return '⭐';
-    case 'En Progreso': return '📈';
-    case 'Necesita Práctica': return '📚';
-    default: return '📝';
-  }
-};
-
-const getNivelColor = (nivel) => {
-  switch (nivel) {
-    case 'Dominado': return 'bg-yellow-100 text-yellow-700 border-yellow-300';
-    case 'Casi Dominado': return 'bg-blue-100 text-blue-700 border-blue-300';
-    case 'En Progreso': return 'bg-green-100 text-green-700 border-green-300';
-    case 'Necesita Práctica': return 'bg-red-100 text-red-700 border-red-300';
-    default: return 'bg-gray-100 text-gray-700 border-gray-300';
-  }
-};
-
-// Hook simulado para datos - en producción vendría de tu API
-const useTopicAnalysis = () => {
-  const [topicStats, setTopicStats] = useState([
-    {
-      tema_id: "1",
-      tema_nombre: "La Constitución Española de 1978",
-      academia_nombre: "Oposiciones Jurídicas",
-      nivel_dominio: "Dominado",
-      progreso_temario: 100,
-      porcentaje_acierto: 100,
-      total_respondidas: 45,
-      total_preguntas_temario: 45,
-      preguntas_pendientes: 0,
-      total_correctas: 45,
-      total_incorrectas: 0,
-      intentos_totales: 12,
-      dias_sin_repasar: 2,
-      preguntas_falladas_ids: [],
-      academia_id: "1"
-    },
-    {
-      tema_id: "2", 
-      tema_nombre: "Derecho Administrativo General",
-      academia_nombre: "Oposiciones Jurídicas",
-      nivel_dominio: "Necesita Práctica",
-      progreso_temario: 65,
-      porcentaje_acierto: 45,
-      total_respondidas: 28,
-      total_preguntas_temario: 43,
-      preguntas_pendientes: 15,
-      total_correctas: 12,
-      total_incorrectas: 16,
-      intentos_totales: 8,
-      dias_sin_repasar: 5,
-      preguntas_falladas_ids: ["2-1", "2-5", "2-8"],
-      academia_id: "1"
-    }
-  ]);
-  
-  const [loading, setLoading] = useState(false);
-  
-  const refreshData = async () => {
-    setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setLoading(false);
-  };
-  
-  const resetSpecificTopicData = async (temaId) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setTopicStats(prev => prev.map(topic => 
-      topic.tema_id === temaId 
-        ? { ...topic, progreso_temario: 0, porcentaje_acierto: 0, total_correctas: 0, nivel_dominio: "Necesita Práctica" }
-        : topic
-    ));
-    return true;
-  };
-  
-  return { topicStats, loading, refreshData, resetSpecificTopicData };
-};
-
 export default function TopicAnalysisPage() {
-  // Hooks simulados - en producción vendrían de tu aplicación
-  const user = { id: 1, name: 'Usuario' }; // useAuth simulado
-  const toast = ({ title, description, variant, duration }) => {
-    console.log('Toast:', { title, description, variant, duration });
-  }; // useToast simulado
-  
-  const navigate = (path) => {
-    console.log('Navegando a:', path);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  // En una aplicación real, usarías el hook de tu router.
+  // Para este ejemplo, usamos una simple redirección.
+  const navigate = (path: string) => {
+    window.location.href = path;
   };
 
   const { 
@@ -113,77 +33,89 @@ export default function TopicAnalysisPage() {
     resetSpecificTopicData 
   } = useTopicAnalysis();
 
-  // 🎉 Estado para celebración con modal
-  const [celebrationModal, setCelebrationModal] = useState({
+  // Estado para controlar el modal de celebración
+  const [celebrationModal, setCelebrationModal] = useState<{
+    isOpen: boolean;
+    achievement: {
+      type: 'Dominado' | 'Casi Dominado' | 'En Progreso';
+      topicName: string;
+      accuracy: number;
+      attempts: number;
+      previousLevel?: string;
+    } | null;
+  }>({
     isOpen: false,
     achievement: null
   });
 
-  // 🔧 Usar Map para evitar re-renders múltiples
-  const [celebratedTopics, setCelebratedTopics] = useState(new Map());
+  // Usamos un Map para evitar celebrar el mismo logro varias veces en la misma sesión
+  const [celebratedTopics, setCelebratedTopics] = useState<Map<string, boolean>>(new Map());
 
-// 🎯 Detectar temas completados - SOLO la primera vez
-useEffect(() => {
-  if (!topicStats.length || !user) return;
+  // Efecto para detectar temas que han sido completamente dominados
+  useEffect(() => {
+    if (!topicStats.length || !user) return;
 
-  // ✅ Obtener temas ya celebrados de localStorage
-  const celebratedKey = `celebrated_${user.id}`;
-  const alreadyCelebrated = JSON.parse(localStorage.getItem(celebratedKey) || '[]');
-
-  topicStats.forEach(topic => {
-    // ✅ Validaciones estrictas (mantener igual)
-    if (!topic || !topic.tema_id || !topic.tema_nombre) return;
-    
-    const isFullyCompleted = topic.progreso_temario === 100 && topic.porcentaje_acierto === 100;
-    
-    // ✅ SOLO mostrar si está completado Y NO se celebró antes
-    if (isFullyCompleted && !alreadyCelebrated.includes(topic.tema_id)) {
+    topicStats.forEach(topic => {
+      // Validaciones para asegurar que el objeto topic es válido
+      if (!topic || !topic.tema_id || !topic.tema_nombre) return;
       
-      // ✅ Guardar que ya se celebró
-      const newCelebrated = [...alreadyCelebrated, topic.tema_id];
-      localStorage.setItem(celebratedKey, JSON.stringify(newCelebrated));
+      const isFullyCompleted = topic.progreso_temario === 100 && topic.porcentaje_acierto === 100;
+      // Creamos una clave única para el estado del tema
+      const topicKey = `${topic.tema_id}-${topic.progreso_temario}-${topic.porcentaje_acierto}`;
       
-      // ✅ Marcar como celebrado INMEDIATAMENTE (mantener igual)
-      setCelebratedTopics(prev => new Map(prev).set(topic.tema_id, true));
-      
-      // ✅ TODO EL RESTO IGUAL - no cambiar nada
-      const achievementData = {
-        type: 'Dominado' as const,
-        topicName: topic.tema_nombre,
-        accuracy: topic.porcentaje_acierto,
-        attempts: topic.intentos_totales || 1,
-        previousLevel: 'En Progreso'
-      };
+      // Si está completado y no lo hemos celebrado antes en esta sesión, mostramos el modal
+      if (isFullyCompleted && !celebratedTopics.has(topicKey)) {
+        
+        // Marcamos como celebrado inmediatamente para evitar bucles de re-renderizado
+        setCelebratedTopics(prev => new Map(prev).set(topicKey, true));
+        
+        const achievementData = {
+          type: 'Dominado' as const,
+          topicName: topic.tema_nombre,
+          accuracy: topic.porcentaje_acierto,
+          attempts: topic.intentos_totales || 1,
+          previousLevel: 'En Progreso' // Se podría hacer más dinámico si se guarda el estado anterior
+        };
 
-      setTimeout(() => {
-        setCelebrationModal({
-          isOpen: true,
-          achievement: achievementData
+        // Mostramos el modal con un pequeño retraso para que la UI se actualice
+        setTimeout(() => {
+          setCelebrationModal({
+            isOpen: true,
+            achievement: achievementData
+          });
+        }, 100);
+
+        toast({
+          title: "🏆 ¡Tema Completamente Dominado!",
+          description: `Has alcanzado la perfección en "${topic.tema_nombre}". ¡Felicidades!`,
+          duration: 3000,
         });
-      }, 100);
+      }
+    });
+  }, [topicStats, user, toast, celebratedTopics]);
 
-      toast({
-        title: "🏆 ¡Tema Completamente Dominado!",
-        description: `Has alcanzado la perfección en "${topic.tema_nombre}". ¡Felicidades!`,
-        duration: 3000,
-      });
-    }
-  });
-}, [topicStats, user, toast, celebratedTopics]);
+  // Función para reiniciar el progreso de un tema específico
+  const resetTopicProgress = async (temaId: string, temaNombre: string) => {
+    if (!user) return;
 
-  // Función para reiniciar progreso de un tema
-  const resetTopicProgress = async (temaId, temaNombre) => {
     try {
       const confirmReset = window.confirm(
         `¿Estás seguro de que quieres reiniciar completamente el progreso del tema "${temaNombre}"?\n\n` +
+        `Esto eliminará todas tus respuestas y sesiones asociadas.\n\n` +
         `Esta acción NO se puede deshacer.`
       );
 
       if (!confirmReset) return;
 
+      toast({
+        title: "Reiniciando...",
+        description: "Eliminando progreso del tema...",
+      });
+
       const success = await resetSpecificTopicData(temaId);
 
       if (success) {
+        // Limpiamos el registro de celebración para este tema
         setCelebratedTopics(prev => {
           const newMap = new Map(prev);
           Array.from(newMap.keys()).forEach(key => {
@@ -195,44 +127,77 @@ useEffect(() => {
         });
 
         await refreshData();
+
+        toast({
+          title: "✅ Progreso Reiniciado",
+          description: `El tema "${temaNombre}" está listo para empezar de nuevo.`,
+          variant: "default"
+        });
+      } else {
+        throw new Error('No se pudo reiniciar el progreso desde el hook.');
       }
 
     } catch (error) {
       console.error('Error resetting topic progress:', error);
+      toast({
+        title: "❌ Error",
+        description: "No se pudo reiniciar el progreso del tema.",
+        variant: "destructive"
+      });
     }
   };
 
-  const handlePracticeClick = (temaId, academiaId, preguntasFalladas) => {
+  // Navega a la pantalla de práctica o test según si hay preguntas falladas
+  const handlePracticeClick = (temaId: string, academiaId: string, preguntasFalladas: string[]) => {
     if (preguntasFalladas.length === 0) {
-      console.log(`Navegando a test: academia=${academiaId}&tema=${temaId}`);
+      // Si no hay fallos, va a un test normal
+      navigate(`/quiz?mode=test&academia=${academiaId}&tema=${temaId}`);
     } else {
+      // Si hay fallos, va a una sesión de práctica con esas preguntas
       const questionIds = preguntasFalladas.join(',');
-      console.log(`Navegando a práctica: tema=${temaId}&questions=${questionIds}`);
+      navigate(`/quiz?mode=practice&tema=${temaId}&questions=${questionIds}`);
     }
   };
 
-  // 🎉 Manejadores del modal de celebración
+  // --- Manejadores para los botones del Modal de Celebración ---
   const handleCelebrationClose = () => {
     setCelebrationModal({ isOpen: false, achievement: null });
   };
 
   const handleContinuePractice = () => {
     setCelebrationModal({ isOpen: false, achievement: null });
+    // Se queda en la misma página para ver el progreso
     navigate("/topic-analysis");
   };
 
   const handleNextTopic = () => {
     setCelebrationModal({ isOpen: false, achievement: null });
+    // Navega a la página para elegir un nuevo tema
     navigate("/test-setup");
   };
 
   const handlePracticeMore = () => {
     setCelebrationModal({ isOpen: false, achievement: null });
+    // Navega a una sección general de práctica
     navigate("/practice");
   };
 
-  // Componente TopicCard
-  const TopicCard = ({ topic, priority }) => {
+  // --- Botón de Test para Desarrollo ---
+  const testModal = () => {
+    setCelebrationModal({
+      isOpen: true,
+      achievement: {
+        type: 'Dominado',
+        topicName: 'Tema de Prueba para Desarrollo',
+        accuracy: 100,
+        attempts: 5,
+        previousLevel: 'Casi Dominado'
+      }
+    });
+  };
+
+  // --- Subcomponente para las tarjetas de temas ---
+  const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium' | 'low' | 'achieved' }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     
     const getBorderStyle = () => {
@@ -287,7 +252,7 @@ useEffect(() => {
     const isLongTitle = topic.tema_nombre && topic.tema_nombre.length > 25;
     const shouldShowExpander = isLongTitle && !isExpanded;
 
-    const toggleExpanded = (e) => {
+    const toggleExpanded = (e: React.MouseEvent) => {
       e.stopPropagation();
       setIsExpanded(!isExpanded);
     };
@@ -300,14 +265,14 @@ useEffect(() => {
 
     const isFullyCompleted = progresoTemario === 100 && porcentajeDominio === 100;
 
-    const getProgresoColor = (porcentaje) => {
+    const getProgresoColor = (porcentaje: number) => {
       if (porcentaje >= 90) return 'bg-blue-500';
       if (porcentaje >= 70) return 'bg-green-500';
       if (porcentaje >= 50) return 'bg-yellow-500';
       return 'bg-orange-500';
     };
 
-    const getDominioColor = (porcentaje) => {
+    const getDominioColor = (porcentaje: number) => {
       if (porcentaje >= 95) return 'bg-yellow-500';
       if (porcentaje >= 85) return 'bg-blue-500';  
       if (porcentaje >= 70) return 'bg-green-500'; 
@@ -318,6 +283,7 @@ useEffect(() => {
       <Card className={cn("transition-all duration-200", getBorderStyle())}>
         <CardHeader className="pb-2">
           <div className="space-y-1.5">
+            {/* Título del tema */}
             <div className="flex items-start gap-1.5">
               <span className="text-base flex-shrink-0">{getNivelIcon(topic.nivel_dominio)}</span>
               <div className="flex-1 min-w-0">
@@ -332,6 +298,7 @@ useEffect(() => {
                   {topic.tema_nombre || 'Sin nombre'}
                 </CardTitle>
               </div>
+              {/* Botón "Ver más" */}
               {isLongTitle && (
                 <button
                   onClick={toggleExpanded}
@@ -356,6 +323,7 @@ useEffect(() => {
               )}
             </div>
             
+            {/* Academia + Badge */}
             <div className="flex items-center justify-between">
               <p className="text-xs text-muted-foreground truncate">
                 {topic.academia_nombre || 'Sin academia'}
@@ -371,6 +339,7 @@ useEffect(() => {
         </CardHeader>
         
         <CardContent className="space-y-3 pt-0">
+          {/* Indicador de completado al 100% */}
           {isFullyCompleted && (
             <div className="p-2 bg-gradient-to-r from-yellow-50 to-orange-50 rounded border border-yellow-200 text-center">
               <div className="flex items-center justify-center gap-2 text-sm font-medium text-yellow-800">
@@ -381,6 +350,7 @@ useEffect(() => {
             </div>
           )}
 
+          {/* Progreso del temario */}
           <div className="space-y-1.5">
             <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground flex items-center gap-1">
@@ -403,6 +373,7 @@ useEffect(() => {
             </div>
           </div>
 
+          {/* Dominio */}
           <div className="space-y-1.5">
             <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground flex items-center gap-1">
@@ -423,6 +394,7 @@ useEffect(() => {
             </div>
           </div>
 
+          {/* Estadísticas */}
           <div className="grid grid-cols-3 gap-1 text-center py-2 bg-muted/30 rounded">
             <div className="space-y-0.5">
               <p className="text-xs text-muted-foreground">Únicas</p>
@@ -438,6 +410,7 @@ useEffect(() => {
             </div>
           </div>
 
+          {/* Info adicional */}
           <div className="flex justify-between items-center text-xs text-muted-foreground">
             <span>Intentos: {topic.intentos_totales || 0}</span>
             {(topic.dias_sin_repasar || 0) < 7 ? (
@@ -449,6 +422,7 @@ useEffect(() => {
             )}
           </div>
 
+          {/* Estado urgente */}
           {priority === 'high' && (topic.total_incorrectas || 0) > 5 && (
             <div className="text-center py-1 bg-red-50 rounded border border-red-200">
               <span className="text-xs text-red-700 font-medium">
@@ -457,7 +431,9 @@ useEffect(() => {
             </div>
           )}
 
+          {/* Botones de acción */}
           <div className="space-y-2">
+            {/* Botón principal */}
             <Button
               onClick={() => handlePracticeClick(
                 topic.tema_id, 
@@ -471,6 +447,7 @@ useEffect(() => {
               {getButtonText()}
             </Button>
 
+            {/* Botón de reinicio */}
             {isFullyCompleted && (
               <Button
                 onClick={() => resetTopicProgress(topic.tema_id, topic.tema_nombre)}
@@ -488,17 +465,7 @@ useEffect(() => {
     );
   };
 
-  // Agrupar temas por estado
-  const temasDominados = topicStats.filter(topic => topic?.nivel_dominio === 'Dominado');
-  const temasCasiDominados = topicStats.filter(topic => topic?.nivel_dominio === 'Casi Dominado');
-  const temasEnProgreso = topicStats.filter(topic => topic?.nivel_dominio === 'En Progreso');
-  const temasNecesitanPractica = topicStats.filter(topic => topic?.nivel_dominio === 'Necesita Práctica');
-
-  // Calcular estadísticas generales
-  const totalPreguntas = topicStats.reduce((sum, topic) => sum + (topic?.total_respondidas || 0), 0);
-  const totalCorrectas = topicStats.reduce((sum, topic) => sum + (topic?.total_correctas || 0), 0);
-  const promedioGeneral = totalPreguntas > 0 ? Math.round((totalCorrectas / totalPreguntas) * 100) : 0;
-
+  // Lógica de renderizado principal
   if (loading) {
     return (
       <main className="min-h-screen p-4 bg-background">
@@ -525,6 +492,15 @@ useEffect(() => {
     );
   }
 
+  // Agrupación de temas y cálculo de estadísticas
+  const temasDominados = topicStats.filter(t => t?.nivel_dominio === 'Dominado');
+  const temasCasiDominados = topicStats.filter(t => t?.nivel_dominio === 'Casi Dominado');
+  const temasEnProgreso = topicStats.filter(t => t?.nivel_dominio === 'En Progreso');
+  const temasNecesitanPractica = topicStats.filter(t => t?.nivel_dominio === 'Necesita Práctica');
+  const totalPreguntas = topicStats.reduce((sum, t) => sum + (t?.total_respondidas || 0), 0);
+  const totalCorrectas = topicStats.reduce((sum, t) => sum + (t?.total_correctas || 0), 0);
+  const promedioGeneral = totalPreguntas > 0 ? Math.round((totalCorrectas / totalPreguntas) * 100) : 0;
+
   return (
     <>
       <main className="min-h-screen p-4 bg-background">
@@ -533,30 +509,20 @@ useEffect(() => {
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <div className="flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => window.history.back()}
-                  className="flex items-center gap-2"
-                >
+                <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="flex items-center gap-2">
                   <ArrowLeft className="h-4 w-4" />
                   Volver
                 </Button>
-                <h1 className="text-2xl sm:text-3xl font-bold">
-                  📊 Análisis por Temas
-                </h1>
+                <h1 className="text-2xl sm:text-3xl font-bold">📊 Análisis por Temas</h1>
               </div>
-              <p className="text-muted-foreground">
-                Descubre en qué temas necesitas enfocar tu estudio
-              </p>
+              <p className="text-muted-foreground">Descubre en qué temas necesitas enfocar tu estudio</p>
             </div>
             <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={refreshData}
-                className="flex items-center gap-2"
-              >
+              {/* Botón para probar el modal en desarrollo */}
+              <Button variant="outline" size="sm" onClick={testModal} className="text-xs">
+                🎉 Probar Modal
+              </Button>
+              <Button variant="ghost" size="sm" onClick={refreshData} className="flex items-center gap-2">
                 <RefreshCw className="h-4 w-4" />
                 Actualizar
               </Button>
@@ -614,9 +580,8 @@ useEffect(() => {
             </Card>
           </div>
 
-          {/* Secciones de temas */}
+          {/* Secciones de Temas */}
           <div className="space-y-6">
-            {/* Necesitan Práctica */}
             {temasNecesitanPractica.length > 0 && (
               <Card>
                 <CardHeader>
@@ -636,8 +601,6 @@ useEffect(() => {
                 </CardContent>
               </Card>
             )}
-
-            {/* En Progreso */}
             {temasEnProgreso.length > 0 && (
               <Card>
                 <CardHeader>
@@ -657,8 +620,6 @@ useEffect(() => {
                 </CardContent>
               </Card>
             )}
-
-            {/* Casi Dominados */}
             {temasCasiDominados.length > 0 && (
               <Card>
                 <CardHeader>
@@ -678,8 +639,6 @@ useEffect(() => {
                 </CardContent>
               </Card>
             )}
-
-            {/* Dominados */}
             {temasDominados.length > 0 && (
               <Card>
                 <CardHeader>
@@ -699,8 +658,6 @@ useEffect(() => {
                 </CardContent>
               </Card>
             )}
-
-            {/* Mensaje si no hay datos */}
             {topicStats.length === 0 && (
               <Card>
                 <CardContent className="flex items-center justify-center p-12">
@@ -724,7 +681,7 @@ useEffect(() => {
         </div>
       </main>
 
-      {/* 🎉 MODAL DE CELEBRACIÓN OPTIMIZADO */}
+      {/* Renderizado del Modal de Celebración */}
       <CelebrationModal
         isOpen={celebrationModal.isOpen}
         onClose={handleCelebrationClose}
@@ -736,4 +693,3 @@ useEffect(() => {
     </>
   );
 }
-
