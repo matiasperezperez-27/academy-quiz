@@ -12,7 +12,118 @@ import {
   RotateCcw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import CelebrationModal from "@/components/CelebrationModal";
+
+// Componente CelebrationModal COMPACTO con animaciones
+const CelebrationModal = ({ isOpen, onClose, achievement, onContinue, onNextTopic, onPracticeMore }) => {
+  if (!isOpen || !achievement) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-yellow-500/30 rounded-xl shadow-2xl max-w-xs w-full max-h-[80vh] overflow-hidden">
+        {/* Header MÁS compacto */}
+        <div className="text-center pt-3 pb-1">
+          <div className="w-12 h-12 mx-auto mb-1 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-full flex items-center justify-center relative overflow-hidden">
+            {/* Efectos de brillo animados */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 animate-pulse"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-yellow-300/50 to-orange-400/50 rounded-full animate-pulse"></div>
+            
+            {/* Partículas flotantes */}
+            <div className="absolute -top-0.5 -left-0.5 w-1.5 h-1.5 bg-yellow-200 rounded-full animate-bounce" style={{animationDelay: '0s'}}></div>
+            <div className="absolute -top-1 right-1 w-1 h-1 bg-orange-300 rounded-full animate-bounce" style={{animationDelay: '0.5s'}}></div>
+            <div className="absolute bottom-0.5 -right-0.5 w-1 h-1 bg-yellow-300 rounded-full animate-bounce" style={{animationDelay: '1s'}}></div>
+            <div className="absolute -bottom-0.5 left-2 w-1 h-1 bg-orange-200 rounded-full animate-bounce" style={{animationDelay: '1.5s'}}></div>
+            
+            {/* Icono del trofeo con efecto pulsante */}
+            <span className="text-lg relative z-10 animate-pulse">🏆</span>
+            
+            {/* Anillo exterior giratorio */}
+            <div className="absolute inset-0 border-2 border-yellow-300/60 rounded-full animate-spin" style={{animationDuration: '3s'}}></div>
+          </div>
+          <h2 className="text-base font-bold text-white flex items-center justify-center gap-1">
+            <span>🏆</span>
+            ¡Tema Dominado!
+          </h2>
+        </div>
+
+        {/* Contenido MÁS compacto */}
+        <div className="px-3 pb-3 space-y-2">
+          {/* Título del tema */}
+          <div className="text-center">
+            <h3 className="text-xs font-semibold text-yellow-400 leading-tight">
+              {achievement.topicName}
+            </h3>
+            <p className="text-xs text-gray-300 mt-0.5">
+              Has alcanzado un nivel excepcional
+            </p>
+          </div>
+
+          {/* Estadísticas MÁS compactas */}
+          <div className="bg-gradient-to-r from-yellow-900/30 to-orange-900/30 rounded-lg p-2 border border-yellow-500/20">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="text-center">
+                <div className="text-lg font-bold text-yellow-400">
+                  {achievement.accuracy}%
+                </div>
+                <div className="text-xs text-gray-300">
+                  Precisión Alcanzada
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-yellow-400">
+                  {achievement.attempts}
+                </div>
+                <div className="text-xs text-gray-300">
+                  Sesiones Completadas
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Badge de progreso */}
+          <div className="text-center">
+            <span className="inline-block bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">
+              Progreso: {achievement.previousLevel} → Dominado
+            </span>
+          </div>
+
+          {/* Mensaje motivacional MÁS compacto */}
+          <div className="bg-slate-800/50 rounded-lg p-1.5 text-center border border-slate-600/30">
+            <p className="text-xs text-gray-300 italic">
+              ¡Increíble! Has demostrado un dominio excepcional de este tema. ⭐
+            </p>
+          </div>
+
+          {/* Botones de acción MÁS compactos */}
+          <div className="space-y-1.5">
+            <Button
+              onClick={onNextTopic}
+              className="w-full h-7 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white text-xs"
+            >
+              → Ir al Siguiente Tema
+            </Button>
+            
+            <div className="grid grid-cols-2 gap-1.5">
+              <Button
+                onClick={onPracticeMore}
+                variant="outline"
+                className="h-6 text-xs border-gray-600 text-gray-300 hover:bg-gray-800"
+              >
+                🔄 Repasar
+              </Button>
+              <Button
+                onClick={onContinue}
+                variant="outline"
+                className="h-6 text-xs border-gray-600 text-gray-300 hover:bg-gray-800"
+              >
+                Continuar
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Funciones helper simuladas - en producción vendrían de tu hook
 const getNivelIcon = (nivel) => {
@@ -740,4 +851,3 @@ export default function TopicAnalysisPage() {
     </>
   );
 }
-
