@@ -178,7 +178,7 @@ export default function CelebrationModal({
     switch (type) {
       case 'Dominado':
         return {
-          icon: <Trophy className="h-16 w-16 text-yellow-500 drop-shadow-lg" />,
+          icon: <Trophy className="h-12 w-12 text-yellow-500 drop-shadow-lg" />,
           title: "🏆 ¡Tema Dominado!",
           description: "Has alcanzado un nivel excepcional",
           bgGradient: "bg-gradient-to-br from-yellow-50 via-orange-50 to-amber-50 dark:from-yellow-900/20 dark:via-orange-900/20 dark:to-amber-900/20",
@@ -191,7 +191,7 @@ export default function CelebrationModal({
         };
       case 'Casi Dominado':
         return {
-          icon: <Star className="h-16 w-16 text-blue-500 drop-shadow-lg" />,
+          icon: <Star className="h-12 w-12 text-blue-500 drop-shadow-lg" />,
           title: "⭐ ¡Casi lo Tienes!",
           description: "Estás muy cerca de dominar este tema",
           bgGradient: "bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-purple-900/20",
@@ -204,7 +204,7 @@ export default function CelebrationModal({
         };
       case 'En Progreso':
         return {
-          icon: <Target className="h-16 w-16 text-green-500 drop-shadow-lg" />,
+          icon: <Target className="h-12 w-12 text-green-500 drop-shadow-lg" />,
           title: "🎯 ¡Buen Progreso!",
           description: "Sigues mejorando constantemente",
           bgGradient: "bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-green-900/20 dark:via-emerald-900/20 dark:to-teal-900/20",
@@ -217,7 +217,7 @@ export default function CelebrationModal({
         };
       default:
         return {
-          icon: <PartyPopper className="h-16 w-16 text-purple-500 drop-shadow-lg" />,
+          icon: <PartyPopper className="h-12 w-12 text-purple-500 drop-shadow-lg" />,
           title: "🎊 ¡Felicidades!",
           description: "Has logrado un nuevo hito",
           bgGradient: "bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 dark:from-purple-900/20 dark:via-pink-900/20 dark:to-rose-900/20",
@@ -237,7 +237,7 @@ export default function CelebrationModal({
     const messages = {
       'Dominado': [
         "¡Increíble! Has demostrado un dominio excepcional de este tema. 🌟",
-        "¡Excelencia pura! Este tema ya no tiene secretos para ti. �",
+        "¡Excelencia pura! Este tema ya no tiene secretos para ti. 🚀",
         "¡Maestría alcanzada! Tu dedicación ha dado frutos extraordinarios. 🏆"
       ],
       'Casi Dominado': [
@@ -265,61 +265,83 @@ export default function CelebrationModal({
       )}
       
       <Dialog open={isOpen && !!achievement} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-lg border-0 p-0 overflow-hidden bg-transparent shadow-2xl">
-          <div className={cn("relative rounded-2xl border-2 overflow-hidden bg-white dark:bg-gray-900 shadow-2xl animate-in zoom-in-95 duration-300", config.borderColor)}>
+        <DialogContent 
+          className="sm:max-w-md max-w-[90vw] border-0 p-0 overflow-hidden bg-transparent shadow-2xl"
+          style={{ zIndex: 9997 }}
+        >
+          <div className={cn(
+            "relative rounded-2xl border-2 overflow-hidden bg-white dark:bg-gray-900 shadow-2xl animate-in zoom-in-95 duration-300",
+            config.borderColor
+          )}>
+            {/* Fondo decorativo con gradiente */}
             <div className={cn("absolute inset-0 opacity-30", config.bgGradient)} />
             
-            <div className="relative z-10 p-8">
-              <DialogHeader className="text-center space-y-6">
-                <div className="flex justify-center">
-                  <div className={cn("relative p-6 rounded-full border-4 shadow-xl bg-white dark:bg-gray-800 animate-pulse", config.borderColor)}>
+            <div className="relative z-10 p-4 sm:p-5 pt-8 sm:pt-10">
+              <DialogHeader className="text-center space-y-3">
+                {/* Icono principal con animación */}
+                <div className="flex justify-center mt-2">
+                  <div className={cn(
+                    "relative p-4 rounded-full border-4 shadow-xl bg-white dark:bg-gray-800 animate-bounce",
+                    config.borderColor
+                  )}>
                     <div className="absolute inset-0 rounded-full bg-gradient-to-r from-yellow-400/20 to-orange-400/20 animate-ping" />
-                    <div className="relative z-10">{config.icon}</div>
-                    <Sparkles className="absolute -top-2 -right-2 h-6 w-6 text-yellow-400 animate-bounce" />
-                    <Sparkles className="absolute -bottom-2 -left-2 h-4 w-4 text-yellow-400 animate-bounce delay-75" />
+                    <div className="relative z-10">
+                      {config.icon}
+                    </div>
+                    <Sparkles className="absolute -top-2 -right-2 h-5 w-5 text-yellow-400 animate-bounce" />
+                    <Sparkles className="absolute -bottom-2 -left-2 h-3 w-3 text-yellow-400 animate-bounce delay-75" />
                   </div>
                 </div>
                 
-                <DialogTitle className={cn("text-3xl font-bold tracking-tight", config.titleColor)}>
+                <DialogTitle className={cn("text-2xl font-bold tracking-tight", config.titleColor)}>
                   {config.title}
                 </DialogTitle>
                 
-                <div className="space-y-3">
-                  <h3 className={cn("text-xl font-semibold leading-tight", config.accentColor)}>
+                <div className="space-y-1.5">
+                  <h3 className={cn("text-lg font-semibold leading-tight", config.accentColor)}>
                     {achievement.topicName}
                   </h3>
-                  <p className={cn("text-base", config.descriptionColor)}>
+                  <p className={cn("text-sm", config.descriptionColor)}>
                     {config.description}
                   </p>
                 </div>
               </DialogHeader>
 
-              <div className="space-y-6 mt-8">
-                <div className={cn("p-6 rounded-xl border-2 shadow-lg bg-white/50 dark:bg-gray-800/50", config.bgGradient, config.borderColor)}>
-                  <div className="grid grid-cols-2 gap-6 text-center">
-                    <div className="space-y-2">
-                      <div className={cn("text-3xl font-bold", config.accentColor)}>
+              <div className="space-y-4 mt-6">
+                {/* Estadísticas del logro */}
+                <div className={cn(
+                  "p-4 rounded-xl border-2 shadow-lg bg-white/50 dark:bg-gray-800/50",
+                  config.bgGradient,
+                  config.borderColor
+                )}>
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div className="space-y-1">
+                      <div className={cn("text-2xl font-bold", config.accentColor)}>
                         {achievement.accuracy || 0}%
                       </div>
-                      <div className={cn("text-sm font-medium", config.descriptionColor)}>
-                        Precisión Alcanzada
+                      <div className={cn("text-xs font-medium", config.descriptionColor)}>
+                        Precisión
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <div className={cn("text-3xl font-bold", config.accentColor)}>
+                    <div className="space-y-1">
+                      <div className={cn("text-2xl font-bold", config.accentColor)}>
                         {achievement.attempts || 0}
                       </div>
-                      <div className={cn("text-sm font-medium", config.descriptionColor)}>
-                        Sesiones Completadas
+                      <div className={cn("text-xs font-medium", config.descriptionColor)}>
+                        Tests
                       </div>
                     </div>
                   </div>
                   
                   {achievement.previousLevel && (
-                    <div className="mt-4 text-center">
+                    <div className="mt-3 text-center">
                       <Badge 
                         variant="outline" 
-                        className={cn("text-xs border-2 bg-white/70 dark:bg-gray-800/70", config.borderColor, config.textColor)}
+                        className={cn(
+                          "text-xs border-2 bg-white/70 dark:bg-gray-800/70",
+                          config.borderColor,
+                          config.textColor
+                        )}
                       >
                         Progreso: {achievement.previousLevel} → {achievement.type}
                       </Badge>
@@ -327,12 +349,16 @@ export default function CelebrationModal({
                   )}
                 </div>
 
-                <div className={cn("text-center p-6 rounded-xl border bg-gradient-to-r from-white/80 to-gray-50/80 dark:bg-gradient-to-r dark:from-gray-800/80 dark:to-gray-700/80 border-gray-200 dark:border-gray-600 shadow-inner")}>
-                  <p className={cn("text-sm italic font-medium leading-relaxed", config.descriptionColor)}>
+                {/* Mensaje motivacional */}
+                <div className={cn(
+                  "text-center p-4 rounded-xl border bg-white/80 dark:bg-gray-800/80 border-gray-200 dark:border-gray-600 shadow-inner"
+                )}>
+                  <p className={cn("text-sm italic font-medium", config.descriptionColor)}>
                     {getMotivationalMessage(achievement.type)}
                   </p>
                 </div>
 
+                {/* Botones de acción */}
                 <div className="space-y-3">
                   {achievement.type === 'Dominado' ? (
                     <>
@@ -348,7 +374,7 @@ export default function CelebrationModal({
                         <Button 
                           onClick={onPracticeMore}
                           variant="outline"
-                          className={cn("h-10 font-medium border-2 hover:bg-gray-50/50 dark:hover:bg-gray-800/50", config.borderColor, config.textColor)}
+                          className={cn("h-10 font-medium border-2 hover:bg-gradient-to-r hover:from-white hover:to-gray-50 dark:hover:from-gray-800 dark:hover:to-gray-700", config.borderColor, config.textColor)}
                           size="sm"
                         >
                           <RotateCcw className="mr-2 h-4 w-4" />
