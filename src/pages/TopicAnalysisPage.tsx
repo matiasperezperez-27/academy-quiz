@@ -98,12 +98,13 @@ const useTopicAnalysis = () => {
 export default function TopicAnalysisPage() {
   // Hooks simulados - en producción vendrían de tu aplicación
   const user = { id: 1, name: 'Usuario' }; // useAuth simulado
-  const toast = ({ title, description, variant, duration }) => {
+  const toast = ({ title, description, duration, variant = 'default' }) => {
     console.log('Toast:', { title, description, variant, duration });
   }; // useToast simulado
   
   const navigate = (path) => {
     console.log('Navegando a:', path);
+    window.location.href = path; // Actual navigation for testing
   };
 
   const { 
@@ -166,6 +167,7 @@ useEffect(() => {
         title: "🏆 ¡Tema Completamente Dominado!",
         description: `Has alcanzado la perfección en "${topic.tema_nombre}". ¡Felicidades!`,
         duration: 3000,
+        variant: 'default'
       });
     }
   });
@@ -203,11 +205,19 @@ useEffect(() => {
   };
 
   const handlePracticeClick = (temaId, academiaId, preguntasFalladas) => {
-    if (preguntasFalladas.length === 0) {
-      console.log(`Navegando a test: academia=${academiaId}&tema=${temaId}`);
+    console.log('handlePracticeClick called with:', { temaId, academiaId, preguntasFalladas });
+    
+    if (!preguntasFalladas || preguntasFalladas.length === 0) {
+      // No hay preguntas falladas → navegar al modo test normal
+      const testUrl = `/quiz?mode=test&academia=${academiaId}&tema=${temaId}`;
+      console.log(`Navegando a test: ${testUrl}`);
+      navigate(testUrl);
     } else {
+      // Hay preguntas falladas → navegar al modo práctica
       const questionIds = preguntasFalladas.join(',');
-      console.log(`Navegando a práctica: tema=${temaId}&questions=${questionIds}`);
+      const practiceUrl = `/quiz?mode=practice&tema=${temaId}&questions=${questionIds}`;
+      console.log(`Navegando a práctica: ${practiceUrl}`);
+      navigate(practiceUrl);
     }
   };
 
