@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,9 +12,7 @@ import {
   RotateCcw,
   Sparkles
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
-// Props que recibe el componente
 interface CelebrationModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -31,7 +30,14 @@ interface CelebrationModalProps {
 
 // 🎊 Componente de Confeti CSS mejorado
 const ConfettiAnimation = () => {
-  const [confetti, setConfetti] = useState<Array<{id: number; left: number; delay: number; color: string; size: number; rotation: number;}>>([]);
+  const [confetti, setConfetti] = useState<Array<{
+    id: number; 
+    left: number; 
+    delay: number; 
+    color: string;
+    size: number;
+    rotation: number;
+  }>>([]);
 
   useEffect(() => {
     const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#FF69B4', '#32CD32'];
@@ -40,7 +46,7 @@ const ConfettiAnimation = () => {
       left: Math.random() * 100,
       delay: Math.random() * 2.5,
       color: colors[Math.floor(Math.random() * colors.length)],
-      size: Math.random() * 8 + 4,
+      size: Math.random() * 8 + 4, // Entre 4px y 12px
       rotation: Math.random() * 360
     }));
     setConfetti(newConfetti);
@@ -48,7 +54,11 @@ const ConfettiAnimation = () => {
 
   return (
     <>
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-[9999]">
+      {/* Portal para confeti que se renderiza fuera del modal */}
+      <div 
+        className="fixed inset-0 pointer-events-none overflow-hidden"
+        style={{ zIndex: 9999 }}
+      >
         {confetti.map((piece) => (
           <div
             key={piece.id}
@@ -69,13 +79,26 @@ const ConfettiAnimation = () => {
           />
         ))}
       </div>
+
+      {/* Estilos CSS para la animación */}
       <style>{`
         @keyframes confetti-fall {
-          0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
-          10% { opacity: 1; }
-          90% { opacity: 0.8; }
-          100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+          0% {
+            transform: translateY(-20px) rotate(0deg);
+            opacity: 1;
+          }
+          10% {
+            opacity: 1;
+          }
+          90% {
+            opacity: 0.8;
+          }
+          100% {
+            transform: translateY(100vh) rotate(720deg);
+            opacity: 0;
+          }
         }
+        
         .animate-confetti-fall {
           animation: confetti-fall 4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
         }
@@ -84,9 +107,15 @@ const ConfettiAnimation = () => {
   );
 };
 
-// 🎆 Componente de fuegos artificiales completo
+// 🎆 Componente de fuegos artificiales adicional
 const FireworksAnimation = () => {
-  const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; delay: number; color: string; }>>([]);
+  const [particles, setParticles] = useState<Array<{
+    id: number;
+    x: number;
+    y: number;
+    delay: number;
+    color: string;
+  }>>([]);
 
   useEffect(() => {
     const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#FF69B4'];
@@ -102,7 +131,10 @@ const FireworksAnimation = () => {
 
   return (
     <>
-      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 9998 }}>
+      <div 
+        className="fixed inset-0 pointer-events-none"
+        style={{ zIndex: 9998 }}
+      >
         {particles.map((particle) => (
           <div
             key={particle.id}
@@ -113,6 +145,7 @@ const FireworksAnimation = () => {
               animationDelay: `${particle.delay}s`
             }}
           >
+            {/* Múltiples partículas para simular explosión */}
             {[...Array(8)].map((_, j) => (
               <div
                 key={j}
@@ -127,25 +160,46 @@ const FireworksAnimation = () => {
           </div>
         ))}
       </div>
+
       <style>{`
         @keyframes firework {
-          0% { transform: scale(0); opacity: 1; }
-          50% { transform: scale(1); opacity: 1; }
-          100% { transform: scale(1.5); opacity: 0; }
+          0% {
+            transform: scale(0);
+            opacity: 1;
+          }
+          50% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: scale(1.5);
+            opacity: 0;
+          }
         }
+        
         @keyframes particle-burst {
-          0% { transform: translateX(0) translateY(0) scale(1); opacity: 1; }
-          100% { transform: translateX(30px) translateY(30px) scale(0); opacity: 0; }
+          0% {
+            transform: translateX(0) translateY(0) scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: translateX(30px) translateY(30px) scale(0);
+            opacity: 0;
+          }
         }
-        .animate-firework { animation: firework 1.5s ease-out forwards; }
-        .animate-particle-burst { animation: particle-burst 1s ease-out forwards; }
+        
+        .animate-firework {
+          animation: firework 1.5s ease-out forwards;
+        }
+        
+        .animate-particle-burst {
+          animation: particle-burst 1s ease-out forwards;
+        }
       `}</style>
     </>
   );
 };
 
-
-// Componente principal del Modal
 export default function CelebrationModal({
   isOpen,
   onClose,
@@ -155,13 +209,27 @@ export default function CelebrationModal({
   onNextTopic
 }: CelebrationModalProps) {
   
+  const navigate = useNavigate();
   const [showEffects, setShowEffects] = useState(false);
+
+  const handleNextTopic = () => {
+    navigate('/test-setup');
+    onClose();
+  };
 
   // Activar efectos cuando se abre el modal
   useEffect(() => {
     if (isOpen && achievement) {
-      const timer = setTimeout(() => setShowEffects(true), 100);
-      const cleanupTimer = setTimeout(() => setShowEffects(false), 6000);
+      // Pequeño delay para asegurar que el modal esté renderizado
+      const timer = setTimeout(() => {
+        setShowEffects(true);
+      }, 100);
+      
+      // Limpiar efectos después de la animación
+      const cleanupTimer = setTimeout(() => {
+        setShowEffects(false);
+      }, 6000);
+      
       return () => {
         clearTimeout(timer);
         clearTimeout(cleanupTimer);
@@ -171,9 +239,11 @@ export default function CelebrationModal({
     }
   }, [isOpen, achievement]);
 
-  if (!achievement) return null;
+  // Validación de seguridad
+  if (!achievement || !achievement.type || !achievement.topicName) {
+    return null;
+  }
 
-  // Función de configuración visual completa
   const getAchievementConfig = (type: string) => {
     switch (type) {
       case 'Dominado':
@@ -251,12 +321,14 @@ export default function CelebrationModal({
         "¡Excelente trabajo! Estás construyendo una base sólida. 💪"
       ]
     };
+    
     const typeMessages = messages[type as keyof typeof messages] || messages['Dominado'];
     return typeMessages[Math.floor(Math.random() * typeMessages.length)];
   };
 
   return (
     <>
+      {/* 🎊 Efectos de celebración */}
       {showEffects && (
         <>
           <ConfettiAnimation />
@@ -269,21 +341,26 @@ export default function CelebrationModal({
           className="sm:max-w-md max-w-[90vw] border-0 p-0 overflow-hidden bg-transparent shadow-2xl"
           style={{ zIndex: 9997 }}
         >
-          <div className={cn(
-            "relative rounded-2xl border-2 overflow-hidden bg-white dark:bg-gray-900 shadow-2xl animate-in zoom-in-95 duration-300",
-            config.borderColor
-          )}>
+          <div className={`
+            relative rounded-2xl border-2 overflow-hidden
+            bg-white dark:bg-gray-900
+            ${config.borderColor}
+            shadow-2xl
+            animate-in zoom-in-95 duration-300
+          `}>
             {/* Fondo decorativo con gradiente */}
-            <div className={cn("absolute inset-0 opacity-30", config.bgGradient)} />
+            <div className={`absolute inset-0 opacity-30 ${config.bgGradient}`} />
             
             <div className="relative z-10 p-4 sm:p-5 pt-8 sm:pt-10">
               <DialogHeader className="text-center space-y-3">
                 {/* Icono principal con animación */}
                 <div className="flex justify-center mt-2">
-                  <div className={cn(
-                    "relative p-4 rounded-full border-4 shadow-xl bg-white dark:bg-gray-800 animate-bounce",
-                    config.borderColor
-                  )}>
+                  <div className={`
+                    relative p-4 rounded-full border-4 shadow-xl
+                    bg-white dark:bg-gray-800
+                    ${config.borderColor}
+                    animate-bounce
+                  `}>
                     <div className="absolute inset-0 rounded-full bg-gradient-to-r from-yellow-400/20 to-orange-400/20 animate-ping" />
                     <div className="relative z-10">
                       {config.icon}
@@ -293,15 +370,15 @@ export default function CelebrationModal({
                   </div>
                 </div>
                 
-                <DialogTitle className={cn("text-2xl font-bold tracking-tight", config.titleColor)}>
+                <DialogTitle className={`text-2xl font-bold tracking-tight ${config.titleColor}`}>
                   {config.title}
                 </DialogTitle>
                 
                 <div className="space-y-1.5">
-                  <h3 className={cn("text-lg font-semibold leading-tight", config.accentColor)}>
+                  <h3 className={`text-lg font-semibold leading-tight ${config.accentColor}`}>
                     {achievement.topicName}
                   </h3>
-                  <p className={cn("text-sm", config.descriptionColor)}>
+                  <p className={`text-sm ${config.descriptionColor}`}>
                     {config.description}
                   </p>
                 </div>
@@ -309,25 +386,26 @@ export default function CelebrationModal({
 
               <div className="space-y-4 mt-6">
                 {/* Estadísticas del logro */}
-                <div className={cn(
-                  "p-4 rounded-xl border-2 shadow-lg bg-white/50 dark:bg-gray-800/50",
-                  config.bgGradient,
-                  config.borderColor
-                )}>
+                <div className={`
+                  p-4 rounded-xl border-2 shadow-lg
+                  ${config.bgGradient}
+                  ${config.borderColor}
+                  bg-white/50 dark:bg-gray-800/50
+                `}>
                   <div className="grid grid-cols-2 gap-4 text-center">
                     <div className="space-y-1">
-                      <div className={cn("text-2xl font-bold", config.accentColor)}>
+                      <div className={`text-2xl font-bold ${config.accentColor}`}>
                         {achievement.accuracy || 0}%
                       </div>
-                      <div className={cn("text-xs font-medium", config.descriptionColor)}>
+                      <div className={`text-xs font-medium ${config.descriptionColor}`}>
                         Precisión
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <div className={cn("text-2xl font-bold", config.accentColor)}>
+                      <div className={`text-2xl font-bold ${config.accentColor}`}>
                         {achievement.attempts || 0}
                       </div>
-                      <div className={cn("text-xs font-medium", config.descriptionColor)}>
+                      <div className={`text-xs font-medium ${config.descriptionColor}`}>
                         Tests
                       </div>
                     </div>
@@ -337,11 +415,12 @@ export default function CelebrationModal({
                     <div className="mt-3 text-center">
                       <Badge 
                         variant="outline" 
-                        className={cn(
-                          "text-xs border-2 bg-white/70 dark:bg-gray-800/70",
-                          config.borderColor,
-                          config.textColor
-                        )}
+                        className={`
+                          text-xs border-2
+                          ${config.borderColor}
+                          ${config.textColor}
+                          bg-white/70 dark:bg-gray-800/70
+                        `}
                       >
                         Progreso: {achievement.previousLevel} → {achievement.type}
                       </Badge>
@@ -350,10 +429,13 @@ export default function CelebrationModal({
                 </div>
 
                 {/* Mensaje motivacional */}
-                <div className={cn(
-                  "text-center p-4 rounded-xl border bg-white/80 dark:bg-gray-800/80 border-gray-200 dark:border-gray-600 shadow-inner"
-                )}>
-                  <p className={cn("text-sm italic font-medium", config.descriptionColor)}>
+                <div className={`
+                  text-center p-4 rounded-xl border
+                  bg-white/80 dark:bg-gray-800/80
+                  border-gray-200 dark:border-gray-600
+                  shadow-inner
+                `}>
+                  <p className={`text-sm italic font-medium ${config.descriptionColor}`}>
                     {getMotivationalMessage(achievement.type)}
                   </p>
                 </div>
@@ -363,7 +445,7 @@ export default function CelebrationModal({
                   {achievement.type === 'Dominado' ? (
                     <>
                       <Button 
-                        onClick={onNextTopic}
+                        onClick={handleNextTopic}
                         className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
                         size="lg"
                       >
@@ -374,7 +456,7 @@ export default function CelebrationModal({
                         <Button 
                           onClick={onPracticeMore}
                           variant="outline"
-                          className={cn("h-10 font-medium border-2 hover:bg-gradient-to-r hover:from-white hover:to-gray-50 dark:hover:from-gray-800 dark:hover:to-gray-700", config.borderColor, config.textColor)}
+                          className={`h-10 font-medium border-2 ${config.borderColor} ${config.textColor} hover:bg-gradient-to-r hover:from-white hover:to-gray-50 dark:hover:from-gray-800 dark:hover:to-gray-700`}
                           size="sm"
                         >
                           <RotateCcw className="mr-2 h-4 w-4" />
@@ -419,5 +501,3 @@ export default function CelebrationModal({
     </>
   );
 }
-
-
