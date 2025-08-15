@@ -344,10 +344,10 @@ export default function CelebrationModal({
             {/* Fondo decorativo con gradiente */}
             <div className={`absolute inset-0 opacity-30 ${config.bgGradient}`} />
             
-            <div className="relative z-10 p-4 sm:p-5">
+            <div className="relative z-10 p-4 sm:p-5 pt-8 sm:pt-10">
               <DialogHeader className="text-center space-y-3">
                 {/* Icono principal con animación */}
-                <div className="flex justify-center">
+                <div className="flex justify-center mt-2">
                   <div className={`
                     relative p-4 rounded-full border-4 shadow-xl
                     bg-white dark:bg-gray-800
