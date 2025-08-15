@@ -122,54 +122,36 @@ export default function TopicAnalysisPage() {
   // 🔧 Usar Map para evitar re-renders múltiples
   const [celebratedTopics, setCelebratedTopics] = useState(new Map());
 
-// 🎯 Detectar temas completados - SOLO la primera vez
-useEffect(() => {
-  if (!topicStats.length || !user) return;
+  // 🎯 Detectar temas completados
+  useEffect(() => {
+    if (!topicStats.length) return;
 
-  // ✅ Obtener temas ya celebrados de localStorage
-  const celebratedKey = `celebrated_${user.id}`;
-  const alreadyCelebrated = JSON.parse(localStorage.getItem(celebratedKey) || '[]');
-
-  topicStats.forEach(topic => {
-    // ✅ Validaciones estrictas (mantener igual)
-    if (!topic || !topic.tema_id || !topic.tema_nombre) return;
-    
-    const isFullyCompleted = topic.progreso_temario === 100 && topic.porcentaje_acierto === 100;
-    
-    // ✅ SOLO mostrar si está completado Y NO se celebró antes
-    if (isFullyCompleted && !alreadyCelebrated.includes(topic.tema_id)) {
+    topicStats.forEach(topic => {
+      if (!topic || !topic.tema_id || !topic.tema_nombre) return;
       
-      // ✅ Guardar que ya se celebró
-      const newCelebrated = [...alreadyCelebrated, topic.tema_id];
-      localStorage.setItem(celebratedKey, JSON.stringify(newCelebrated));
+      const isFullyCompleted = topic.progreso_temario === 100 && topic.porcentaje_acierto === 100;
+      const topicKey = `${topic.tema_id}-${topic.progreso_temario}-${topic.porcentaje_acierto}`;
       
-      // ✅ Marcar como celebrado INMEDIATAMENTE (mantener igual)
-      setCelebratedTopics(prev => new Map(prev).set(topic.tema_id, true));
-      
-      // ✅ TODO EL RESTO IGUAL - no cambiar nada
-      const achievementData = {
-        type: 'Dominado' as const,
-        topicName: topic.tema_nombre,
-        accuracy: topic.porcentaje_acierto,
-        attempts: topic.intentos_totales || 1,
-        previousLevel: 'En Progreso'
-      };
+      if (isFullyCompleted && !celebratedTopics.has(topicKey)) {
+        setCelebratedTopics(prev => new Map(prev).set(topicKey, true));
+        
+        const achievementData = {
+          type: 'Dominado',
+          topicName: topic.tema_nombre,
+          accuracy: topic.porcentaje_acierto,
+          attempts: topic.intentos_totales || 1,
+          previousLevel: 'En Progreso'
+        };
 
-      setTimeout(() => {
-        setCelebrationModal({
-          isOpen: true,
-          achievement: achievementData
-        });
-      }, 100);
-
-      toast({
-        title: "🏆 ¡Tema Completamente Dominado!",
-        description: `Has alcanzado la perfección en "${topic.tema_nombre}". ¡Felicidades!`,
-        duration: 3000,
-      });
-    }
-  });
-}, [topicStats, user, toast, celebratedTopics]);
+        setTimeout(() => {
+          setCelebrationModal({
+            isOpen: true,
+            achievement: achievementData
+          });
+        }, 100);
+      }
+    });
+  }, [topicStats, celebratedTopics]);
 
   // Función para reiniciar progreso de un tema
   const resetTopicProgress = async (temaId, temaNombre) => {
@@ -229,6 +211,20 @@ useEffect(() => {
   const handlePracticeMore = () => {
     setCelebrationModal({ isOpen: false, achievement: null });
     navigate("/practice");
+  };
+
+  // 🧪 Botón temporal para probar el modal
+  const testModal = () => {
+    setCelebrationModal({
+      isOpen: true,
+      achievement: {
+        type: 'Dominado',
+        topicName: 'Tema 02. La Constitución Española de 1978.',
+        accuracy: 100,
+        attempts: 32,
+        previousLevel: 'En Progreso'
+      }
+    });
   };
 
   // Componente TopicCard
@@ -551,6 +547,14 @@ useEffect(() => {
               </p>
             </div>
             <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={testModal}
+                className="text-xs"
+              >
+                🎉 Probar Modal
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
