@@ -202,14 +202,14 @@ useEffect(() => {
     }
   };
 
-  const handlePracticeClick = (temaId, academiaId, preguntasFalladas) => {
-    if (preguntasFalladas.length === 0) {
-      console.log(`Navegando a test: academia=${academiaId}&tema=${temaId}`);
-    } else {
-      const questionIds = preguntasFalladas.join(',');
-      console.log(`Navegando a práctica: tema=${temaId}&questions=${questionIds}`);
-    }
-  };
+const handlePracticeClick = (temaId: string, academiaId: string, preguntasFalladas: string[]) => {
+  if (preguntasFalladas.length === 0) {
+    window.location.href = `/quiz?mode=test&academia=${academiaId}&tema=${temaId}`;
+  } else {
+    const questionIds = preguntasFalladas.join(',');
+    window.location.href = `/quiz?mode=practice&tema=${temaId}&questions=${questionIds}`;
+  }
+};
 
   // 🎉 Manejadores del modal de celebración
   const handleCelebrationClose = () => {
