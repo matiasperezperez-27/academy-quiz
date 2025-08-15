@@ -2,8 +2,17 @@ import React, { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Star, Target, PartyPopper, ArrowRight, RotateCcw, Sparkles } from "lucide-react";
+import { 
+  Trophy, 
+  Star, 
+  Target, 
+  PartyPopper, 
+  ArrowRight,
+  RotateCcw,
+  Sparkles
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+
 interface CelebrationModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -21,18 +30,12 @@ interface CelebrationModalProps {
 
 // 🎊 Componente de Confeti CSS puro
 const ConfettiAnimation = () => {
-  const [confetti, setConfetti] = useState<Array<{
-    id: number;
-    left: number;
-    delay: number;
-    color: string;
-  }>>([]);
+  const [confetti, setConfetti] = useState<Array<{id: number; left: number; delay: number; color: string}>>([]);
+
   useEffect(() => {
     // Generar confeti aleatorio
     const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
-    const newConfetti = Array.from({
-      length: 50
-    }, (_, i) => ({
+    const newConfetti = Array.from({ length: 50 }, (_, i) => ({
       id: i,
       left: Math.random() * 100,
       delay: Math.random() * 3,
@@ -40,18 +43,26 @@ const ConfettiAnimation = () => {
     }));
     setConfetti(newConfetti);
   }, []);
-  return <div className="fixed inset-0 pointer-events-none z-50">
-      {confetti.map(piece => <div key={piece.id} className="confetti-piece absolute w-2 h-2 opacity-80" style={{
-      left: `${piece.left}%`,
-      backgroundColor: piece.color,
-      animationDelay: `${piece.delay}s`,
-      animationDuration: '3s',
-      animationTimingFunction: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-      animationIterationCount: '1',
-      animationFillMode: 'forwards',
-      transform: 'translateY(-100vh)',
-      animation: `confetti-fall 3s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${piece.delay}s forwards`
-    }} />)}
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-50">
+      {confetti.map((piece) => (
+        <div
+          key={piece.id}
+          className="confetti-piece absolute w-2 h-2 opacity-80"
+          style={{
+            left: `${piece.left}%`,
+            backgroundColor: piece.color,
+            animationDelay: `${piece.delay}s`,
+            animationDuration: '3s',
+            animationTimingFunction: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+            animationIterationCount: '1',
+            animationFillMode: 'forwards',
+            transform: 'translateY(-100vh)',
+            animation: `confetti-fall 3s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${piece.delay}s forwards`
+          }}
+        />
+      ))}
       <style>{`
         @keyframes confetti-fall {
           0% {
@@ -68,8 +79,10 @@ const ConfettiAnimation = () => {
           animation: confetti-fall 3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
         }
       `}</style>
-    </div>;
+    </div>
+  );
 };
+
 export default function CelebrationModal({
   isOpen,
   onClose,
@@ -78,6 +91,7 @@ export default function CelebrationModal({
   onPracticeMore,
   onNextTopic
 }: CelebrationModalProps) {
+  
   const [showConfetti, setShowConfetti] = useState(false);
 
   // Activar confeti cuando se abre el modal
@@ -93,6 +107,7 @@ export default function CelebrationModal({
   if (!achievement || !achievement.type || !achievement.topicName) {
     return null;
   }
+
   const getAchievementConfig = (type: string) => {
     switch (type) {
       case 'Dominado':
@@ -149,32 +164,60 @@ export default function CelebrationModal({
         };
     }
   };
+
   const config = getAchievementConfig(achievement.type);
+
   const getMotivationalMessage = (type: string) => {
     const messages = {
-      'Dominado': ["¡Increíble! Has demostrado un dominio excepcional de este tema. 🌟", "¡Excelencia pura! Este tema ya no tiene secretos para ti. 🚀", "¡Maestría alcanzada! Tu dedicación ha dado frutos extraordinarios. 🏆"],
-      'Casi Dominado': ["¡Excelente progreso! Solo un poco más y lo dominarás completamente. 💪", "¡Impresionante! Estás en el camino correcto hacia la maestría. ⭐", "¡Fantástico! La perfección está al alcance de tus manos. 🎯"],
-      'En Progreso': ["¡Genial! Cada respuesta correcta te acerca más a la maestría. 📈", "¡Sigue así! Tu progreso constante es admirable. 🎯", "¡Excelente trabajo! Estás construyendo una base sólida. 💪"]
+      'Dominado': [
+        "¡Increíble! Has demostrado un dominio excepcional de este tema. 🌟",
+        "¡Excelencia pura! Este tema ya no tiene secretos para ti. 🚀",
+        "¡Maestría alcanzada! Tu dedicación ha dado frutos extraordinarios. 🏆"
+      ],
+      'Casi Dominado': [
+        "¡Excelente progreso! Solo un poco más y lo dominarás completamente. 💪",
+        "¡Impresionante! Estás en el camino correcto hacia la maestría. ⭐",
+        "¡Fantástico! La perfección está al alcance de tus manos. 🎯"
+      ],
+      'En Progreso': [
+        "¡Genial! Cada respuesta correcta te acerca más a la maestría. 📈",
+        "¡Sigue así! Tu progreso constante es admirable. 🎯",
+        "¡Excelente trabajo! Estás construyendo una base sólida. 💪"
+      ]
     };
+    
     const typeMessages = messages[type as keyof typeof messages] || messages['Dominado'];
     return typeMessages[Math.floor(Math.random() * typeMessages.length)];
   };
-  return <>
+
+  return (
+    <>
       {/* 🎊 Confeti animado */}
       {showConfetti && <ConfettiAnimation />}
       
       <Dialog open={isOpen && !!achievement} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-lg border-0 p-0 overflow-hidden bg-transparent shadow-2xl">
-          <div className={cn("relative rounded-2xl border-2 overflow-hidden", "bg-white dark:bg-gray-900", config.borderColor, "shadow-2xl", "animate-in zoom-in-95 duration-300")}>
+        <DialogContent className="sm:max-w-lg max-w-[90vw] border-0 p-0 overflow-hidden bg-transparent shadow-2xl">
+          <div className={cn(
+            "relative rounded-2xl border-2 overflow-hidden",
+            "bg-white dark:bg-gray-900",
+            config.borderColor,
+            "shadow-2xl",
+            "animate-in zoom-in-95 duration-300"
+          )}>
             {/* Fondo decorativo con gradiente */}
             <div className={cn("absolute inset-0 opacity-30", config.bgGradient)} />
             
             {/* Contenido principal */}
-            <div className="relative z-10 p-8">
+            <div className="relative z-10 p-4 sm:p-6">
               <DialogHeader className="text-center space-y-6">
                 {/* Icono principal con animación */}
                 <div className="flex justify-center">
-                  <div className={cn("relative p-6 rounded-full border-4 shadow-xl", "bg-white dark:bg-gray-800", config.borderColor, "animate-pulse")}>
+                  <div className={cn(
+                    "relative p-6 rounded-full border-4 shadow-xl",
+                    "bg-white dark:bg-gray-800",
+                    config.borderColor,
+                    "animate-pulse"
+                  )}>
                     <div className="absolute inset-0 rounded-full bg-gradient-to-r from-yellow-400/20 to-orange-400/20 animate-ping" />
                     <div className="relative z-10">
                       {config.icon}
@@ -186,16 +229,25 @@ export default function CelebrationModal({
                 </div>
                 
                 {/* Título principal */}
-                <DialogTitle className={cn("text-3xl font-bold tracking-tight", config.titleColor)}>
+                <DialogTitle className={cn(
+                  "text-3xl font-bold tracking-tight",
+                  config.titleColor
+                )}>
                   {config.title}
                 </DialogTitle>
                 
                 {/* Información del tema */}
                 <div className="space-y-3">
-                  <h3 className={cn("text-xl font-semibold leading-tight", config.accentColor)}>
+                  <h3 className={cn(
+                    "text-xl font-semibold leading-tight",
+                    config.accentColor
+                  )}>
                     {achievement.topicName}
                   </h3>
-                  <p className={cn("text-base", config.descriptionColor)}>
+                  <p className={cn(
+                    "text-base",
+                    config.descriptionColor
+                  )}>
                     {config.description}
                   </p>
                 </div>
@@ -203,66 +255,164 @@ export default function CelebrationModal({
 
               <div className="space-y-6 mt-8">
                 {/* Estadísticas del logro */}
-                <div className={cn("p-6 rounded-xl border-2 shadow-lg", config.bgGradient, config.borderColor, "bg-white/50 dark:bg-gray-800/50")}>
+                <div className={cn(
+                  "p-6 rounded-xl border-2 shadow-lg",
+                  config.bgGradient,
+                  config.borderColor,
+                  "bg-white/50 dark:bg-gray-800/50"
+                )}>
                   <div className="grid grid-cols-2 gap-6 text-center">
                     <div className="space-y-2">
-                      <div className={cn("text-3xl font-bold", config.accentColor)}>
+                      <div className={cn(
+                        "text-3xl font-bold",
+                        config.accentColor
+                      )}>
                         {achievement.accuracy || 0}%
                       </div>
-                      <div className={cn("text-sm font-medium", config.descriptionColor)}>Precisión</div>
+                      <div className={cn(
+                        "text-sm font-medium",
+                        config.descriptionColor
+                      )}>
+                        Precisión Alcanzada
+                      </div>
                     </div>
                     <div className="space-y-2">
-                      <div className={cn("text-3xl font-bold", config.accentColor)}>
+                      <div className={cn(
+                        "text-3xl font-bold",
+                        config.accentColor
+                      )}>
                         {achievement.attempts || 0}
                       </div>
-                      <div className={cn("text-sm font-medium", config.descriptionColor)}>Tests</div>
+                      <div className={cn(
+                        "text-sm font-medium",
+                        config.descriptionColor
+                      )}>
+                        Sesiones Completadas
+                      </div>
                     </div>
                   </div>
                   
-                  {achievement.previousLevel && <div className="mt-4 text-center">
-                      <Badge variant="outline" className={cn("text-xs border-2", config.borderColor, config.textColor, "bg-white/70 dark:bg-gray-800/70")}>
+                  {achievement.previousLevel && (
+                    <div className="mt-4 text-center">
+                      <Badge 
+                        variant="outline" 
+                        className={cn(
+                          "text-xs border-2",
+                          config.borderColor,
+                          config.textColor,
+                          "bg-white/70 dark:bg-gray-800/70"
+                        )}
+                      >
                         Progreso: {achievement.previousLevel} → {achievement.type}
                       </Badge>
-                    </div>}
+                    </div>
+                  )}
                 </div>
 
                 {/* Mensaje motivacional */}
-                <div className={cn("text-center p-6 rounded-xl border", "bg-gradient-to-r from-white/80 to-gray-50/80", "dark:bg-gradient-to-r dark:from-gray-800/80 dark:to-gray-700/80", "border-gray-200 dark:border-gray-600", "shadow-inner")}>
-                  <p className={cn("text-sm italic font-medium leading-relaxed", config.descriptionColor)}>
+                <div className={cn(
+                  "text-center p-6 rounded-xl border",
+                  "bg-gradient-to-r from-white/80 to-gray-50/80",
+                  "dark:bg-gradient-to-r dark:from-gray-800/80 dark:to-gray-700/80",
+                  "border-gray-200 dark:border-gray-600",
+                  "shadow-inner"
+                )}>
+                  <p className={cn(
+                    "text-sm italic font-medium leading-relaxed",
+                    config.descriptionColor
+                  )}>
                     {getMotivationalMessage(achievement.type)}
                   </p>
                 </div>
 
                 {/* Botones de acción */}
                 <div className="space-y-3">
-                  {achievement.type === 'Dominado' ? <>
-                      <Button onClick={onNextTopic} className={cn("w-full h-12 text-base font-semibold", "bg-gradient-to-r from-blue-600 to-purple-600", "hover:from-blue-700 hover:to-purple-700", "text-white shadow-lg hover:shadow-xl", "transform hover:scale-[1.02] transition-all duration-200")} size="lg">
+                  {achievement.type === 'Dominado' ? (
+                    <>
+                      <Button 
+                        onClick={onNextTopic}
+                        className={cn(
+                          "w-full h-12 text-base font-semibold",
+                          "bg-gradient-to-r from-blue-600 to-purple-600",
+                          "hover:from-blue-700 hover:to-purple-700",
+                          "text-white shadow-lg hover:shadow-xl",
+                          "transform hover:scale-[1.02] transition-all duration-200"
+                        )}
+                        size="lg"
+                      >
                         <ArrowRight className="mr-2 h-5 w-5" />
                         Ir al Siguiente Tema
                       </Button>
                       <div className="grid grid-cols-2 gap-3">
-                        <Button onClick={onPracticeMore} variant="outline" className={cn("h-10 font-medium border-2", config.borderColor, config.textColor, "hover:bg-gradient-to-r hover:from-white hover:to-gray-50", "dark:hover:from-gray-800 dark:hover:to-gray-700")} size="sm">
+                        <Button 
+                          onClick={onPracticeMore}
+                          variant="outline"
+                          className={cn(
+                            "h-10 font-medium border-2",
+                            config.borderColor,
+                            config.textColor,
+                            "hover:bg-gradient-to-r hover:from-white hover:to-gray-50",
+                            "dark:hover:from-gray-800 dark:hover:to-gray-700"
+                          )}
+                          size="sm"
+                        >
                           <RotateCcw className="mr-2 h-4 w-4" />
                           Repasar
                         </Button>
-                        <Button onClick={onClose} variant="outline" className={cn("h-10 font-medium border-2", "border-gray-300 dark:border-gray-600", "text-gray-700 dark:text-gray-300", "hover:bg-gray-50 dark:hover:bg-gray-700")} size="sm">
+                        <Button 
+                          onClick={onClose}
+                          variant="outline"
+                          className={cn(
+                            "h-10 font-medium border-2",
+                            "border-gray-300 dark:border-gray-600",
+                            "text-gray-700 dark:text-gray-300",
+                            "hover:bg-gray-50 dark:hover:bg-gray-700"
+                          )}
+                          size="sm"
+                        >
                           Continuar
                         </Button>
                       </div>
-                    </> : <>
-                      <Button onClick={onContinue} className={cn("w-full h-12 text-base font-semibold", "bg-gradient-to-r from-green-600 to-blue-600", "hover:from-green-700 hover:to-blue-700", "text-white shadow-lg hover:shadow-xl", "transform hover:scale-[1.02] transition-all duration-200")} size="lg">
+                    </>
+                  ) : (
+                    <>
+                      <Button 
+                        onClick={onContinue}
+                        className={cn(
+                          "w-full h-12 text-base font-semibold",
+                          "bg-gradient-to-r from-green-600 to-blue-600",
+                          "hover:from-green-700 hover:to-blue-700",
+                          "text-white shadow-lg hover:shadow-xl",
+                          "transform hover:scale-[1.02] transition-all duration-200"
+                        )}
+                        size="lg"
+                      >
                         <Target className="mr-2 h-5 w-5" />
                         Seguir Practicando
                       </Button>
-                      <Button onClick={onClose} variant="outline" className={cn("w-full h-10 font-medium border-2", "border-gray-300 dark:border-gray-600", "text-gray-700 dark:text-gray-300", "hover:bg-gray-50 dark:hover:bg-gray-700")} size="sm">
+                      <Button 
+                        onClick={onClose}
+                        variant="outline"
+                        className={cn(
+                          "w-full h-10 font-medium border-2",
+                          "border-gray-300 dark:border-gray-600",
+                          "text-gray-700 dark:text-gray-300",
+                          "hover:bg-gray-50 dark:hover:bg-gray-700"
+                        )}
+                        size="sm"
+                      >
                         Ver Progreso General
                       </Button>
-                    </>}
+                    </>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-    </>;
+    </>
+  );
 }
+
+
