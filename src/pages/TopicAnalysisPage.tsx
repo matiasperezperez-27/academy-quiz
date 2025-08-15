@@ -130,7 +130,7 @@ export default function TopicAnalysisPage() {
       if (!topic || !topic.tema_id || !topic.tema_nombre) return;
       
       const isFullyCompleted = topic.progreso_temario === 100 && topic.porcentaje_acierto === 100;
-      const topicKey = topic.tema_id; 
+      const topicKey = `${topic.tema_id}-${topic.progreso_temario}-${topic.porcentaje_acierto}`;
       
       if (isFullyCompleted && !celebratedTopics.has(topicKey)) {
         setCelebratedTopics(prev => new Map(prev).set(topicKey, true));
