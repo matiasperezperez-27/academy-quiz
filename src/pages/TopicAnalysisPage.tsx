@@ -12,117 +12,27 @@ import {
   RotateCcw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import CelebrationModal from "@/components/CelebrationModal";
 
-// Componente Modal de Celebración Optimizado
-const CelebrationModal = ({ isOpen, onClose, achievement, onContinue, onNextTopic, onPracticeMore }) => {
-  if (!isOpen || !achievement) return null;
+// Funciones helper simuladas - en producción vendrían de tu hook
+const getNivelIcon = (nivel) => {
+  switch (nivel) {
+    case 'Dominado': return '🏆';
+    case 'Casi Dominado': return '⭐';
+    case 'En Progreso': return '📈';
+    case 'Necesita Práctica': return '📚';
+    default: return '📝';
+  }
+};
 
-  return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-yellow-500/30 rounded-xl shadow-2xl max-w-sm w-full max-h-[85vh] overflow-hidden">
-        {/* Header compacto */}
-        <div className="text-center pt-4 pb-2">
-          <div className="w-16 h-16 mx-auto mb-2 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-full flex items-center justify-center relative overflow-hidden">
-            {/* Efectos de brillo animados */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 animate-pulse"></div>
-            <div className="absolute inset-0 bg-gradient-to-r from-yellow-300/50 to-orange-400/50 rounded-full animate-pulse"></div>
-            
-            {/* Partículas flotantes */}
-            <div className="absolute -top-1 -left-1 w-2 h-2 bg-yellow-200 rounded-full animate-bounce" style={{animationDelay: '0s'}}></div>
-            <div className="absolute -top-2 right-2 w-1.5 h-1.5 bg-orange-300 rounded-full animate-bounce" style={{animationDelay: '0.5s'}}></div>
-            <div className="absolute bottom-1 -right-1 w-1 h-1 bg-yellow-300 rounded-full animate-bounce" style={{animationDelay: '1s'}}></div>
-            <div className="absolute -bottom-1 left-3 w-1.5 h-1.5 bg-orange-200 rounded-full animate-bounce" style={{animationDelay: '1.5s'}}></div>
-            
-            {/* Icono del trofeo con efecto pulsante */}
-            <span className="text-2xl relative z-10 animate-pulse">🏆</span>
-            
-            {/* Anillo exterior giratorio */}
-            <div className="absolute inset-0 border-2 border-yellow-300/60 rounded-full animate-spin" style={{animationDuration: '3s'}}></div>
-          </div>
-          <h2 className="text-lg font-bold text-white flex items-center justify-center gap-2">
-            <span>🏆</span>
-            ¡Tema Dominado!
-          </h2>
-        </div>
-
-        {/* Contenido principal compacto */}
-        <div className="px-4 pb-4 space-y-3">
-          {/* Título del tema */}
-          <div className="text-center">
-            <h3 className="text-sm font-semibold text-yellow-400 leading-tight">
-              {achievement.topicName}
-            </h3>
-            <p className="text-xs text-gray-300 mt-1">
-              Has alcanzado un nivel excepcional
-            </p>
-          </div>
-
-          {/* Estadísticas compactas */}
-          <div className="bg-gradient-to-r from-yellow-900/30 to-orange-900/30 rounded-lg p-3 border border-yellow-500/20">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-yellow-400">
-                  {achievement.accuracy}%
-                </div>
-                <div className="text-xs text-gray-300">
-                  Precisión Alcanzada
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-yellow-400">
-                  {achievement.attempts}
-                </div>
-                <div className="text-xs text-gray-300">
-                  Sesiones Completadas
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Badge de progreso */}
-          <div className="text-center">
-            <span className="inline-block bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs px-3 py-1 rounded-full font-medium">
-              Progreso: {achievement.previousLevel} → Dominado
-            </span>
-          </div>
-
-          {/* Mensaje motivacional compacto */}
-          <div className="bg-slate-800/50 rounded-lg p-2 text-center border border-slate-600/30">
-            <p className="text-xs text-gray-300 italic">
-              ¡Increíble! Has demostrado un dominio excepcional de este tema. ⭐
-            </p>
-          </div>
-
-          {/* Botones de acción compactos */}
-          <div className="space-y-2">
-            <Button
-              onClick={onNextTopic}
-              className="w-full h-8 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white text-xs"
-            >
-              → Ir al Siguiente Tema
-            </Button>
-            
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                onClick={onPracticeMore}
-                variant="outline"
-                className="h-8 text-xs border-gray-600 text-gray-300 hover:bg-gray-800"
-              >
-                🔄 Repasar
-              </Button>
-              <Button
-                onClick={onContinue}
-                variant="outline"
-                className="h-8 text-xs border-gray-600 text-gray-300 hover:bg-gray-800"
-              >
-                Continuar
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+const getNivelColor = (nivel) => {
+  switch (nivel) {
+    case 'Dominado': return 'bg-yellow-100 text-yellow-700 border-yellow-300';
+    case 'Casi Dominado': return 'bg-blue-100 text-blue-700 border-blue-300';
+    case 'En Progreso': return 'bg-green-100 text-green-700 border-green-300';
+    case 'Necesita Práctica': return 'bg-red-100 text-red-700 border-red-300';
+    default: return 'bg-gray-100 text-gray-700 border-gray-300';
+  }
 };
 
 // Hook simulado para datos - en producción vendría de tu API
@@ -185,28 +95,17 @@ const useTopicAnalysis = () => {
   return { topicStats, loading, refreshData, resetSpecificTopicData };
 };
 
-// Funciones helper simuladas
-const getNivelIcon = (nivel) => {
-  switch (nivel) {
-    case 'Dominado': return '🏆';
-    case 'Casi Dominado': return '⭐';
-    case 'En Progreso': return '📈';
-    case 'Necesita Práctica': return '📚';
-    default: return '📝';
-  }
-};
-
-const getNivelColor = (nivel) => {
-  switch (nivel) {
-    case 'Dominado': return 'bg-yellow-100 text-yellow-700 border-yellow-300';
-    case 'Casi Dominado': return 'bg-blue-100 text-blue-700 border-blue-300';
-    case 'En Progreso': return 'bg-green-100 text-green-700 border-green-300';
-    case 'Necesita Práctica': return 'bg-red-100 text-red-700 border-red-300';
-    default: return 'bg-gray-100 text-gray-700 border-gray-300';
-  }
-};
-
 export default function TopicAnalysisPage() {
+  // Hooks simulados - en producción vendrían de tu aplicación
+  const user = { id: 1, name: 'Usuario' }; // useAuth simulado
+  const toast = ({ title, description, variant, duration }) => {
+    console.log('Toast:', { title, description, variant, duration });
+  }; // useToast simulado
+  
+  const navigate = (path) => {
+    console.log('Navegando a:', path);
+  };
+
   const { 
     topicStats, 
     loading, 
@@ -301,14 +200,17 @@ export default function TopicAnalysisPage() {
 
   const handleContinuePractice = () => {
     setCelebrationModal({ isOpen: false, achievement: null });
+    navigate("/topic-analysis");
   };
 
   const handleNextTopic = () => {
     setCelebrationModal({ isOpen: false, achievement: null });
+    navigate("/test-setup");
   };
 
   const handlePracticeMore = () => {
     setCelebrationModal({ isOpen: false, achievement: null });
+    navigate("/practice");
   };
 
   // 🧪 Botón temporal para probar el modal
@@ -814,7 +716,7 @@ export default function TopicAnalysisPage() {
                         Completa algunos tests para ver tu análisis por temas
                       </p>
                     </div>
-                    <Button>
+                    <Button onClick={() => navigate("/test-setup")}>
                       <PlayCircle className="mr-2 h-4 w-4" />
                       Hacer un Test
                     </Button>
@@ -838,5 +740,4 @@ export default function TopicAnalysisPage() {
     </>
   );
 }
-
 
