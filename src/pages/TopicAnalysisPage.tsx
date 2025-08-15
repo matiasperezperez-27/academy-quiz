@@ -213,20 +213,6 @@ export default function TopicAnalysisPage() {
     navigate("/practice");
   };
 
-  // 🧪 Botón temporal para probar el modal
-  const testModal = () => {
-    setCelebrationModal({
-      isOpen: true,
-      achievement: {
-        type: 'Dominado',
-        topicName: 'Tema 02. La Constitución Española de 1978.',
-        accuracy: 100,
-        attempts: 32,
-        previousLevel: 'En Progreso'
-      }
-    });
-  };
-
   // Componente TopicCard
   const TopicCard = ({ topic, priority }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -547,14 +533,6 @@ export default function TopicAnalysisPage() {
               </p>
             </div>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={testModal}
-                className="text-xs"
-              >
-                🎉 Probar Modal
-              </Button>
               <Button
                 variant="ghost"
                 size="sm"
