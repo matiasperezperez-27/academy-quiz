@@ -198,9 +198,7 @@ export default function CelebrationModal({
       
       <Dialog open={isOpen && !!achievement} onOpenChange={onClose}>
         {/* AJUSTE 2: Ancho máximo del modal reducido */}
-        <DialogContent 
-        showCloseButton={false}
-        className="sm:max-w-md max-w-[90vw] border-0 p-0 overflow-hidden bg-transparent shadow-2xl">
+        <DialogContent className="sm:max-w-md max-w-[90vw] border-0 p-0 overflow-hidden bg-transparent shadow-2xl">
           <div className={cn(
             "relative rounded-2xl border-2 overflow-hidden",
             "bg-white dark:bg-gray-900",
