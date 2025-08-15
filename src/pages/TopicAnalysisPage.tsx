@@ -20,8 +20,6 @@ import CelebrationModal from "@/components/CelebrationModal";
 export default function TopicAnalysisPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  // En una aplicación real, usarías el hook de tu router.
-  // Para este ejemplo, usamos una simple redirección.
   const navigate = (path: string) => {
     window.location.href = path;
   };
@@ -48,36 +46,37 @@ export default function TopicAnalysisPage() {
     achievement: null
   });
 
-  // Usamos un Map para evitar celebrar el mismo logro varias veces en la misma sesión
-  const [celebratedTopics, setCelebratedTopics] = useState<Map<string, boolean>>(new Map());
+  // ✅ CAMBIO 1: Se elimina el `useState` de `celebratedTopics`. Ya no es necesario.
+  // const [celebratedTopics, setCelebratedTopics] = useState<Map<string, boolean>>(new Map());
 
-  // Efecto para detectar temas que han sido completamente dominados
+  // ✅ CAMBIO 2: El useEffect ahora usa localStorage para tener memoria persistente.
   useEffect(() => {
     if (!topicStats.length || !user) return;
 
+    // Se lee del localStorage la lista de temas ya celebrados para este usuario
+    const celebratedKey = `celebrated_${user.id}`;
+    const alreadyCelebrated: string[] = JSON.parse(localStorage.getItem(celebratedKey) || '[]');
+
     topicStats.forEach(topic => {
-      // Validaciones para asegurar que el objeto topic es válido
       if (!topic || !topic.tema_id || !topic.tema_nombre) return;
       
       const isFullyCompleted = topic.progreso_temario === 100 && topic.porcentaje_acierto === 100;
-      // Creamos una clave única para el estado del tema
-      const topicKey = `${topic.tema_id}-${topic.progreso_temario}-${topic.porcentaje_acierto}`;
       
-      // Si está completado y no lo hemos celebrado antes en esta sesión, mostramos el modal
-      if (isFullyCompleted && !celebratedTopics.has(topicKey)) {
+      // La condición ahora comprueba si el ID del tema NO está en la lista de localStorage
+      if (isFullyCompleted && !alreadyCelebrated.includes(topic.tema_id)) {
         
-        // Marcamos como celebrado inmediatamente para evitar bucles de re-renderizado
-        setCelebratedTopics(prev => new Map(prev).set(topicKey, true));
+        // Si es un nuevo logro, se añade a la lista y se guarda de nuevo en localStorage
+        const newCelebrated = [...alreadyCelebrated, topic.tema_id];
+        localStorage.setItem(celebratedKey, JSON.stringify(newCelebrated));
         
         const achievementData = {
           type: 'Dominado' as const,
           topicName: topic.tema_nombre,
           accuracy: topic.porcentaje_acierto,
           attempts: topic.intentos_totales || 1,
-          previousLevel: 'En Progreso' // Se podría hacer más dinámico si se guarda el estado anterior
+          previousLevel: 'En Progreso'
         };
 
-        // Mostramos el modal con un pequeño retraso para que la UI se actualice
         setTimeout(() => {
           setCelebrationModal({
             isOpen: true,
@@ -92,9 +91,10 @@ export default function TopicAnalysisPage() {
         });
       }
     });
-  }, [topicStats, user, toast, celebratedTopics]);
+    // Se elimina `celebratedTopics` de las dependencias porque ya no existe
+  }, [topicStats, user, toast]);
 
-  // Función para reiniciar el progreso de un tema específico
+  // ✅ CAMBIO 3: La función de reinicio ahora también limpia el localStorage.
   const resetTopicProgress = async (temaId: string, temaNombre: string) => {
     if (!user) return;
 
@@ -115,16 +115,11 @@ export default function TopicAnalysisPage() {
       const success = await resetSpecificTopicData(temaId);
 
       if (success) {
-        // Limpiamos el registro de celebración para este tema
-        setCelebratedTopics(prev => {
-          const newMap = new Map(prev);
-          Array.from(newMap.keys()).forEach(key => {
-            if (key.startsWith(temaId)) {
-              newMap.delete(key);
-            }
-          });
-          return newMap;
-        });
+        // Al reiniciar, se elimina el tema de la lista de celebrados en localStorage
+        const celebratedKey = `celebrated_${user.id}`;
+        const alreadyCelebrated: string[] = JSON.parse(localStorage.getItem(celebratedKey) || '[]');
+        const newCelebrated = alreadyCelebrated.filter(id => id !== temaId);
+        localStorage.setItem(celebratedKey, JSON.stringify(newCelebrated));
 
         await refreshData();
 
@@ -150,10 +145,8 @@ export default function TopicAnalysisPage() {
   // Navega a la pantalla de práctica o test según si hay preguntas falladas
   const handlePracticeClick = (temaId: string, academiaId: string, preguntasFalladas: string[]) => {
     if (preguntasFalladas.length === 0) {
-      // Si no hay fallos, va a un test normal
       navigate(`/quiz?mode=test&academia=${academiaId}&tema=${temaId}`);
     } else {
-      // Si hay fallos, va a una sesión de práctica con esas preguntas
       const questionIds = preguntasFalladas.join(',');
       navigate(`/quiz?mode=practice&tema=${temaId}&questions=${questionIds}`);
     }
@@ -166,35 +159,21 @@ export default function TopicAnalysisPage() {
 
   const handleContinuePractice = () => {
     setCelebrationModal({ isOpen: false, achievement: null });
-    // Se queda en la misma página para ver el progreso
     navigate("/topic-analysis");
   };
 
   const handleNextTopic = () => {
     setCelebrationModal({ isOpen: false, achievement: null });
-    // Navega a la página para elegir un nuevo tema
     navigate("/test-setup");
   };
 
   const handlePracticeMore = () => {
     setCelebrationModal({ isOpen: false, achievement: null });
-    // Navega a una sección general de práctica
     navigate("/practice");
   };
 
-  // --- Botón de Test para Desarrollo ---
-  const testModal = () => {
-    setCelebrationModal({
-      isOpen: true,
-      achievement: {
-        type: 'Dominado',
-        topicName: 'Tema de Prueba para Desarrollo',
-        accuracy: 100,
-        attempts: 5,
-        previousLevel: 'Casi Dominado'
-      }
-    });
-  };
+  // ✅ CAMBIO 4: Se elimina la función `testModal`.
+  // const testModal = () => { ... };
 
   // --- Subcomponente para las tarjetas de temas ---
   const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium' | 'low' | 'achieved' }) => {
@@ -283,7 +262,6 @@ export default function TopicAnalysisPage() {
       <Card className={cn("transition-all duration-200", getBorderStyle())}>
         <CardHeader className="pb-2">
           <div className="space-y-1.5">
-            {/* Título del tema */}
             <div className="flex items-start gap-1.5">
               <span className="text-base flex-shrink-0">{getNivelIcon(topic.nivel_dominio)}</span>
               <div className="flex-1 min-w-0">
@@ -298,7 +276,6 @@ export default function TopicAnalysisPage() {
                   {topic.tema_nombre || 'Sin nombre'}
                 </CardTitle>
               </div>
-              {/* Botón "Ver más" */}
               {isLongTitle && (
                 <button
                   onClick={toggleExpanded}
@@ -323,7 +300,6 @@ export default function TopicAnalysisPage() {
               )}
             </div>
             
-            {/* Academia + Badge */}
             <div className="flex items-center justify-between">
               <p className="text-xs text-muted-foreground truncate">
                 {topic.academia_nombre || 'Sin academia'}
@@ -339,7 +315,6 @@ export default function TopicAnalysisPage() {
         </CardHeader>
         
         <CardContent className="space-y-3 pt-0">
-          {/* Indicador de completado al 100% */}
           {isFullyCompleted && (
             <div className="p-2 bg-gradient-to-r from-yellow-50 to-orange-50 rounded border border-yellow-200 text-center">
               <div className="flex items-center justify-center gap-2 text-sm font-medium text-yellow-800">
@@ -350,7 +325,6 @@ export default function TopicAnalysisPage() {
             </div>
           )}
 
-          {/* Progreso del temario */}
           <div className="space-y-1.5">
             <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground flex items-center gap-1">
@@ -373,7 +347,6 @@ export default function TopicAnalysisPage() {
             </div>
           </div>
 
-          {/* Dominio */}
           <div className="space-y-1.5">
             <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground flex items-center gap-1">
@@ -394,7 +367,6 @@ export default function TopicAnalysisPage() {
             </div>
           </div>
 
-          {/* Estadísticas */}
           <div className="grid grid-cols-3 gap-1 text-center py-2 bg-muted/30 rounded">
             <div className="space-y-0.5">
               <p className="text-xs text-muted-foreground">Únicas</p>
@@ -410,7 +382,6 @@ export default function TopicAnalysisPage() {
             </div>
           </div>
 
-          {/* Info adicional */}
           <div className="flex justify-between items-center text-xs text-muted-foreground">
             <span>Intentos: {topic.intentos_totales || 0}</span>
             {(topic.dias_sin_repasar || 0) < 7 ? (
@@ -422,7 +393,6 @@ export default function TopicAnalysisPage() {
             )}
           </div>
 
-          {/* Estado urgente */}
           {priority === 'high' && (topic.total_incorrectas || 0) > 5 && (
             <div className="text-center py-1 bg-red-50 rounded border border-red-200">
               <span className="text-xs text-red-700 font-medium">
@@ -431,9 +401,7 @@ export default function TopicAnalysisPage() {
             </div>
           )}
 
-          {/* Botones de acción */}
           <div className="space-y-2">
-            {/* Botón principal */}
             <Button
               onClick={() => handlePracticeClick(
                 topic.tema_id, 
@@ -447,7 +415,6 @@ export default function TopicAnalysisPage() {
               {getButtonText()}
             </Button>
 
-            {/* Botón de reinicio */}
             {isFullyCompleted && (
               <Button
                 onClick={() => resetTopicProgress(topic.tema_id, topic.tema_nombre)}
@@ -465,7 +432,6 @@ export default function TopicAnalysisPage() {
     );
   };
 
-  // Lógica de renderizado principal
   if (loading) {
     return (
       <main className="min-h-screen p-4 bg-background">
@@ -492,7 +458,6 @@ export default function TopicAnalysisPage() {
     );
   }
 
-  // Agrupación de temas y cálculo de estadísticas
   const temasDominados = topicStats.filter(t => t?.nivel_dominio === 'Dominado');
   const temasCasiDominados = topicStats.filter(t => t?.nivel_dominio === 'Casi Dominado');
   const temasEnProgreso = topicStats.filter(t => t?.nivel_dominio === 'En Progreso');
@@ -505,7 +470,6 @@ export default function TopicAnalysisPage() {
     <>
       <main className="min-h-screen p-4 bg-background">
         <div className="max-w-6xl mx-auto space-y-6">
-          {/* Header */}
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <div className="flex items-center gap-3">
@@ -518,10 +482,7 @@ export default function TopicAnalysisPage() {
               <p className="text-muted-foreground">Descubre en qué temas necesitas enfocar tu estudio</p>
             </div>
             <div className="flex gap-2">
-              {/* Botón para probar el modal en desarrollo */}
-              <Button variant="outline" size="sm" onClick={testModal} className="text-xs">
-                🎉 Probar Modal
-              </Button>
+              {/* ✅ CAMBIO 5: Se elimina el botón de prueba del JSX. */}
               <Button variant="ghost" size="sm" onClick={refreshData} className="flex items-center gap-2">
                 <RefreshCw className="h-4 w-4" />
                 Actualizar
@@ -529,7 +490,6 @@ export default function TopicAnalysisPage() {
             </div>
           </div>
 
-          {/* Estadísticas Generales */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardContent className="p-4">
@@ -580,7 +540,6 @@ export default function TopicAnalysisPage() {
             </Card>
           </div>
 
-          {/* Secciones de Temas */}
           <div className="space-y-6">
             {temasNecesitanPractica.length > 0 && (
               <Card>
@@ -681,7 +640,6 @@ export default function TopicAnalysisPage() {
         </div>
       </main>
 
-      {/* Renderizado del Modal de Celebración */}
       <CelebrationModal
         isOpen={celebrationModal.isOpen}
         onClose={handleCelebrationClose}
