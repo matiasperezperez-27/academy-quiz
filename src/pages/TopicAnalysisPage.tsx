@@ -22,8 +22,22 @@ const CelebrationModal = ({ isOpen, onClose, achievement, onContinue, onNextTopi
       <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-yellow-500/30 rounded-xl shadow-2xl max-w-sm w-full max-h-[85vh] overflow-hidden">
         {/* Header compacto */}
         <div className="text-center pt-4 pb-2">
-          <div className="w-16 h-16 mx-auto mb-2 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-full flex items-center justify-center">
-            <span className="text-2xl">🏆</span>
+          <div className="w-16 h-16 mx-auto mb-2 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-full flex items-center justify-center relative overflow-hidden">
+            {/* Efectos de brillo animados */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 animate-pulse"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-yellow-300/50 to-orange-400/50 rounded-full animate-pulse"></div>
+            
+            {/* Partículas flotantes */}
+            <div className="absolute -top-1 -left-1 w-2 h-2 bg-yellow-200 rounded-full animate-bounce" style={{animationDelay: '0s'}}></div>
+            <div className="absolute -top-2 right-2 w-1.5 h-1.5 bg-orange-300 rounded-full animate-bounce" style={{animationDelay: '0.5s'}}></div>
+            <div className="absolute bottom-1 -right-1 w-1 h-1 bg-yellow-300 rounded-full animate-bounce" style={{animationDelay: '1s'}}></div>
+            <div className="absolute -bottom-1 left-3 w-1.5 h-1.5 bg-orange-200 rounded-full animate-bounce" style={{animationDelay: '1.5s'}}></div>
+            
+            {/* Icono del trofeo con efecto pulsante */}
+            <span className="text-2xl relative z-10 animate-pulse">🏆</span>
+            
+            {/* Anillo exterior giratorio */}
+            <div className="absolute inset-0 border-2 border-yellow-300/60 rounded-full animate-spin" style={{animationDuration: '3s'}}></div>
           </div>
           <h2 className="text-lg font-bold text-white flex items-center justify-center gap-2">
             <span>🏆</span>
