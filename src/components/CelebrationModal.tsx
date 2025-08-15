@@ -196,7 +196,7 @@ export default function CelebrationModal({
       {showConfetti && <ConfettiAnimation />}
       
       <Dialog open={isOpen && !!achievement} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-lg border-0 p-0 overflow-hidden bg-transparent shadow-2xl">
+        <DialogContent className="sm:max-w-lg max-w-[95vw] border-0 p-0 overflow-hidden bg-transparent shadow-2xl">
           <div className={cn(
             "relative rounded-2xl border-2 overflow-hidden",
             "bg-white dark:bg-gray-900",
@@ -208,7 +208,7 @@ export default function CelebrationModal({
             <div className={cn("absolute inset-0 opacity-30", config.bgGradient)} />
             
             {/* Contenido principal */}
-            <div className="relative z-10 p-8">
+            <div className="relative z-10 p-4 sm:p-6">
               <DialogHeader className="text-center space-y-6">
                 {/* Icono principal con animación */}
                 <div className="flex justify-center">
