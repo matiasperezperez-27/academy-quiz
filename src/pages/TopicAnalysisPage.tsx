@@ -52,21 +52,18 @@ export default function TopicAnalysisPage() {
   const [celebratedTopics, setCelebratedTopics] = useState<Map<string, boolean>>(new Map());
 
   // Efecto para detectar temas que han sido completamente dominados
+// LÓGICA RESTAURADA: Detecta temas completados para mostrar el modal automáticamente
   useEffect(() => {
     if (!topicStats.length || !user) return;
 
     topicStats.forEach(topic => {
-      // Validaciones para asegurar que el objeto topic es válido
       if (!topic || !topic.tema_id || !topic.tema_nombre) return;
       
       const isFullyCompleted = topic.progreso_temario === 100 && topic.porcentaje_acierto === 100;
-      // Creamos una clave única para el estado del tema
       const topicKey = `${topic.tema_id}-${topic.progreso_temario}-${topic.porcentaje_acierto}`;
       
-      // Si está completado y no lo hemos celebrado antes en esta sesión, mostramos el modal
       if (isFullyCompleted && !celebratedTopics.has(topicKey)) {
         
-        // Marcamos como celebrado inmediatamente para evitar bucles de re-renderizado
         setCelebratedTopics(prev => new Map(prev).set(topicKey, true));
         
         const achievementData = {
@@ -74,10 +71,9 @@ export default function TopicAnalysisPage() {
           topicName: topic.tema_nombre,
           accuracy: topic.porcentaje_acierto,
           attempts: topic.intentos_totales || 1,
-          previousLevel: 'En Progreso' // Se podría hacer más dinámico si se guarda el estado anterior
+          previousLevel: 'En Progreso'
         };
 
-        // Mostramos el modal con un pequeño retraso para que la UI se actualice
         setTimeout(() => {
           setCelebrationModal({
             isOpen: true,
@@ -180,20 +176,6 @@ export default function TopicAnalysisPage() {
     setCelebrationModal({ isOpen: false, achievement: null });
     // Navega a una sección general de práctica
     navigate("/practice");
-  };
-
-  // --- Botón de Test para Desarrollo ---
-  const testModal = () => {
-    setCelebrationModal({
-      isOpen: true,
-      achievement: {
-        type: 'Dominado',
-        topicName: 'Tema de Prueba para Desarrollo',
-        accuracy: 100,
-        attempts: 5,
-        previousLevel: 'Casi Dominado'
-      }
-    });
   };
 
   // --- Subcomponente para las tarjetas de temas ---
@@ -516,16 +498,6 @@ export default function TopicAnalysisPage() {
                 <h1 className="text-2xl sm:text-3xl font-bold">📊 Análisis por Temas</h1>
               </div>
               <p className="text-muted-foreground">Descubre en qué temas necesitas enfocar tu estudio</p>
-            </div>
-            <div className="flex gap-2">
-              {/* Botón para probar el modal en desarrollo */}
-              <Button variant="outline" size="sm" onClick={testModal} className="text-xs">
-                🎉 Probar Modal
-              </Button>
-              <Button variant="ghost" size="sm" onClick={refreshData} className="flex items-center gap-2">
-                <RefreshCw className="h-4 w-4" />
-                Actualizar
-              </Button>
             </div>
           </div>
 
