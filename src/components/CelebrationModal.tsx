@@ -268,6 +268,7 @@ export default function CelebrationModal({
         <DialogContent 
           className="sm:max-w-md max-w-[90vw] border-0 p-0 overflow-hidden bg-transparent shadow-2xl"
           style={{ zIndex: 9997 }}
+          hideCloseButton
         >
           <div className={cn(
             "relative rounded-2xl border-2 overflow-hidden bg-white dark:bg-gray-900 shadow-2xl animate-in zoom-in-95 duration-300",
