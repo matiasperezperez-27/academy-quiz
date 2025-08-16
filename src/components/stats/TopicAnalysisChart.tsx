@@ -20,12 +20,12 @@ interface TopicAnalysisChartProps {
 export const TopicAnalysisChart = ({ topics }: TopicAnalysisChartProps) => {
   if (!topics || topics.length === 0) {
     return (
-      <Card>
+      <Card className="backdrop-blur-sm bg-white/90 dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700">
         <CardHeader>
-          <CardTitle>Análisis por Temas</CardTitle>
+          <CardTitle className="text-gray-900 dark:text-gray-100">Análisis por Temas</CardTitle>
         </CardHeader>
         <CardContent className="h-64 flex items-center justify-center">
-          <p className="text-muted-foreground">No hay datos de temas disponibles</p>
+          <p className="text-gray-600 dark:text-gray-400">No hay datos de temas disponibles</p>
         </CardContent>
       </Card>
     );
@@ -46,9 +46,9 @@ export const TopicAnalysisChart = ({ topics }: TopicAnalysisChartProps) => {
   };
 
   return (
-    <Card>
+    <Card className="backdrop-blur-sm bg-white/90 dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700">
       <CardHeader>
-        <CardTitle>Rendimiento por Temas</CardTitle>
+        <CardTitle className="text-gray-900 dark:text-gray-100">Rendimiento por Temas</CardTitle>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
@@ -94,33 +94,35 @@ export const TopicAnalysisChart = ({ topics }: TopicAnalysisChartProps) => {
         </ResponsiveContainer>
 
         {/* Lista detallada de temas */}
-        <div className="mt-6 space-y-2">
-          <h4 className="text-sm font-medium text-muted-foreground mb-3">Detalle por Tema</h4>
+        <div className="mt-6 space-y-3">
+          <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-4">Detalle por Tema</h4>
           {topics.map((topic) => (
             <div 
               key={topic.topicId}
-              className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
+              className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200 border border-gray-200 dark:border-gray-700"
             >
               <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-sm">{topic.topicName}</p>
-                  {topic.trend === 'up' && (
-                    <TrendingUp className="h-3 w-3 text-green-600" />
-                  )}
-                  {topic.trend === 'down' && (
-                    <TrendingDown className="h-3 w-3 text-red-600" />
-                  )}
-                  {topic.trend === 'stable' && (
-                    <Minus className="h-3 w-3 text-yellow-600" />
-                  )}
+                <div>
+                  <p className="font-medium text-sm text-gray-900 dark:text-gray-100">{topic.topicName}</p>
                 </div>
-                <p className="text-xs text-muted-foreground">{topic.academyName}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{topic.academyName}</p>
               </div>
               
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <p className="text-sm font-bold">{topic.accuracy}%</p>
-                  <p className="text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 justify-end">
+                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{topic.accuracy}%</p>
+                    {topic.trend === 'up' && (
+                      <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    )}
+                    {topic.trend === 'down' && (
+                      <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
+                    )}
+                    {topic.trend === 'stable' && (
+                      <Minus className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
                     {topic.totalQuestions} preguntas
                   </p>
                 </div>

@@ -15,15 +15,21 @@ const MainLayout = () => {
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      {/* Contenido principal con padding inferior para la nav bar */}
-      <main className={`flex-1 ${shouldShowNav ? 'pb-16' : ''}`}>
-        <Outlet />
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+      {/* Contenido principal con efectos visuales premium */}
+      <main className={`flex-1 transition-all duration-300 ${shouldShowNav ? 'pb-20 md:pb-16' : ''}`}>
+        <div className="relative min-h-full">
+          <Outlet />
+        </div>
       </main>
       
-      {/* Navegación inferior - fixed */}
+      {/* Navegación inferior con efectos glassmorphism */}
       {shouldShowNav && (
-        <BottomNavBar onMoreClick={() => setDrawerOpen(true)} />
+        <div className="fixed bottom-0 left-0 right-0 z-50">
+          <div className="backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-t border-gray-200/50 dark:border-gray-700/50">
+            <BottomNavBar onMoreClick={() => setDrawerOpen(true)} />
+          </div>
+        </div>
       )}
       
       {/* Drawer lateral */}

@@ -18,16 +18,15 @@ import {
   Flame,
   Star,
   BarChart3,
-  Shield, // 1. Ícono importado
+  Shield,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useAdmin } from "@/hooks/useAdmin"; // 2. Hook de admin importado
+import { useAdmin } from "@/hooks/useAdmin";
 import { supabase } from "@/integrations/supabase/client";
 
-// Dashboard súper simple que SÍ funciona
 export default function SimpleDashboard() {
   const { user, signOut } = useAuth();
-  const { isAdmin } = useAdmin(); // 3. Hook en uso
+  const { isAdmin } = useAdmin();
   const [rawData, setRawData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -40,13 +39,9 @@ export default function SimpleDashboard() {
       setLoading(true);
       setError(null);
 
-      console.log("Intentando cargar stats para usuario:", user.id);
-
       // Solo usar la función RPC que sabemos que funciona
       const { data: basicStats, error: rpcError } = await supabase
         .rpc("get_user_stats", { p_user_id: user.id });
-
-      console.log("Resultado de RPC:", { basicStats, rpcError });
 
       if (rpcError) {
         throw new Error(`Error RPC: ${rpcError.message}`);
@@ -55,7 +50,6 @@ export default function SimpleDashboard() {
       // Guardar datos raw sin procesar
       setRawData(basicStats);
     } catch (err) {
-      console.error("Error cargando stats:", err);
       setError(err.message);
 
       // Si falla todo, poner datos vacíos
@@ -111,27 +105,217 @@ export default function SimpleDashboard() {
     return value !== null && value !== undefined ? value : defaultValue;
   };
 
-  const StatsCard = ({ title, value, subtitle, icon, color = "text-primary" }) => (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <div className={`h-4 w-4 ${color}`}>{icon}</div>
+  // Componentes UI puros
+  const MobileHeader = () => (
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex items-center gap-3">
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+            {getGreeting()}, {getUserDisplayName()}! 👋
+          </h1>
+          <p className="text-muted-foreground dark:text-gray-300 text-sm sm:text-base">
+            ¿Listo para tu próximo desafío de aprendizaje?
+          </p>
+        </div>
+        <LevelBadge points={safeGet(rawData, "points", 0)} />
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={loadBasicStats}
+        disabled={loading}
+        className="flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-gray-700 transition-all duration-200"
+      >
+        <RefreshCw
+          className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+        />
+        <span className="hidden sm:inline">Actualizar</span>
+      </Button>
+    </div>
+  );
+
+  const LevelBadge = ({ points }) => {
+    const levelInfo = getLevel(points);
+    return (
+      <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-800/30 dark:to-blue-800/30 rounded-full border dark:border-gray-600">
+        <Star className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+        <span className="text-sm font-medium dark:text-gray-200">
+          Nivel {levelInfo.level} · {points} pts
+        </span>
+      </div>
+    );
+  };
+
+  const StatsCard = ({ title, value, subtitle, icon, color = "text-primary", gradient = "from-blue-50 to-indigo-50" }) => (
+    <Card className={`hover:shadow-lg transition-all duration-300 hover:scale-105 backdrop-blur-sm bg-gradient-to-br ${gradient} dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-700 border-0 shadow-sm dark:shadow-gray-900/20`}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
+        <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">{title}</CardTitle>
+        <div className={`h-6 w-6 sm:h-8 sm:w-8 ${color} p-1 bg-white/80 dark:bg-gray-800/80 rounded-lg`}>
+          {React.cloneElement(icon, { className: "h-full w-full" })}
+        </div>
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+      <CardContent className="px-4 pb-4">
+        <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-gray-100">{value}</div>
         {subtitle && (
-          <p className="text-xs text-muted-foreground">{subtitle}</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{subtitle}</p>
         )}
       </CardContent>
     </Card>
   );
 
+  const QuickActions = () => {
+    const failedQuestions = safeGet(rawData, "current_failed_questions", 0);
+    const totalAnswers = safeGet(rawData, "total_questions_answered", 0);
+
+    return (
+      <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        {/* Nuevo Test Card */}
+        <Card className="hover:shadow-xl transition-all duration-300 hover:scale-105 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 dark:bg-gray-800 border-0 dark:border-gray-600">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-3">
+              <div className="p-3 bg-blue-600 rounded-xl shadow-lg">
+                <Play className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <div className="text-xl font-bold text-gray-900 dark:text-gray-100">Nuevo Test</div>
+                <div className="text-sm text-gray-600 dark:text-gray-300 font-normal">
+                  Elige tema y pon a prueba tus conocimientos
+                </div>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                <Clock className="h-4 w-4" />
+                Duración: 5-10 minutos
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                <Target className="h-4 w-4" />
+                10 preguntas aleatorias
+              </div>
+              <Button
+                className="w-full h-12 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white shadow-md hover:shadow-lg transition-all duration-200"
+                size="lg"
+                onClick={() => (window.location.href = "/test-setup")}
+              >
+                <Play className="mr-2 h-4 w-4" />
+                Comenzar Test
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Practice Card */}
+        <Card className="hover:shadow-xl transition-all duration-300 hover:scale-105 bg-gradient-to-br from-orange-50 to-red-100 dark:from-orange-900/20 dark:to-red-900/20 dark:bg-gray-800 border-0 dark:border-gray-600">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-3">
+              <div className="p-3 bg-orange-600 rounded-xl shadow-lg">
+                <BookOpen className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <div className="text-xl font-bold text-gray-900 dark:text-gray-100">Modo Práctica</div>
+                <div className="text-sm text-gray-600 dark:text-gray-300 font-normal">
+                  Repasa tus preguntas falladas
+                </div>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {failedQuestions > 0 ? (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-300">
+                      Preguntas pendientes:
+                    </span>
+                    <Badge variant="destructive" className="text-xs bg-red-500">
+                      {failedQuestions}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                    <TrendingUp className="h-4 w-4" />
+                    Mejora tu puntuación
+                  </div>
+                  <Button
+                    className="w-full h-12 bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600 text-white shadow-md hover:shadow-lg transition-all duration-200"
+                    size="lg"
+                    onClick={() => (window.location.href = "/practice")}
+                  >
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    Practicar Ahora
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="text-center py-4">
+                    <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                      ¡Excelente! No tienes preguntas falladas para practicar.
+                    </p>
+                  </div>
+                  <Button
+                    className="w-full h-12 bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed"
+                    size="lg"
+                    disabled
+                  >
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    Sin Preguntas Pendientes
+                  </Button>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Análisis por Temas Card */}
+        <Card className="hover:shadow-xl transition-all duration-300 hover:scale-105 bg-gradient-to-br from-purple-50 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 dark:bg-gray-800 border-0 dark:border-gray-600">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-3">
+              <div className="p-3 bg-purple-600 rounded-xl shadow-lg">
+                <BarChart3 className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <div className="text-xl font-bold text-gray-900 dark:text-gray-100">Análisis por Temas</div>
+                <div className="text-sm text-gray-600 dark:text-gray-300 font-normal">
+                  Ve tu progreso detallado por tema
+                </div>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                <Target className="h-4 w-4" />
+                Identifica tus puntos fuertes
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                <TrendingUp className="h-4 w-4" />
+                Enfócate en lo que necesitas
+              </div>
+              <Button
+                className="w-full h-12 border-2 border-purple-600 dark:border-purple-400 text-purple-600 dark:text-purple-400 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-500 dark:hover:text-white shadow-md hover:shadow-lg transition-all duration-200"
+                variant="outline"
+                size="lg"
+                onClick={() => (window.location.href = "/analisis-temas")}
+                disabled={totalAnswers === 0}
+              >
+                <BarChart3 className="mr-2 h-4 w-4" />
+                {totalAnswers > 0 ? "Ver Análisis" : "Sin Datos Aún"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800">
+        <Card className="backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 shadow-xl">
           <CardContent className="p-6">
-            <p>Cargando usuario...</p>
+            <p className="text-lg dark:text-gray-200">Cargando usuario...</p>
           </CardContent>
         </Card>
       </div>
@@ -156,38 +340,17 @@ export default function SimpleDashboard() {
   const levelInfo = getLevel(points);
 
   return (
-    <main className="min-h-screen p-4 bg-background">
-      <div className="max-w-6xl mx-auto space-y-6">
-
-{/* Header - SIMPLIFICADO */}
-<div className="flex items-center justify-between">
-  <div className="space-y-1">
-    <h1 className="text-2xl sm:text-3xl font-bold">
-      {getGreeting()}, {getUserDisplayName()}! 👋
-    </h1>
-    <p className="text-muted-foreground">
-      ¿Listo para tu próximo desafío de aprendizaje?
-    </p>
-  </div>
-  <Button
-    variant="ghost"
-    size="sm"
-    onClick={loadBasicStats}
-    disabled={loading}
-    className="flex items-center gap-2"
-  >
-    <RefreshCw
-      className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
-    />
-    <span className="hidden sm:inline">Actualizar</span>
-  </Button>
-</div>
+    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8">
+        
+        {/* Mobile-First Header */}
+        <MobileHeader />
 
         {/* Error Display */}
         {error && (
-          <Card className="border-red-200 bg-red-50">
+          <Card className="border-red-200 dark:border-red-800 bg-red-50/80 dark:bg-red-900/20 backdrop-blur-sm">
             <CardContent className="p-4">
-              <p className="text-red-800">⚠️ Error: {error}</p>
+              <p className="text-red-800 dark:text-red-400">⚠️ Error: {error}</p>
               <Button onClick={loadBasicStats} className="mt-2" size="sm">
                 Reintentar
               </Button>
@@ -197,9 +360,9 @@ export default function SimpleDashboard() {
 
         {/* Loading */}
         {loading && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => (
-              <Card key={i} className="p-4">
+              <Card key={i} className="p-4 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm">
                 <div className="space-y-3">
                   <div className="h-4 w-20 bg-muted rounded animate-pulse" />
                   <div className="h-8 w-16 bg-muted rounded animate-pulse" />
@@ -210,191 +373,54 @@ export default function SimpleDashboard() {
           </div>
         )}
 
-        {/* Stats Cards - SÚPER SEGURAS */}
+        {/* Essential Stats - Mobile: 2 cols, Desktop: 4 cols */}
         {!loading && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             <StatsCard
               title="Tests Completados"
               value={completedSessions}
-              icon={<Trophy className="h-4 w-4" />}
+              icon={<Trophy />}
               color="text-yellow-600"
+              gradient="from-yellow-50 to-orange-100"
               subtitle="sesiones finalizadas"
             />
 
             <StatsCard
               title="Precisión General"
               value={`${accuracy}%`}
-              icon={<Target className="h-4 w-4" />}
+              icon={<Target />}
               color="text-blue-600"
+              gradient="from-blue-50 to-cyan-100"
               subtitle={`${correctAnswers}/${totalAnswers} correctas`}
             />
 
             <StatsCard
               title="Preguntas Falladas"
               value={failedQuestions}
-              icon={<BookOpen className="h-4 w-4" />}
+              icon={<BookOpen />}
               color="text-orange-600"
+              gradient="from-orange-50 to-red-100"
               subtitle="para practicar"
             />
 
             <StatsCard
               title={`Nivel ${levelInfo.level}`}
               value={levelInfo.title}
-              icon={<Star className="h-4 w-4" />}
+              icon={<Star />}
               color="text-purple-600"
+              gradient="from-purple-50 to-pink-100"
               subtitle={`${points} puntos`}
             />
           </div>
         )}
 
-{/* Main Action Cards */}
-        <div className="grid gap-6 md:grid-cols-3"> {/* 👈 CAMBIAR de md:grid-cols-2 a md:grid-cols-3 */}
-          {/* New Test Card */}
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Play className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <div className="text-xl">Nuevo Test</div>
-                  <div className="text-sm text-muted-foreground font-normal">
-                    Elige tema y pon a prueba tus conocimientos
-                  </div>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  Duración: 5-10 minutos
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Target className="h-4 w-4" />
-                  10 preguntas aleatorias
-                </div>
-                <Button
-                  className="w-full"
-                  size="lg"
-                  onClick={() => (window.location.href = "/test-setup")}
-                >
-                  <Play className="mr-2 h-4 w-4" />
-                  Comenzar Test
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Quick Action Buttons */}
+        <QuickActions />
 
-          {/* Practice Card */}
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <BookOpen className="h-6 w-6 text-orange-600" />
-                </div>
-                <div>
-                  <div className="text-xl">Modo Práctica</div>
-                  <div className="text-sm text-muted-foreground font-normal">
-                    Repasa tus preguntas falladas
-                  </div>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {failedQuestions > 0 ? (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">
-                        Preguntas pendientes:
-                      </span>
-                      <Badge variant="destructive" className="text-xs">
-                        {failedQuestions}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <TrendingUp className="h-4 w-4" />
-                      Mejora tu puntuación
-                    </div>
-                    <Button
-                      className="w-full"
-                      variant="secondary"
-                      size="lg"
-                      onClick={() => (window.location.href = "/practice")}
-                    >
-                      <BookOpen className="mr-2 h-4 w-4" />
-                      Practicar Ahora
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-center py-4">
-                      <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">
-                        ¡Excelente! No tienes preguntas falladas para
-                        practicar.
-                      </p>
-                    </div>
-                    <Button
-                      className="w-full"
-                      variant="secondary"
-                      size="lg"
-                      disabled
-                    >
-                      <BookOpen className="mr-2 h-4 w-4" />
-                      Sin Preguntas Pendientes
-                    </Button>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 👈 NUEVA CARD DE ANÁLISIS POR TEMAS */}
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <BarChart3 className="h-6 w-6 text-purple-600" />
-                </div>
-                <div>
-                  <div className="text-xl">Análisis por Temas</div>
-                  <div className="text-sm text-muted-foreground font-normal">
-                    Ve tu progreso detallado por tema
-                  </div>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Target className="h-4 w-4" />
-                  Identifica tus puntos fuertes
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <TrendingUp className="h-4 w-4" />
-                  Enfócate en lo que necesitas
-                </div>
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  size="lg"
-                  onClick={() => (window.location.href = "/analisis-temas")}
-                  disabled={totalAnswers === 0}
-                >
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  {totalAnswers > 0 ? "Ver Análisis" : "Sin Datos Aún"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Simple Progress Section */}
+        {/* Collapsible Stats for Mobile */}
         <div className="grid gap-6 md:grid-cols-2">
           {/* Level Info */}
-          <Card>
+          <Card className="backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Star className="h-5 w-5 text-yellow-600" />
@@ -404,27 +430,27 @@ export default function SimpleDashboard() {
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-3 bg-purple-100 rounded-full">
-                    <Star className="h-6 w-6 text-purple-600" />
+                  <div className="p-3 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-800/50 dark:to-purple-700/50 rounded-full">
+                    <Star className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                   </div>
                   <div>
                     <div className="text-xl font-bold">
                       Nivel {levelInfo.level}
                     </div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-muted-foreground dark:text-gray-400">
                       {levelInfo.title}
                     </div>
                   </div>
                   <div className="ml-auto">
-                    <div className="text-2xl font-bold text-primary">
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                       {points}
                     </div>
-                    <div className="text-xs text-muted-foreground">puntos</div>
+                    <div className="text-xs text-muted-foreground dark:text-gray-400">puntos</div>
                   </div>
                 </div>
 
-                <div className="text-center p-4 bg-muted/30 rounded-lg">
-                  <p className="text-sm text-muted-foreground">
+                <div className="text-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border dark:border-gray-600">
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
                     {points < 100
                       ? `Te faltan ${100 - points} puntos para Nivel 2`
                       : "¡Sigue así para seguir subiendo de nivel!"}
@@ -435,7 +461,7 @@ export default function SimpleDashboard() {
           </Card>
 
           {/* Quick Stats */}
-          <Card>
+          <Card className="backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <BarChart3 className="h-5 w-5" />
@@ -445,34 +471,34 @@ export default function SimpleDashboard() {
             <CardContent>
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-sm text-muted-foreground dark:text-gray-400">
                     Total de sesiones:
                   </span>
-                  <span className="font-medium">{totalSessions}</span>
+                  <span className="font-medium dark:text-gray-200">{totalSessions}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-sm text-muted-foreground dark:text-gray-400">
                     Sesiones completadas:
                   </span>
-                  <span className="font-medium">{completedSessions}</span>
+                  <span className="font-medium dark:text-gray-200">{completedSessions}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-sm text-muted-foreground dark:text-gray-400">
                     Preguntas respondidas:
                   </span>
-                  <span className="font-medium">{totalAnswers}</span>
+                  <span className="font-medium dark:text-gray-200">{totalAnswers}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-sm text-muted-foreground dark:text-gray-400">
                     Mejor puntuación:
                   </span>
-                  <span className="font-medium">{bestScore}%</span>
+                  <span className="font-medium dark:text-gray-200">{bestScore}%</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-sm text-muted-foreground dark:text-gray-400">
                     Última actividad:
                   </span>
-                  <span className="font-medium">
+                  <span className="font-medium dark:text-gray-200">
                     {lastActivity
                       ? new Date(lastActivity).toLocaleDateString("es-ES")
                       : "Nunca"}
@@ -484,7 +510,7 @@ export default function SimpleDashboard() {
         </div>
 
         {/* Motivational Message */}
-        <Card>
+        <Card className="backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 shadow-lg">
           <CardContent className="p-6 text-center">
             <div className="space-y-3">
               {failedQuestions > 0 ? (
@@ -492,13 +518,13 @@ export default function SimpleDashboard() {
                   <div className="text-lg font-semibold">
                     💪 ¡Tienes {failedQuestions} preguntas esperándote!
                   </div>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground dark:text-gray-300">
                     Cada pregunta que practiques te acerca más a la perfección.
                     ¡Es hora de brillar! ✨
                   </p>
                   <Button
                     onClick={() => (window.location.href = "/practice")}
-                    className="mt-3"
+                    className="mt-3 bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600 h-12 px-6"
                   >
                     <BookOpen className="mr-2 h-4 w-4" />
                     Empezar a Practicar
@@ -509,13 +535,13 @@ export default function SimpleDashboard() {
                   <div className="text-lg font-semibold">
                     🌟 ¡Comienza tu viaje de aprendizaje!
                   </div>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground dark:text-gray-300">
                     Cada experto fue una vez un principiante. ¡Haz tu primer
                     test hoy!
                   </p>
                   <Button
                     onClick={() => (window.location.href = "/test-setup")}
-                    className="mt-3"
+                    className="mt-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 h-12 px-6"
                   >
                     <Play className="mr-2 h-4 w-4" />
                     Mi Primer Test
@@ -524,7 +550,7 @@ export default function SimpleDashboard() {
               ) : (
                 <>
                   <div className="text-lg font-semibold">🎯 ¡Sigue así!</div>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground dark:text-gray-300">
                     Has completado {completedSessions} sesiones. ¡Tu dedicación
                     está dando frutos!
                   </p>
@@ -534,45 +560,6 @@ export default function SimpleDashboard() {
           </CardContent>
         </Card>
 
-        {/* Debug Info (temporal) */}
-        <Card className="border-dashed border-2 border-gray-300">
-          <CardHeader>
-            <CardTitle className="text-sm text-gray-500">
-              🔧 Info de Debug (temporal)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 text-xs">
-              <div>
-                <strong>Loading:</strong> {loading.toString()}
-              </div>
-              <div>
-                <strong>Error:</strong> {error || "ninguno"}
-              </div>
-              <div>
-                <strong>RawData type:</strong> {typeof rawData}
-              </div>
-              <div>
-                <strong>RawData is null:</strong> {(rawData === null).toString()}
-              </div>
-              <div>
-                <strong>User ID:</strong> {user?.id || "no-user"}
-              </div>
-              <div>
-                <strong>Processed values:</strong>
-              </div>
-              <div className="ml-4">
-                <div>• completedSessions: {completedSessions}</div>
-                <div>• failedQuestions: {failedQuestions}</div>
-                <div>• points: {points}</div>
-                <div>• accuracy: {accuracy}%</div>
-              </div>
-            </div>
-            <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto mt-2 max-h-48">
-              {JSON.stringify(rawData, null, 2)}
-            </pre>
-          </CardContent>
-        </Card>
       </div>
     </main>
   );
