@@ -236,7 +236,7 @@ export default function StatsPage() {
               value="activity" 
               className="flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm whitespace-nowrap min-w-[100px]"
             >
-              <Activity className="h-3 w-3 mr-1" />
+              <Activity className="h-3 w-3 mr-1 text-blue-600 dark:text-blue-400" />
               <span className="hidden sm:inline">Actividad</span>
               <span className="sm:hidden">Act</span>
             </TabsTrigger>
@@ -244,7 +244,7 @@ export default function StatsPage() {
               value="performance" 
               className="flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm whitespace-nowrap min-w-[100px]"
             >
-              <TrendingUp className="h-3 w-3 mr-1" />
+              <TrendingUp className="h-3 w-3 mr-1 text-green-600 dark:text-green-400" />
               <span className="hidden sm:inline">Rendimiento</span>
               <span className="sm:hidden">Rend</span>
             </TabsTrigger>
@@ -252,7 +252,7 @@ export default function StatsPage() {
               value="topics" 
               className="flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm whitespace-nowrap min-w-[100px]"
             >
-              <Award className="h-3 w-3 mr-1" />
+              <Award className="h-3 w-3 mr-1 text-purple-600 dark:text-purple-400" />
               <span className="hidden sm:inline">Por Temas</span>
               <span className="sm:hidden">Temas</span>
             </TabsTrigger>
