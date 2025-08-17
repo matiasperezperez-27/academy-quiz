@@ -69,7 +69,7 @@ export const TopicAnalysisChart = ({ topics }: TopicAnalysisChartProps) => {
       <CardContent className="p-4 sm:p-6">
         <div className="mb-6 -mx-4 sm:mx-0">
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData} margin={{ top: 20, right: 10, left: 10, bottom: 10 }}>
+            <BarChart data={chartData} margin={{ top: 20, right: 10, left: 10, bottom: -10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.3} />
               <XAxis 
                 dataKey="name" 
