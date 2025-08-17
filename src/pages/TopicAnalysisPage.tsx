@@ -181,11 +181,11 @@ export default function TopicAnalysisPage() {
     
     const getBorderStyle = () => {
       switch (priority) {
-        case 'high': return 'border-l-4 border-l-red-500 hover:shadow-lg';
-        case 'medium': return 'border-l-4 border-l-green-500 hover:shadow-md';
-        case 'low': return 'border-l-4 border-l-blue-500 hover:shadow-md';
-        case 'achieved': return 'border-l-4 border-l-yellow-500 hover:shadow-sm bg-yellow-50/30';
-        default: return 'hover:shadow-md';
+        case 'high': return 'border-l-4 border-l-red-500 hover:shadow-xl hover:shadow-red-500/20 hover:scale-[1.02] bg-gradient-to-r from-red-50/30 to-white dark:from-red-900/10 dark:to-gray-800';
+        case 'medium': return 'border-l-4 border-l-green-500 hover:shadow-xl hover:shadow-green-500/20 hover:scale-[1.02] bg-gradient-to-r from-green-50/30 to-white dark:from-green-900/10 dark:to-gray-800';
+        case 'low': return 'border-l-4 border-l-blue-500 hover:shadow-xl hover:shadow-blue-500/20 hover:scale-[1.02] bg-gradient-to-r from-blue-50/30 to-white dark:from-blue-900/10 dark:to-gray-800';
+        case 'achieved': return 'border-l-4 border-l-yellow-500 hover:shadow-xl hover:shadow-yellow-500/20 hover:scale-[1.02] bg-gradient-to-r from-yellow-50/50 to-orange-50/30 dark:from-yellow-900/20 dark:to-orange-900/10';
+        default: return 'hover:shadow-lg hover:scale-[1.02]';
       }
     };
 
@@ -245,30 +245,30 @@ export default function TopicAnalysisPage() {
     const isFullyCompleted = progresoTemario === 100 && porcentajeDominio === 100;
 
     const getProgresoColor = (porcentaje: number) => {
-      if (porcentaje >= 90) return 'bg-blue-500';
-      if (porcentaje >= 70) return 'bg-green-500';
-      if (porcentaje >= 50) return 'bg-yellow-500';
-      return 'bg-orange-500';
+      if (porcentaje >= 90) return 'bg-gradient-to-r from-blue-500 to-indigo-600';
+      if (porcentaje >= 70) return 'bg-gradient-to-r from-green-500 to-emerald-600';
+      if (porcentaje >= 50) return 'bg-gradient-to-r from-yellow-500 to-orange-500';
+      return 'bg-gradient-to-r from-orange-500 to-red-500';
     };
 
     const getDominioColor = (porcentaje: number) => {
-      if (porcentaje >= 95) return 'bg-yellow-500';
-      if (porcentaje >= 85) return 'bg-blue-500';  
-      if (porcentaje >= 70) return 'bg-green-500'; 
-      return 'bg-red-500';
+      if (porcentaje >= 95) return 'bg-gradient-to-r from-yellow-500 to-orange-500';
+      if (porcentaje >= 85) return 'bg-gradient-to-r from-blue-500 to-indigo-600';  
+      if (porcentaje >= 70) return 'bg-gradient-to-r from-green-500 to-emerald-600'; 
+      return 'bg-gradient-to-r from-red-500 to-rose-600';
     };
 
     return (
-      <Card className={cn("transition-all duration-200", getBorderStyle())}>
-        <CardHeader className="pb-2">
-          <div className="space-y-1.5">
-            <div className="flex items-start gap-1.5">
-              <span className="text-base flex-shrink-0">{getNivelIcon(topic.nivel_dominio)}</span>
+      <Card className={cn("transition-all duration-300 backdrop-blur-sm bg-white/95 dark:bg-gray-800/95 shadow-lg border border-gray-200/50 dark:border-gray-700/50", getBorderStyle())}>
+        <CardHeader className="pb-3">
+          <div className="space-y-2">
+            <div className="flex items-start gap-2">
+              <div className="flex-shrink-0 text-lg mt-0.5">{getNivelIcon(topic.nivel_dominio)}</div>
               <div className="flex-1 min-w-0">
                 <CardTitle 
                   className={cn(
-                    "text-sm leading-tight cursor-pointer transition-all duration-200",
-                    shouldShowExpander && "truncate hover:text-primary",
+                    "text-sm leading-tight cursor-pointer transition-all duration-200 font-semibold",
+                    shouldShowExpander && "truncate hover:text-blue-600 dark:hover:text-blue-400",
                     isExpanded && "whitespace-normal"
                   )}
                   onClick={isLongTitle ? toggleExpanded : undefined}
@@ -339,9 +339,9 @@ export default function TopicAnalysisPage() {
                 {preguntasRespondidas}/{totalPreguntasTemario}
               </span>
             </div>
-            <div className="w-full bg-muted rounded-full h-2">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 shadow-inner">
               <div 
-                className={cn("h-2 rounded-full transition-all", getProgresoColor(progresoTemario))}
+                className={cn("h-2.5 rounded-full transition-all duration-500 ease-out shadow-sm", getProgresoColor(progresoTemario))}
                 style={{ width: `${progresoTemario}%` }}
               />
             </div>
@@ -352,16 +352,16 @@ export default function TopicAnalysisPage() {
               <span className="text-muted-foreground flex items-center gap-1">
                 🎯 Dominio
                 {(topic.total_incorrectas || 0) > 0 && (
-                  <span className="text-red-600 font-medium">
+                  <span className="text-red-600 dark:text-red-400 font-medium">
                     ({topic.total_incorrectas} errores)
                   </span>
                 )}
               </span>
               <span className="font-bold text-sm">{porcentajeDominio}%</span>
             </div>
-            <div className="w-full bg-muted rounded-full h-2">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 shadow-inner">
               <div 
-                className={cn("h-2 rounded-full transition-all", getDominioColor(porcentajeDominio))}
+                className={cn("h-2.5 rounded-full transition-all duration-500 ease-out shadow-sm", getDominioColor(porcentajeDominio))}
                 style={{ width: `${porcentajeDominio}%` }}
               />
             </div>
@@ -401,15 +401,20 @@ export default function TopicAnalysisPage() {
             </div>
           )}
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Button
               onClick={() => handlePracticeClick(
                 topic.tema_id, 
                 topic.academia_id, 
                 topic.preguntas_falladas_ids || []
               )}
-              className="w-full h-8"
-              variant={getButtonVariant()}
+              className={cn(
+                "w-full h-10 font-semibold transition-all duration-200 shadow-sm hover:shadow-md",
+                priority === 'high' && "bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white border-0",
+                priority === 'medium' && "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0",
+                priority === 'low' && "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-0",
+                priority === 'achieved' && "bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-500 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600"
+              )}
               size="sm"
             >
               {getButtonText()}
@@ -420,7 +425,7 @@ export default function TopicAnalysisPage() {
                 onClick={() => resetTopicProgress(topic.tema_id, topic.tema_nombre)}
                 variant="outline"
                 size="sm"
-                className="w-full h-7 text-xs border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                className="w-full h-8 text-xs border-red-200 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300 hover:border-red-300 dark:hover:border-red-600 transition-all duration-200"
               >
                 <RotateCcw className="mr-1 h-3 w-3" />
                 Reiniciar Progreso
@@ -434,24 +439,55 @@ export default function TopicAnalysisPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen p-4 bg-background">
-        <div className="max-w-6xl mx-auto space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              <div className="h-8 w-64 bg-muted rounded animate-pulse" />
-              <div className="h-4 w-48 bg-muted rounded animate-pulse" />
+      <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+        <div className="p-6">
+          <div className="max-w-7xl mx-auto space-y-8">
+            <div className="flex items-center justify-between">
+              <div className="space-y-3">
+                <div className="h-10 w-80 bg-gradient-to-r from-blue-200 to-indigo-200 dark:from-blue-800 dark:to-indigo-800 rounded-xl animate-pulse" />
+                <div className="h-6 w-64 bg-gradient-to-r from-gray-200 to-blue-200 dark:from-gray-700 dark:to-blue-700 rounded-lg animate-pulse" />
+              </div>
+              <div className="flex gap-3">
+                <div className="h-10 w-10 bg-gradient-to-r from-blue-200 to-indigo-200 dark:from-blue-800 dark:to-indigo-800 rounded-lg animate-pulse" />
+                <div className="h-10 w-24 bg-gradient-to-r from-gray-200 to-blue-200 dark:from-gray-700 dark:to-blue-700 rounded-lg animate-pulse" />
+              </div>
             </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <Card key={i} className="p-6">
-                <div className="space-y-3">
-                  <div className="h-4 w-32 bg-muted rounded animate-pulse" />
-                  <div className="h-6 w-20 bg-muted rounded animate-pulse" />
-                  <div className="h-2 w-full bg-muted rounded animate-pulse" />
-                </div>
-              </Card>
-            ))}
+            
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <Card key={i} className="backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 shadow-lg">
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-2">
+                          <div className="h-4 w-24 bg-gradient-to-r from-gray-200 to-blue-200 dark:from-gray-600 dark:to-blue-600 rounded animate-pulse" />
+                          <div className="h-8 w-16 bg-gradient-to-r from-blue-200 to-indigo-200 dark:from-blue-700 dark:to-indigo-700 rounded animate-pulse" />
+                        </div>
+                        <div className="h-10 w-10 bg-gradient-to-r from-blue-200 to-indigo-200 dark:from-blue-800 dark:to-indigo-800 rounded-full animate-pulse" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <Card key={i} className="backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 shadow-lg">
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-6 w-6 bg-gradient-to-r from-blue-200 to-indigo-200 dark:from-blue-700 dark:to-indigo-700 rounded animate-pulse" />
+                        <div className="h-5 w-32 bg-gradient-to-r from-gray-200 to-blue-200 dark:from-gray-600 dark:to-blue-600 rounded animate-pulse" />
+                      </div>
+                      <div className="h-3 w-full bg-gradient-to-r from-gray-200 to-blue-200 dark:from-gray-600 dark:to-blue-600 rounded-full animate-pulse" />
+                      <div className="h-3 w-full bg-gradient-to-r from-gray-200 to-blue-200 dark:from-gray-600 dark:to-blue-600 rounded-full animate-pulse" />
+                      <div className="h-9 w-full bg-gradient-to-r from-blue-200 to-indigo-200 dark:from-blue-700 dark:to-indigo-700 rounded-lg animate-pulse" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         </div>
       </main>
@@ -468,174 +504,275 @@ export default function TopicAnalysisPage() {
 
   return (
     <>
-      <main className="min-h-screen p-4 bg-background">
-        <div className="max-w-6xl mx-auto space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <div className="flex items-center gap-3">
-                <Button variant="ghost" size="sm" onClick={() => window.history.back()} className="flex items-center gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  Volver
-                </Button>
-                <h1 className="text-2xl sm:text-3xl font-bold">📊 Análisis por Temas</h1>
-              </div>
-              <p className="text-muted-foreground">Descubre en qué temas necesitas enfocar tu estudio</p>
-            </div>
-            <div className="flex gap-2">
-              {/* ✅ CAMBIO 5: Se elimina el botón de prueba del JSX. */}
-              <Button variant="ghost" size="sm" onClick={refreshData} className="flex items-center gap-2">
-                <RefreshCw className="h-4 w-4" />
-                Actualizar
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Promedio General</p>
-                    <p className="text-2xl font-bold">{promedioGeneral}%</p>
-                  </div>
-                  <Target className="h-8 w-8 text-primary" />
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Respondidas</p>
-                    <p className="text-2xl font-bold">{totalPreguntas}</p>
-                  </div>
-                  <BarChart3 className="h-8 w-8 text-blue-600" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Temas Dominados</p>
-                    <p className="text-2xl font-bold text-yellow-600">{temasDominados.length}</p>
-                  </div>
-                  <div className="text-2xl">🏆</div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Necesitan Práctica</p>
-                    <p className="text-2xl font-bold text-red-600">{temasNecesitanPractica.length}</p>
-                  </div>
-                  <div className="text-2xl">📚</div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="space-y-6">
-            {temasNecesitanPractica.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg text-red-600">
-                    📚 Necesitan Práctica
-                    <Badge variant="destructive" className="ml-auto">
-                      {temasNecesitanPractica.length}
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {temasNecesitanPractica.map((topic) => (
-                      <TopicCard key={topic.tema_id} topic={topic} priority="high" />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {temasEnProgreso.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg text-green-600">
-                    📈 En Progreso
-                    <Badge variant="secondary" className="ml-auto bg-green-100 text-green-700">
-                      {temasEnProgreso.length}
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {temasEnProgreso.map((topic) => (
-                      <TopicCard key={topic.tema_id} topic={topic} priority="medium" />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {temasCasiDominados.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg text-blue-600">
-                    ⭐ Casi Dominados
-                    <Badge variant="secondary" className="ml-auto bg-blue-100 text-blue-700">
-                      {temasCasiDominados.length}
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {temasCasiDominados.map((topic) => (
-                      <TopicCard key={topic.tema_id} topic={topic} priority="low" />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {temasDominados.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg text-yellow-600">
-                    🏆 Temas Dominados
-                    <Badge variant="secondary" className="ml-auto bg-yellow-100 text-yellow-700">
-                      {temasDominados.length}
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {temasDominados.map((topic) => (
-                      <TopicCard key={topic.tema_id} topic={topic} priority="achieved" />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {topicStats.length === 0 && (
-              <Card>
-                <CardContent className="flex items-center justify-center p-12">
-                  <div className="text-center space-y-4">
-                    <BookOpen className="h-12 w-12 text-muted-foreground mx-auto" />
-                    <div>
-                      <h3 className="text-lg font-semibold">No hay datos disponibles</h3>
-                      <p className="text-muted-foreground">
-                        Completa algunos tests para ver tu análisis por temas
-                      </p>
-                    </div>
-                    <Button onClick={() => navigate("/test-setup")}>
-                      <PlayCircle className="mr-2 h-4 w-4" />
-                      Hacer un Test
+      <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+        <div className="relative">
+          {/* Hero background with decorative elements */}
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-indigo-600/5 to-purple-600/5 dark:from-blue-400/5 dark:via-indigo-400/5 dark:to-purple-400/5"></div>
+          <div className="absolute top-0 left-0 w-72 h-72 bg-gradient-to-br from-blue-400/20 to-indigo-600/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+          <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-indigo-400/20 to-purple-600/20 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2"></div>
+          
+          <div className="relative p-6">
+            <div className="max-w-7xl mx-auto space-y-8">
+              {/* Header premium con efectos glassmorphism */}
+              <div className="flex items-center justify-between p-6 backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 rounded-2xl shadow-xl shadow-gray-500/10 border border-gray-200/50 dark:border-gray-700/50">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-4">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => window.history.back()} 
+                      className="flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors rounded-xl px-3 py-2"
+                    >
+                      <ArrowLeft className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Volver</span>
                     </Button>
+                    <div className="h-6 w-px bg-gradient-to-b from-transparent via-gray-300 dark:via-gray-600 to-transparent"></div>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+                        <BarChart3 className="h-6 w-6 text-white" />
+                      </div>
+                      <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                        Análisis por Temas
+                      </h1>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                  <p className="text-gray-600 dark:text-gray-400 ml-20 text-lg">
+                    Descubre en qué temas necesitas enfocar tu estudio
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  {/* ✅ CAMBIO 5: Se elimina el botón de prueba del JSX. */}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={refreshData} 
+                    className="flex items-center gap-2 h-10 px-4 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 border border-gray-200 dark:border-gray-700 rounded-xl transition-all duration-200 hover:shadow-md"
+                  >
+                    <RefreshCw className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Actualizar</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Cards de estadísticas premium con animaciones */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card className="group hover:scale-[1.02] transition-all duration-300 backdrop-blur-sm bg-white/90 dark:bg-gray-800/90 shadow-xl shadow-gray-500/10 border border-gray-200/50 dark:border-gray-700/50">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Promedio General</p>
+                        <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                          {promedioGeneral}%
+                        </p>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
+                          <div 
+                            className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-1000 ease-out"
+                            style={{ width: `${promedioGeneral}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                        <Target className="h-8 w-8 text-white" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="group hover:scale-[1.02] transition-all duration-300 backdrop-blur-sm bg-white/90 dark:bg-gray-800/90 shadow-xl shadow-gray-500/10 border border-gray-200/50 dark:border-gray-700/50">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Respondidas</p>
+                        <p className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                          {totalPreguntas}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500">preguntas completadas</p>
+                      </div>
+                      <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                        <BarChart3 className="h-8 w-8 text-white" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="group hover:scale-[1.02] transition-all duration-300 backdrop-blur-sm bg-white/90 dark:bg-gray-800/90 shadow-xl shadow-gray-500/10 border border-gray-200/50 dark:border-gray-700/50">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Temas Dominados</p>
+                        <p className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent">
+                          {temasDominados.length}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500">completamente dominados</p>
+                      </div>
+                      <div className="p-3 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300 group-hover:rotate-12">
+                        <div className="text-2xl">🏆</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="group hover:scale-[1.02] transition-all duration-300 backdrop-blur-sm bg-white/90 dark:bg-gray-800/90 shadow-xl shadow-gray-500/10 border border-gray-200/50 dark:border-gray-700/50">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Necesitan Práctica</p>
+                        <p className="text-3xl font-bold bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent">
+                          {temasNecesitanPractica.length}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500">requieren atención</p>
+                      </div>
+                      <div className="p-3 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                        <div className="text-2xl">📚</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Secciones de temas con diseño premium */}
+              <div className="space-y-8">
+                {temasNecesitanPractica.length > 0 && (
+                  <Card className="backdrop-blur-sm bg-white/95 dark:bg-gray-800/95 shadow-xl shadow-red-500/5 border border-red-200/50 dark:border-red-700/50">
+                    <CardHeader className="bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border-b border-red-200/50 dark:border-red-700/50">
+                      <CardTitle className="flex items-center gap-3 text-xl">
+                        <div className="p-2 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl shadow-lg">
+                          <div className="text-xl">📚</div>
+                        </div>
+                        <span className="bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent font-bold">
+                          Necesitan Práctica
+                        </span>
+                        <div className="ml-auto flex items-center gap-2">
+                          <div className="text-xs text-red-600 dark:text-red-400 font-medium">PRIORIDAD ALTA</div>
+                          <Badge className="bg-gradient-to-r from-red-500 to-rose-600 text-white border-0 font-semibold shadow-lg">
+                            {temasNecesitanPractica.length}
+                          </Badge>
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {temasNecesitanPractica.map((topic) => (
+                          <TopicCard key={topic.tema_id} topic={topic} priority="high" />
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                {temasEnProgreso.length > 0 && (
+                  <Card className="backdrop-blur-sm bg-white/95 dark:bg-gray-800/95 shadow-xl shadow-green-500/5 border border-green-200/50 dark:border-green-700/50">
+                    <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-b border-green-200/50 dark:border-green-700/50">
+                      <CardTitle className="flex items-center gap-3 text-xl">
+                        <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg">
+                          <div className="text-xl">📈</div>
+                        </div>
+                        <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent font-bold">
+                          En Progreso
+                        </span>
+                        <div className="ml-auto flex items-center gap-2">
+                          <div className="text-xs text-green-600 dark:text-green-400 font-medium">AVANZANDO</div>
+                          <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0 font-semibold shadow-lg">
+                            {temasEnProgreso.length}
+                          </Badge>
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {temasEnProgreso.map((topic) => (
+                          <TopicCard key={topic.tema_id} topic={topic} priority="medium" />
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                {temasCasiDominados.length > 0 && (
+                  <Card className="backdrop-blur-sm bg-white/95 dark:bg-gray-800/95 shadow-xl shadow-blue-500/5 border border-blue-200/50 dark:border-blue-700/50">
+                    <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-b border-blue-200/50 dark:border-blue-700/50">
+                      <CardTitle className="flex items-center gap-3 text-xl">
+                        <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+                          <div className="text-xl">⭐</div>
+                        </div>
+                        <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-bold">
+                          Casi Dominados
+                        </span>
+                        <div className="ml-auto flex items-center gap-2">
+                          <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">CERCA DEL ÉXITO</div>
+                          <Badge className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0 font-semibold shadow-lg">
+                            {temasCasiDominados.length}
+                          </Badge>
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {temasCasiDominados.map((topic) => (
+                          <TopicCard key={topic.tema_id} topic={topic} priority="low" />
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                {temasDominados.length > 0 && (
+                  <Card className="backdrop-blur-sm bg-white/95 dark:bg-gray-800/95 shadow-xl shadow-yellow-500/5 border border-yellow-200/50 dark:border-yellow-700/50">
+                    <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-b border-yellow-200/50 dark:border-yellow-700/50">
+                      <CardTitle className="flex items-center gap-3 text-xl">
+                        <div className="p-2 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl shadow-lg animate-pulse">
+                          <div className="text-xl">🏆</div>
+                        </div>
+                        <span className="bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent font-bold">
+                          Temas Dominados
+                        </span>
+                        <div className="ml-auto flex items-center gap-2">
+                          <div className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">¡COMPLETADOS!</div>
+                          <Badge className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white border-0 font-semibold shadow-lg">
+                            {temasDominados.length}
+                          </Badge>
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {temasDominados.map((topic) => (
+                          <TopicCard key={topic.tema_id} topic={topic} priority="achieved" />
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                {topicStats.length === 0 && (
+                  <Card className="backdrop-blur-sm bg-white/95 dark:bg-gray-800/95 shadow-xl shadow-gray-500/10 border border-gray-200/50 dark:border-gray-700/50">
+                    <CardContent className="flex items-center justify-center p-16">
+                      <div className="text-center space-y-6 max-w-md">
+                        <div className="relative">
+                          <div className="w-24 h-24 mx-auto bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-full flex items-center justify-center mb-4">
+                            <BookOpen className="h-12 w-12 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white text-lg animate-bounce">
+                            ✨
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <h3 className="text-xl font-bold bg-gradient-to-r from-gray-700 to-gray-900 dark:from-gray-200 dark:to-gray-100 bg-clip-text text-transparent">
+                            No hay datos disponibles
+                          </h3>
+                          <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                            Completa algunos tests para ver tu análisis por temas y descubrir en qué áreas necesitas mejorar
+                          </p>
+                        </div>
+                        <Button 
+                          onClick={() => navigate("/test-setup")}
+                          className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 h-12 px-8 rounded-xl font-semibold"
+                        >
+                          <PlayCircle className="mr-2 h-5 w-5" />
+                          Hacer un Test
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </main>
