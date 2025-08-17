@@ -85,7 +85,7 @@ export const TopicAnalysisChart = ({ topics }: TopicAnalysisChartProps) => {
                 className="text-xs"
                 tick={{ fill: 'hsl(var(--foreground))', fontSize: 11 }}
                 axisLine={{ stroke: 'hsl(var(--border))' }}
-                label={{ value: 'Precisión (%)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
+                label={{ value: 'Precisión (%)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' }, dx:10 }}
               />
               <Tooltip 
                 contentStyle={{ 
