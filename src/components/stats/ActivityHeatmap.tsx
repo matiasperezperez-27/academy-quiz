@@ -68,34 +68,35 @@ export const ActivityHeatmap = ({ data }: ActivityHeatmapProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {/* Días de la semana */}
-          <div className="flex gap-1 ml-8">
+          <div className="flex gap-1.5">
+            <div className="w-8 flex-shrink-0"></div> {/* Spacer for week labels */}
             {days.map(day => (
-              <div key={day} className="w-8 h-8 flex items-center justify-center text-xs text-muted-foreground">
+              <div key={day} className="w-9 h-9 rounded-md flex items-center justify-center text-xs text-muted-foreground font-medium">
                 {day}
               </div>
             ))}
           </div>
 
           {/* Grid de actividad */}
-          <div className="flex gap-1">
-            <div className="flex flex-col gap-1 justify-end pr-2">
+          <div className="flex gap-1.5">
+            <div className="flex flex-col gap-1.5 justify-end w-8 flex-shrink-0">
               {Array.from({ length: weeks }, (_, i) => (
-                <div key={i} className="h-8 flex items-center text-xs text-muted-foreground">
+                <div key={i} className="h-10 flex items-center justify-center text-xs text-muted-foreground font-medium">
                   S{weeks - i}
                 </div>
               ))}
             </div>
             
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5">
               {heatmapData.map((week, weekIndex) => (
-                <div key={weekIndex} className="flex gap-1">
+                <div key={weekIndex} className="flex gap-1.5">
                   {week.map((day, dayIndex) => (
                     <div
                       key={dayIndex}
                       className={cn(
-                        "w-8 h-8 rounded transition-all cursor-pointer relative group",
+                        "w-9 h-9 rounded-md transition-all cursor-pointer relative group",
                         getIntensityClass(day.sessions, day.isFuture),
                         day.isToday && "ring-2 ring-primary ring-offset-1"
                       )}
