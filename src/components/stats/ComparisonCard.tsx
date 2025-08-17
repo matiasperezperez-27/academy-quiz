@@ -2,19 +2,18 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-
 interface ComparisonCardProps {
   userAverage: number;
   globalAverage: number;
 }
-
-export const ComparisonCard = ({ userAverage, globalAverage }: ComparisonCardProps) => {
+export const ComparisonCard = ({
+  userAverage,
+  globalAverage
+}: ComparisonCardProps) => {
   const difference = userAverage - globalAverage;
   const isAbove = difference > 0;
   const isEqual = Math.abs(difference) < 1;
-
-  return (
-    <Card>
+  return <Card className="my-[200px]">
       <CardHeader>
         <CardTitle>Comparación con el Promedio Global</CardTitle>
       </CardHeader>
@@ -37,33 +36,25 @@ export const ComparisonCard = ({ userAverage, globalAverage }: ComparisonCardPro
 
         <div className="pt-4 border-t">
           <div className="flex items-center justify-center gap-2">
-            {isEqual ? (
-              <>
+            {isEqual ? <>
                 <Minus className="h-5 w-5 text-yellow-600" />
                 <span className="text-yellow-600 font-medium">
                   Estás en el promedio
                 </span>
-              </>
-            ) : isAbove ? (
-              <>
+              </> : isAbove ? <>
                 <ArrowUp className="h-5 w-5 text-green-600" />
                 <span className="text-green-600 font-medium">
                   {Math.abs(difference).toFixed(1)}% sobre el promedio
                 </span>
-              </>
-            ) : (
-              <>
+              </> : <>
                 <ArrowDown className="h-5 w-5 text-red-600" />
                 <span className="text-red-600 font-medium">
                   {Math.abs(difference).toFixed(1)}% bajo el promedio
                 </span>
-              </>
-            )}
+              </>}
           </div>
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };
-
 export default ComparisonCard;
