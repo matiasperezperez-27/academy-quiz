@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { TrendingUp, TrendingDown, Minus, BarChart3 } from "lucide-react";
@@ -142,63 +142,90 @@ export const TopicAnalysisChart = ({ topics }: TopicAnalysisChartProps) => {
           </div>
           
           <div className="space-y-3">
-            {topics.map((topic) => (
-              <div 
-                key={topic.topicId}
-                className="group flex items-center justify-between p-5 bg-gradient-to-r from-gray-50/80 to-blue-50/30 dark:from-gray-800/50 dark:to-blue-900/10 rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all duration-300 border border-gray-200/50 dark:border-gray-700/50 hover:border-blue-300/50 dark:hover:border-blue-600/50"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-2 h-2 mt-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600"></div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                        {topic.topicName}
-                      </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{topic.academyName}</p>
-                    </div>
-                  </div>
-                </div>
+            {topics.map((topic) => {
+              const [isExpanded, setIsExpanded] = useState(false);
+              const isLongTitle = topic.topicName && topic.topicName.length > 40;
+              const truncatedTitle = isLongTitle && !isExpanded 
+                ? topic.topicName.substring(0, 40) + '...' 
+                : topic.topicName;
                 
-                <div className="flex items-center gap-6 flex-shrink-0">
-                  <div className="text-right">
-                    <div className="flex items-center gap-2 justify-end mb-1">
-                      <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{topic.accuracy}%</p>
-                      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600">
-                        {topic.trend === 'up' && (
-                          <TrendingUp className="h-3 w-3 text-green-600 dark:text-green-400" />
-                        )}
-                        {topic.trend === 'down' && (
-                          <TrendingDown className="h-3 w-3 text-red-600 dark:text-red-400" />
-                        )}
-                        {topic.trend === 'stable' && (
-                          <Minus className="h-3 w-3 text-yellow-600 dark:text-yellow-400" />
-                        )}
+              return (
+                <div 
+                  key={topic.topicId}
+                  className="group flex flex-col md:flex-row md:items-center gap-3 md:gap-6 p-4 md:p-5 bg-gradient-to-r from-gray-50/80 to-blue-50/30 dark:from-gray-800/50 dark:to-blue-900/10 rounded-xl hover:shadow-lg transition-all duration-300 border border-gray-200/50 dark:border-gray-700/50"
+                >
+                  {/* Contenido principal - stack vertical en móvil */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-2 h-2 mt-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-semibold text-sm md:text-base text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight">
+                            {truncatedTitle}
+                          </p>
+                          {isLongTitle && (
+                            <button
+                              onClick={() => setIsExpanded(!isExpanded)}
+                              className="flex-shrink-0 p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded transition-colors"
+                            >
+                              <svg 
+                                className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{topic.academyName}</p>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      {topic.totalQuestions} preguntas
-                    </p>
                   </div>
                   
-                  <Badge 
-                    variant={
-                      topic.accuracy >= 80 ? "default" :
-                      topic.accuracy >= 60 ? "secondary" :
-                      "destructive"
-                    }
-                    className={`min-w-[100px] justify-center font-semibold shadow-sm ${
-                      topic.accuracy >= 80 ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0" :
-                      topic.accuracy >= 60 ? "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-0" :
-                      "bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white border-0"
-                    }`}
-                  >
-                    {topic.accuracy >= 80 ? "🏆 Dominado" :
-                     topic.accuracy >= 60 ? "📈 En progreso" :
-                     "📚 Necesita práctica"}
-                  </Badge>
+                  {/* Métricas y badge - layout móvil */}
+                  <div className="flex items-center justify-between md:justify-end gap-4 md:gap-6 flex-shrink-0">
+                    <div className="text-left md:text-right">
+                      <div className="flex items-center gap-2 md:justify-end mb-1">
+                        <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{topic.accuracy}%</p>
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600">
+                          {topic.trend === 'up' && (
+                            <TrendingUp className="h-3 w-3 text-green-600 dark:text-green-400" />
+                          )}
+                          {topic.trend === 'down' && (
+                            <TrendingDown className="h-3 w-3 text-red-600 dark:text-red-400" />
+                          )}
+                          {topic.trend === 'stable' && (
+                            <Minus className="h-3 w-3 text-yellow-600 dark:text-yellow-400" />
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        {topic.totalQuestions} preguntas
+                      </p>
+                    </div>
+                    
+                    <Badge 
+                      variant={
+                        topic.accuracy >= 80 ? "default" :
+                        topic.accuracy >= 60 ? "secondary" :
+                        "destructive"
+                      }
+                      className={`min-w-[90px] md:min-w-[100px] justify-center font-semibold shadow-sm text-xs ${
+                        topic.accuracy >= 80 ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0" :
+                        topic.accuracy >= 60 ? "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-0" :
+                        "bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white border-0"
+                      }`}
+                    >
+                      {topic.accuracy >= 80 ? "🏆 Dominado" :
+                       topic.accuracy >= 60 ? "📈 En progreso" :
+                       "📚 Necesita práctica"}
+                    </Badge>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </CardContent>
