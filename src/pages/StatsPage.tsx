@@ -292,9 +292,11 @@ export default function StatsPage() {
           <TabNavigation />
 
           <TabsContent value="activity" className="space-y-4 mt-6">
-            {/* Actividad Semanal - Solo móvil sin container */}
-            <div className="md:hidden -mx-0 md:-mx-6">
-              <ActivityHeatmap data={stats?.weeklyActivity || []} />
+            {/* Actividad Semanal - Solo móvil */}
+            <div className="md:hidden">
+              <ChartContainer title="Actividad Semanal" subtitle="Tu progreso diario">
+                <ActivityHeatmap data={stats?.weeklyActivity || []} />
+              </ChartContainer>
             </div>
             
             {/* Actividad Mensual */}
@@ -304,11 +306,11 @@ export default function StatsPage() {
               </div>
             </ChartContainer>
             
-            {/* Desktop grid (oculto en móvil) - sin container */}
+            {/* Desktop grid (oculto en móvil) */}
             <div className="hidden md:grid md:grid-cols-2 gap-6">
-              <div className="-mx-6">
+              <ChartContainer title="Actividad Semanal" subtitle="Heatmap de progreso">
                 <ActivityHeatmap data={stats?.weeklyActivity || []} />
-              </div>
+              </ChartContainer>
             </div>
           </TabsContent>
 
