@@ -68,47 +68,47 @@ export const ActivityHeatmap = ({ data }: ActivityHeatmapProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2">
-          {/* Días de la semana */}
-          <div className="flex gap-1 ml-8">
+        <div className="space-y-4">
+          {/* Días de la semana - con celdas más grandes */}
+          <div className="flex gap-2 ml-16">
             {days.map(day => (
-              <div key={day} className="w-8 h-8 flex items-center justify-center text-xs text-muted-foreground">
+              <div key={day} className="w-12 h-12 flex items-center justify-center text-sm font-medium text-muted-foreground">
                 {day}
               </div>
             ))}
           </div>
 
-          {/* Grid de actividad */}
-          <div className="flex gap-1">
-            <div className="flex flex-col gap-1 justify-end pr-2">
+          {/* Grid de actividad - celdas más grandes y mejor espaciado */}
+          <div className="flex gap-2">
+            <div className="flex flex-col gap-2 justify-end pr-3">
               {Array.from({ length: weeks }, (_, i) => (
-                <div key={i} className="h-8 flex items-center text-xs text-muted-foreground">
+                <div key={i} className="h-12 flex items-center text-sm font-medium text-muted-foreground">
                   S{weeks - i}
                 </div>
               ))}
             </div>
             
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-2 flex-1">
               {heatmapData.map((week, weekIndex) => (
-                <div key={weekIndex} className="flex gap-1">
+                <div key={weekIndex} className="flex gap-2">
                   {week.map((day, dayIndex) => (
                     <div
                       key={dayIndex}
                       className={cn(
-                        "w-8 h-8 rounded transition-all cursor-pointer relative group",
+                        "w-12 h-12 rounded-lg transition-all cursor-pointer relative group flex-1 max-w-[48px]",
                         getIntensityClass(day.sessions, day.isFuture),
-                        day.isToday && "ring-2 ring-primary ring-offset-1"
+                        day.isToday && "ring-2 ring-primary ring-offset-2"
                       )}
                       title={`${day.sessions} sesiones - ${day.accuracy}% precisión`}
                     >
                       {day.sessions > 0 && !day.isFuture && (
-                        <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">
+                        <div className="absolute inset-0 flex items-center justify-center text-sm font-bold text-white">
                           {day.sessions}
                         </div>
                       )}
                       
-                      {/* Tooltip */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 whitespace-nowrap">
+                      {/* Tooltip mejorado */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-2 bg-popover text-popover-foreground text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 whitespace-nowrap border">
                         {new Date(day.date).toLocaleDateString('es-ES', { 
                           weekday: 'short', 
                           day: 'numeric',
@@ -117,9 +117,9 @@ export const ActivityHeatmap = ({ data }: ActivityHeatmapProps) => {
                         {day.sessions > 0 && (
                           <>
                             <br />
-                            {day.sessions} sesión{day.sessions > 1 ? 'es' : ''}
+                            <span className="font-medium">{day.sessions} sesión{day.sessions > 1 ? 'es' : ''}</span>
                             <br />
-                            {day.accuracy}% precisión
+                            <span className="text-green-600 dark:text-green-400">{day.accuracy}% precisión</span>
                           </>
                         )}
                       </div>
@@ -130,14 +130,14 @@ export const ActivityHeatmap = ({ data }: ActivityHeatmapProps) => {
             </div>
           </div>
 
-          {/* Leyenda */}
-          <div className="flex items-center justify-between mt-4 text-xs text-muted-foreground">
+          {/* Leyenda mejorada */}
+          <div className="flex items-center justify-between mt-6 text-sm text-muted-foreground">
             <span>Menos</span>
-            <div className="flex gap-1">
-              <div className="w-4 h-4 bg-muted rounded" />
-              <div className="w-4 h-4 bg-blue-200 rounded" />
-              <div className="w-4 h-4 bg-blue-400 rounded" />
-              <div className="w-4 h-4 bg-blue-600 rounded" />
+            <div className="flex gap-2">
+              <div className="w-6 h-6 bg-muted rounded-lg" />
+              <div className="w-6 h-6 bg-blue-200 rounded-lg" />
+              <div className="w-6 h-6 bg-blue-400 rounded-lg" />
+              <div className="w-6 h-6 bg-blue-600 rounded-lg" />
             </div>
             <span>Más</span>
           </div>
