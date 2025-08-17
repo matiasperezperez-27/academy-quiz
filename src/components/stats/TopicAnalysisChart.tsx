@@ -66,10 +66,10 @@ export const TopicAnalysisChart = ({ topics }: TopicAnalysisChartProps) => {
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-4 sm:p-6">
-        <div className="mb-6 -mx-4 sm:mx-0">
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData} margin={{ top: 20, right: 10, left: 10, bottom: 80 }}>
+      <CardContent className="p-6">
+        <div className="mb-6 p-4 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-xl border border-blue-200/30 dark:border-blue-700/30">
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.3} />
               <XAxis 
                 dataKey="name" 
@@ -85,7 +85,7 @@ export const TopicAnalysisChart = ({ topics }: TopicAnalysisChartProps) => {
                 className="text-xs"
                 tick={{ fill: 'hsl(var(--foreground))', fontSize: 11 }}
                 axisLine={{ stroke: 'hsl(var(--border))' }}
-                label={{ value: 'Precisión (%)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle, dx:30' } }}
+                label={{ value: 'Precisión (%)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle,' }, dx: 10 }}
               />
               <Tooltip 
                 contentStyle={{ 
