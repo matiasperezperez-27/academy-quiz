@@ -120,65 +120,143 @@ export default function StatsPage() {
   );
 
   const ExecutiveSummary = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-      <MetricCard
-        value={stats?.streakDays || 0}
-        label="Racha Actual"
-        icon={Zap}
-        color="orange"
-        trend={stats?.streakDays > 0 ? 5 : 0}
-      />
-      <MetricCard
-        value={`${Math.round(stats?.overallAccuracy || 0)}%`}
-        label="Precisión Global"
-        icon={Target}
-        color="green"
-        trend={2}
-      />
-      <MetricCard
-        value={stats?.totalSessions || 0}
-        label="Sesiones Totales"
-        icon={BarChart3}
-        color="blue"
-        trend={8}
-      />
+    <div className="space-y-6">
+      {/* Racha Semanal al principio - tamaño original */}
+      <div className="p-4 bg-gradient-to-r from-orange-100 to-red-100 dark:from-orange-900/20 dark:to-red-900/20 rounded-2xl border border-orange-200 dark:border-orange-700/30">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <Zap className="w-5 h-5 text-orange-500" />
+              Racha Semanal
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Lunes a Domingo</p>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+              {(() => {
+                // Calcular días activos de la semana
+                const today = new Date();
+                let activeDays = 0;
+                for (let i = 6; i >= 0; i--) {
+                  const date = new Date(today);
+                  date.setDate(today.getDate() - i);
+                  const dayActivity = (stats?.weeklyActivity || []).find(d => {
+                    if (!d?.date) return false;
+                    const activityDate = new Date(d.date);
+                    return activityDate.toDateString() === date.toDateString();
+                  });
+                  if (dayActivity?.sessions > 0) activeDays++;
+                }
+                return activeDays;
+              })()}
+            </div>
+            <div className="text-xs text-gray-600 dark:text-gray-400">días activos</div>
+          </div>
+        </div>
+        
+        {/* Grid semanal L-D con datos reales */}
+        <div className="grid grid-cols-7 gap-2">
+          {(() => {
+            // Usar la misma lógica que ActivityHeatmap para generar la semana actual
+            const days = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+            const today = new Date();
+            const weekData = [];
+            
+            // Generar los últimos 7 días (semana actual)
+            for (let i = 6; i >= 0; i--) {
+              const date = new Date(today);
+              date.setDate(today.getDate() - i);
+              
+              // Buscar si hay actividad en este día usando los datos de stats
+              const dayActivity = (stats?.weeklyActivity || []).find(d => {
+                if (!d?.date) return false;
+                const activityDate = new Date(d.date);
+                return activityDate.toDateString() === date.toDateString();
+              });
+              
+              const isToday = date.toDateString() === today.toDateString();
+              const hasSessions = dayActivity?.sessions > 0;
+              
+              weekData.push({
+                dayLetter: days[date.getDay() === 0 ? 6 : date.getDay() - 1], // Ajustar domingo
+                date: date,
+                sessions: dayActivity?.sessions || 0,
+                isToday,
+                hasSessions
+              });
+            }
+            
+            return weekData.map((dayData, index) => (
+              <div key={index} className="flex flex-col items-center">
+                <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                  {dayData.dayLetter}
+                </div>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 ${
+                  dayData.hasSessions 
+                    ? 'bg-orange-500 text-white shadow-lg' 
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-500'
+                } ${
+                  dayData.isToday ? 'ring-2 ring-orange-300 dark:ring-orange-600' : ''
+                }`}>
+                  {dayData.hasSessions ? dayData.sessions : '○'}
+                </div>
+              </div>
+            ));
+          })()}
+        </div>
+      </div>
+
+      {/* Métricas restantes */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <MetricCard
+          value={`${Math.round(stats?.overallAccuracy || 0)}%`}
+          label="Precisión Global"
+          icon={Target}
+          color="green"
+          trend={2}
+        />
+        <MetricCard
+          value={stats?.totalSessions || 0}
+          label="Sesiones Totales"
+          icon={BarChart3}
+          color="blue"
+          trend={8}
+        />
+      </div>
     </div>
   );
 
+
   const TabNavigation = () => (
     <div className="relative">
-      <TabsList className="w-full h-auto p-1 bg-gray-100 dark:bg-gray-800 rounded-xl overflow-x-auto scrollbar-hide">
-        <div className="flex gap-1 min-w-max px-1">
-          <TabsTrigger 
-            value="activity" 
-            className="flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm whitespace-nowrap"
-          >
-            <Activity className="h-4 w-4 mr-2" />
-            Actividad
-            <span className="ml-1 px-1.5 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded">
-              {stats?.weeklyActivity?.length || 0}
-            </span>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="performance" 
-            className="flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm whitespace-nowrap"
-          >
-            <TrendingUp className="h-4 w-4 mr-2" />
-            Rendimiento
-            <span className="ml-1 px-1.5 py-0.5 text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded">
-              {Math.round(stats?.overallAccuracy || 0)}%
-            </span>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="topics" 
-            className="flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm whitespace-nowrap"
-          >
-            <Award className="h-4 w-4 mr-2" />
-            Por Temas
-            <span className="ml-1 px-1.5 py-0.5 text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded">
-              {stats?.topicPerformance?.length || 0}
-            </span>
-          </TabsTrigger>
+      <TabsList className="w-full h-auto p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+        <div className="flex overflow-x-auto scrollbar-hide pb-1">
+          <div className="flex gap-1 min-w-max px-1">
+            <TabsTrigger 
+              value="activity" 
+              className="flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm whitespace-nowrap min-w-[100px]"
+            >
+              <Activity className="h-3 w-3 mr-1" />
+              <span className="hidden sm:inline">Actividad</span>
+              <span className="sm:hidden">Act</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="performance" 
+              className="flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm whitespace-nowrap min-w-[100px]"
+            >
+              <TrendingUp className="h-3 w-3 mr-1" />
+              <span className="hidden sm:inline">Rendimiento</span>
+              <span className="sm:hidden">Rend</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="topics" 
+              className="flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm whitespace-nowrap min-w-[100px]"
+            >
+              <Award className="h-3 w-3 mr-1" />
+              <span className="hidden sm:inline">Por Temas</span>
+              <span className="sm:hidden">Temas</span>
+            </TabsTrigger>
+          </div>
         </div>
       </TabsList>
     </div>
@@ -213,75 +291,60 @@ export default function StatsPage() {
         <Tabs defaultValue="activity" className="space-y-6">
           <TabNavigation />
 
-          <TabsContent value="activity" className="space-y-6 mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ChartContainer title="Racha de Estudio" subtitle="Tu constancia diaria">
-                <div className="flex items-center justify-center p-6">
-                  <div className="text-center space-y-4">
-                    <ProgressRing percentage={Math.min((stats?.streakDays || 0) * 10, 100)} color="orange" size={120} />
-                    <div>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats?.streakDays || 0} días</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Racha actual</p>
-                    </div>
-                  </div>
-                </div>
-              </ChartContainer>
-
-              <ChartContainer title="Actividad Semanal" subtitle="Heatmap de progreso">
+          <TabsContent value="activity" className="space-y-4 mt-6">
+            {/* Actividad Semanal - Solo móvil */}
+            <div className="md:hidden">
+              <ChartContainer title="Actividad Semanal" subtitle="Tu progreso diario">
                 <ActivityHeatmap data={stats?.weeklyActivity || []} />
               </ChartContainer>
             </div>
             
-            <ChartContainer title="Actividad Mensual" subtitle="Evolución temporal de tu estudio">
-              <MonthlyActivityChart data={stats?.monthlyActivity || []} />
+            {/* Actividad Mensual */}
+            <ChartContainer title="Actividad Mensual" subtitle="Evolución de tu estudio">
+              <div className="h-64 md:h-80">
+                <MonthlyActivityChart data={stats?.monthlyActivity || []} />
+              </div>
             </ChartContainer>
+            
+            {/* Desktop grid (oculto en móvil) */}
+            <div className="hidden md:grid md:grid-cols-2 gap-6">
+              <ChartContainer title="Actividad Semanal" subtitle="Heatmap de progreso">
+                <ActivityHeatmap data={stats?.weeklyActivity || []} />
+              </ChartContainer>
+            </div>
           </TabsContent>
 
-          <TabsContent value="performance" className="space-y-6 mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <ChartContainer title="Evolución del Rendimiento" subtitle="Tu progreso a lo largo del tiempo">
-                  <PerformanceChart 
-                    sessions={stats?.recentSessions || []} 
-                    title="Evolución del Rendimiento"
-                  />
-                </ChartContainer>
-              </div>
-              
-              <div className="space-y-6">
-                <ChartContainer title="Precisión Global" subtitle="Tu nivel actual">
-                  <div className="flex items-center justify-center p-6">
-                    <ProgressRing 
-                      percentage={Math.round(stats?.overallAccuracy || 0)} 
-                      color="green" 
-                      size={120} 
-                    />
-                  </div>
-                </ChartContainer>
-
-                <ComparisonCard 
-                  userAverage={stats?.overallAccuracy || 0}
-                  globalAverage={75}
-                />
-              </div>
+          <TabsContent value="performance" className="space-y-6 mt-10">
+            {/* Gráfico principal sin container - más espacio */}
+            <div className="relative h-80 md:h-96 -mx-0 md:-mx-6 mb-40">
+              <PerformanceChart 
+                sessions={stats?.recentSessions || []} 
+                title="Evolución del Rendimiento"
+              />
+            </div>
+            
+            {/* Solo ComparisonCard - eliminar duplicados */}
+            <div className="w-full relative z-10">
+              <ComparisonCard 
+                userAverage={stats?.overallAccuracy || 0}
+                globalAverage={75}
+              />
             </div>
           </TabsContent>
 
           <TabsContent value="topics" className="space-y-6 mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ChartContainer title="Análisis por Temas" subtitle="Fortalezas y áreas de mejora">
-                <TopicAnalysisChart 
-                  topics={stats?.topicPerformance || []}
-                />
-              </ChartContainer>
-
-              <div className="space-y-6">
-                <RecommendationsCard 
-                  weakTopics={stats?.weakTopics || []}
-                  strongTopics={stats?.strongTopics || []}
-                />
-              </div>
+            {/* TopicAnalysisChart - altura fija móvil */}
+            <div className="w-full">
+              <TopicAnalysisChart 
+                topics={stats?.topicPerformance || []}
+              />
             </div>
+            
+            {/* Recomendaciones */}
+            <RecommendationsCard 
+              weakTopics={stats?.weakTopics || []}
+              strongTopics={stats?.strongTopics || []}
+            />
           </TabsContent>
         </Tabs>
       </div>
