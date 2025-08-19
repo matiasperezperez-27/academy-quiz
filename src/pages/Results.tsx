@@ -256,35 +256,49 @@ export default function Results() {
   }
 
   return (
-    <main className="min-h-screen p-4 flex items-center justify-center bg-background">
-      <div className="w-full max-w-2xl space-y-6">
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+      <div className="relative">
+        {/* Hero background with decorative elements */}
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-indigo-600/5 to-purple-600/5 dark:from-blue-400/5 dark:via-indigo-400/5 dark:to-purple-400/5"></div>
+        <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-indigo-600/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-indigo-400/20 to-purple-600/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
         
-        {/* Header with Back Button */}
-        <div className="flex items-center justify-between">
+        <div className="relative p-4 sm:p-6">
+          <div className="w-full max-w-4xl mx-auto space-y-8">
+        
+        {/* Header with premium styling */}
+        <div className="flex items-center justify-between p-4 sm:p-6 backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 rounded-2xl shadow-xl shadow-gray-500/10 border border-gray-200/50 dark:border-gray-700/50">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate("/")}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors rounded-xl px-3 py-2"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Volver
+            <ArrowLeft className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Volver</span>
           </Button>
-          <Badge variant="outline" className="px-3 py-1">
-            <BookOpen className="h-3 w-3 mr-1" />
-            {mode === "practice" ? "Modo Práctica" : "Modo Test"}
+          <Badge 
+            variant="outline" 
+            className="px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-700 rounded-xl"
+          >
+            <BookOpen className="h-4 w-4 mr-2 text-blue-600 dark:text-blue-400" />
+            <span className="font-medium text-blue-700 dark:text-blue-300">
+              {mode === "practice" ? "Modo Práctica" : "Modo Test"}
+            </span>
           </Badge>
         </div>
 
-        {/* NUEVO: Banner de completado total si aplica */}
+        {/* Banner de completado con premium styling */}
         {remainingQuestionsInTopic !== undefined && remainingQuestionsInTopic <= 0 && mode === "test" && (
-          <Card className="border-green-200 bg-green-50">
+          <Card className="backdrop-blur-sm bg-gradient-to-r from-green-50/80 to-emerald-50/50 dark:from-green-900/30 dark:to-emerald-900/20 border border-green-200/50 dark:border-green-700/50 shadow-lg shadow-green-500/10">
             <CardContent className="pt-6">
-              <div className="flex items-center justify-center space-x-3 text-green-700">
-                <CheckCircle className="h-6 w-6" />
+              <div className="flex items-center justify-center space-x-4 text-green-700 dark:text-green-300">
+                <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full shadow-lg">
+                  <CheckCircle className="h-6 w-6 text-white" />
+                </div>
                 <div className="text-center">
-                  <p className="font-semibold">¡Tema Completado!</p>
-                  <p className="text-sm">Has respondido correctamente todas las preguntas de este tema</p>
+                  <p className="font-bold text-lg">¡Tema Completado!</p>
+                  <p className="text-sm font-medium">Has respondido correctamente todas las preguntas de este tema</p>
                 </div>
               </div>
             </CardContent>
@@ -292,36 +306,49 @@ export default function Results() {
         )}
         
         {/* Main Results Card */}
-        <Card className="w-full">
-          <CardHeader className="text-center pb-4">
-            <div className="flex justify-center mb-4">
-              <div className={`p-4 rounded-full ${performance.bgColor} border-2`}>
+        <Card className="backdrop-blur-sm bg-white/95 dark:bg-gray-800/95 shadow-2xl shadow-gray-500/20 border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-b border-gray-200/50 dark:border-gray-700/50 text-center pb-6">
+            <div className="flex justify-center mb-6">
+              <div className={`p-6 rounded-full border-4 shadow-xl ${performance.bgColor} border-opacity-50`}>
                 <div className={performance.color}>
                   {performance.icon}
                 </div>
               </div>
             </div>
-            <CardTitle className="text-2xl sm:text-3xl font-bold">
+            <CardTitle className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
               {performance.title}
             </CardTitle>
-            <p className="text-muted-foreground text-base">
+            <p className="text-gray-600 dark:text-gray-400 text-lg font-medium mt-2">
               {performance.description}
             </p>
           </CardHeader>
           
-          <CardContent className="space-y-6">
+          <CardContent className="p-8 space-y-8">
             {/* Score Display */}
-            <div className="text-center space-y-4">
-              <div className="space-y-2">
-                <div className="text-4xl sm:text-6xl font-bold">
-                  <span className="text-primary">{score}</span>
-                  <span className="text-2xl sm:text-3xl text-muted-foreground">/{total}</span>
+            <div className="text-center space-y-6">
+              <div className="space-y-4">
+                <div className="relative">
+                  <div className="text-6xl sm:text-8xl font-bold">
+                    <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{score}</span>
+                    <span className="text-3xl sm:text-4xl text-gray-400 dark:text-gray-500">/{total}</span>
+                  </div>
+                  {/* Efecto de brillo */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-indigo-600/20 rounded-full blur-3xl -z-10"></div>
                 </div>
-                <div className="space-y-2">
-                  <Progress value={percentage} className="h-3" />
-                  <div className="flex justify-between text-sm text-muted-foreground">
+                
+                <div className="space-y-4">
+                  <div className="relative">
+                    <Progress 
+                      value={percentage}
+                      className="h-4 rounded-full shadow-inner bg-gray-200 dark:bg-gray-700"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/30 to-transparent rounded-full pointer-events-none"></div>
+                  </div>
+                  <div className="flex justify-between text-sm font-medium text-gray-600 dark:text-gray-400">
                     <span>0%</span>
-                    <span className="font-medium">{percentage}%</span>
+                    <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-bold text-base">
+                      {percentage}%
+                    </span>
                     <span>100%</span>
                   </div>
                 </div>
@@ -329,50 +356,76 @@ export default function Results() {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-                <div className="text-2xl font-bold text-green-600">{score}</div>
-                <div className="text-sm text-green-700">Correctas</div>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="text-center p-6 bg-gradient-to-r from-green-50/80 to-emerald-50/50 dark:from-green-900/30 dark:to-emerald-900/20 rounded-2xl border border-green-200/50 dark:border-green-700/50 shadow-lg shadow-green-500/5">
+                <div className="flex items-center justify-center mb-2">
+                  <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg shadow-lg">
+                    <CheckCircle className="h-5 w-5 text-white" />
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-green-600 dark:text-green-400">{score}</div>
+                <div className="text-sm font-medium text-green-700 dark:text-green-300">Correctas</div>
               </div>
-              <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
-                <div className="text-2xl font-bold text-red-600">{actualFailedCount}</div>
-                <div className="text-sm text-red-700">Incorrectas</div>
+              
+              <div className="text-center p-6 bg-gradient-to-r from-red-50/80 to-rose-50/50 dark:from-red-900/30 dark:to-rose-900/20 rounded-2xl border border-red-200/50 dark:border-red-700/50 shadow-lg shadow-red-500/5">
+                <div className="flex items-center justify-center mb-2">
+                  <div className="p-2 bg-gradient-to-br from-red-500 to-rose-600 rounded-lg shadow-lg">
+                    <AlertCircle className="h-5 w-5 text-white" />
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-red-600 dark:text-red-400">{actualFailedCount}</div>
+                <div className="text-sm font-medium text-red-700 dark:text-red-300">Incorrectas</div>
               </div>
             </div>
 
-            {/* NUEVA: Stats adicionales si están disponibles */}
+            {/* Stats adicionales premium */}
             {(pointsEarned > 0 || averageTimePerQuestion > 0) && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-6">
                 {pointsEarned > 0 && (
-                  <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="text-2xl font-bold text-blue-600">{pointsEarned}</div>
-                    <div className="text-sm text-blue-700">Puntos</div>
+                  <div className="text-center p-6 bg-gradient-to-r from-blue-50/80 to-indigo-50/50 dark:from-blue-900/30 dark:to-indigo-900/20 rounded-2xl border border-blue-200/50 dark:border-blue-700/50 shadow-lg shadow-blue-500/5">
+                    <div className="flex items-center justify-center mb-2">
+                      <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-lg">
+                        <Award className="h-5 w-5 text-white" />
+                      </div>
+                    </div>
+                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{pointsEarned}</div>
+                    <div className="text-sm font-medium text-blue-700 dark:text-blue-300">Puntos</div>
                   </div>
                 )}
                 {averageTimePerQuestion > 0 && (
-                  <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
-                    <div className="text-2xl font-bold text-purple-600">{averageTimePerQuestion}s</div>
-                    <div className="text-sm text-purple-700">Promedio</div>
+                  <div className="text-center p-6 bg-gradient-to-r from-purple-50/80 to-pink-50/50 dark:from-purple-900/30 dark:to-pink-900/20 rounded-2xl border border-purple-200/50 dark:border-purple-700/50 shadow-lg shadow-purple-500/5">
+                    <div className="flex items-center justify-center mb-2">
+                      <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg shadow-lg">
+                        <Trophy className="h-5 w-5 text-white" />
+                      </div>
+                    </div>
+                    <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{averageTimePerQuestion}s</div>
+                    <div className="text-sm font-medium text-purple-700 dark:text-purple-300">Promedio</div>
                   </div>
                 )}
               </div>
             )}
 
-            {/* NUEVA: Información de progreso del tema */}
+            {/* Información de progreso del tema premium */}
             {remainingQuestionsInTopic !== undefined && mode === "test" && !isFromTopicAnalysis && (
-              <div className="bg-muted/30 p-4 rounded-lg border-l-4 border-blue-500">
+              <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/50 dark:from-blue-900/30 dark:to-indigo-900/20 p-6 rounded-2xl border-l-4 border-blue-500 shadow-lg shadow-blue-500/5">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-blue-700">Progreso del Tema</p>
-                    <p className="text-sm text-muted-foreground">
-                      {remainingQuestionsInTopic > 0 
-                        ? `Quedan ${remainingQuestionsInTopic} preguntas por dominar`
-                        : "¡Has dominado todas las preguntas de este tema!"
-                      }
-                    </p>
+                  <div className="flex items-center gap-4">
+                    <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-lg">
+                      <BarChart3 className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-blue-700 dark:text-blue-300">Progreso del Tema</p>
+                      <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                        {remainingQuestionsInTopic > 0 
+                          ? `Quedan ${remainingQuestionsInTopic} preguntas por dominar`
+                          : "¡Has dominado todas las preguntas de este tema!"
+                        }
+                      </p>
+                    </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-bold text-blue-600">
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                       {remainingQuestionsInTopic > 0 ? remainingQuestionsInTopic : "✓"}
                     </div>
                   </div>
@@ -388,10 +441,15 @@ export default function Results() {
             </div>
 
             {/* Encouragement Message */}
-            <div className="bg-muted/30 p-4 rounded-lg border-l-4 border-primary">
-              <p className="text-sm text-center italic">
-                {encouragementMessage}
-              </p>
+            <div className="bg-gradient-to-r from-purple-50/80 to-pink-50/50 dark:from-purple-900/30 dark:to-pink-900/20 p-6 rounded-2xl border-l-4 border-purple-500 shadow-lg shadow-purple-500/5">
+              <div className="flex items-start gap-4">
+                <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg shadow-lg flex-shrink-0">
+                  <Trophy className="h-5 w-5 text-white" />
+                </div>
+                <p className="text-sm text-center font-medium text-purple-700 dark:text-purple-300 italic leading-relaxed">
+                  {encouragementMessage}
+                </p>
+              </div>
             </div>
 
             {/* Time Spent (if available) */}
@@ -404,29 +462,27 @@ export default function Results() {
         </Card>
 
         {/* Action Buttons - NUEVA LÓGICA SEGÚN ORIGEN */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-3">
+        <Card className="backdrop-blur-sm bg-white/95 dark:bg-gray-800/95 shadow-xl border border-gray-200/50 dark:border-gray-700/50">
+          <CardContent className="pt-8">
+            <div className="space-y-4">
               {/* NUEVA: Lógica condicional según origen */}
               {isFromTopicAnalysis ? (
                 // 🎯 BOTONES PARA ANÁLISIS POR TEMAS
                 <>
                   <Button 
                     onClick={() => navigate("/analisis-temas")}
-                    className="w-full"
+                    className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 h-14 rounded-xl font-semibold text-base"
                     size="lg"
-                    variant="default"
                   >
-                    <BarChart3 className="mr-2 h-4 w-4" />
+                    <BarChart3 className="mr-3 h-5 w-5" />
                     Ver Análisis por Temas
                   </Button>
                   
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <Button 
                       onClick={handleRepeatTopicTest}
                       variant="outline"
-                      className="w-full"
-                      size="sm"
+                      className="w-full bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 border border-gray-200 dark:border-gray-700 rounded-xl transition-all duration-200 hover:shadow-md font-medium h-12"
                     >
                       <RotateCcw className="mr-2 h-4 w-4" />
                       Repetir Test
@@ -435,8 +491,7 @@ export default function Results() {
                     <Button 
                       onClick={() => navigate("/")}
                       variant="outline"
-                      className="w-full"
-                      size="sm"
+                      className="w-full bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 border border-gray-200 dark:border-gray-700 rounded-xl transition-all duration-200 hover:shadow-md font-medium h-12"
                     >
                       <Home className="mr-2 h-4 w-4" />
                       Inicio
@@ -445,8 +500,8 @@ export default function Results() {
 
                   {/* Mostrar info sobre preguntas restantes si las hay */}
                   {questionsStillFailed.length > 0 && (
-                    <div className="text-center text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
-                      <span>📚 Aún tienes {questionsStillFailed.length} pregunta{questionsStillFailed.length > 1 ? 's' : ''} de este tema para practicar</span>
+                    <div className="text-center text-sm bg-gradient-to-r from-amber-50/80 to-orange-50/50 dark:from-amber-900/30 dark:to-orange-900/20 border border-amber-200/50 dark:border-amber-700/50 p-4 rounded-xl shadow-lg shadow-amber-500/5">
+                      <span className="font-medium text-amber-700 dark:text-amber-300">📚 Aún tienes {questionsStillFailed.length} pregunta{questionsStillFailed.length > 1 ? 's' : ''} de este tema para practicar</span>
                     </div>
                   )}
                 </>
@@ -457,20 +512,22 @@ export default function Results() {
                   {canContinueWithMore && (
                     <Button 
                       onClick={handleContinueWithMore}
-                      className="w-full"
+                      className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 h-14 rounded-xl font-semibold text-base"
                       size="lg"
-                      variant="default"
                     >
-                      <Play className="mr-2 h-4 w-4" />
+                      <Play className="mr-3 h-5 w-5" />
                       Continuar con 10 más ({remainingQuestionsInTopic} restantes)
                     </Button>
                   )}
 
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <Button 
                       onClick={() => navigate("/")}
                       variant={canContinueWithMore ? "outline" : "default"}
-                      className="w-full"
+                      className={canContinueWithMore 
+                        ? "w-full bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 border border-gray-200 dark:border-gray-700 rounded-xl transition-all duration-200 hover:shadow-md font-medium h-12" 
+                        : "w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 h-12 rounded-xl font-semibold"
+                      }
                       size="lg"
                     >
                       <Home className="mr-2 h-4 w-4" />
@@ -480,7 +537,7 @@ export default function Results() {
                     <Button 
                       onClick={() => navigate("/test-setup")}
                       variant="outline"
-                      className="w-full"
+                      className="w-full bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 border border-gray-200 dark:border-gray-700 rounded-xl transition-all duration-200 hover:shadow-md font-medium h-12"
                       size="lg"
                     >
                       <RotateCcw className="mr-2 h-4 w-4" />
@@ -493,7 +550,7 @@ export default function Results() {
                     <Button 
                       onClick={() => navigate("/practice")}
                       variant="secondary"
-                      className="w-full"
+                      className="w-full bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-900/30 dark:hover:to-emerald-900/30 border border-green-200 dark:border-green-700 rounded-xl transition-all duration-200 hover:shadow-md font-medium h-12 text-green-700 dark:text-green-300"
                       size="lg"
                     >
                       <BookOpen className="mr-2 h-4 w-4" />
@@ -506,29 +563,34 @@ export default function Results() {
                 </>
               )}
             </div>
+            
           </CardContent>
         </Card>
 
         {/* Additional Stats (if available) */}
         {(questionsCorrect.length > 0 || questionsIncorrect.length > 0) && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Detalles del Quiz</CardTitle>
+          <Card className="backdrop-blur-sm bg-white/95 dark:bg-gray-800/95 shadow-xl border border-gray-200/50 dark:border-gray-700/50">
+            <CardHeader className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-900/20 dark:to-blue-900/20 border-b border-gray-200/50 dark:border-gray-700/50">
+              <CardTitle className="text-lg font-bold bg-gradient-to-r from-gray-700 to-blue-600 bg-clip-text text-transparent flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                Detalles del Quiz
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="p-6 space-y-6">
               {questionsCorrect.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-green-600 mb-2">
+                <div className="bg-gradient-to-r from-green-50/50 to-emerald-50/30 dark:from-green-900/20 dark:to-emerald-900/10 p-4 rounded-xl border border-green-200/50 dark:border-green-700/50">
+                  <h4 className="font-bold text-green-700 dark:text-green-300 mb-3 flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
                     Preguntas Correctas ({questionsCorrect.length})
                   </h4>
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     {questionsCorrect.slice(0, 3).map((q, index) => (
-                      <p key={index} className="text-sm text-muted-foreground truncate">
+                      <p key={index} className="text-sm text-green-600 dark:text-green-400 truncate font-medium">
                         • {q}
                       </p>
                     ))}
                     {questionsCorrect.length > 3 && (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-green-500 dark:text-green-400 italic">
                         ... y {questionsCorrect.length - 3} más
                       </p>
                     )}
@@ -537,18 +599,19 @@ export default function Results() {
               )}
 
               {questionsIncorrect.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-red-600 mb-2">
+                <div className="bg-gradient-to-r from-red-50/50 to-rose-50/30 dark:from-red-900/20 dark:to-rose-900/10 p-4 rounded-xl border border-red-200/50 dark:border-red-700/50">
+                  <h4 className="font-bold text-red-700 dark:text-red-300 mb-3 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
                     Preguntas a Repasar ({questionsIncorrect.length})
                   </h4>
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     {questionsIncorrect.slice(0, 3).map((q, index) => (
-                      <p key={index} className="text-sm text-muted-foreground truncate">
+                      <p key={index} className="text-sm text-red-600 dark:text-red-400 truncate font-medium">
                         • {q}
                       </p>
                     ))}
                     {questionsIncorrect.length > 3 && (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-red-500 dark:text-red-400 italic">
                         ... y {questionsIncorrect.length - 3} más
                       </p>
                     )}
@@ -567,8 +630,10 @@ export default function Results() {
               : "¡Sigue practicando para mejorar tus resultados!"
             }
           </p>
+          </div>
         </div>
       </div>
+      </div> {/* <-- ESTE ES EL <div> QUE FALTABA */}
     </main>
   );
 }
