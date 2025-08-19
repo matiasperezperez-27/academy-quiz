@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -121,22 +121,28 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          created_at: string
           id: string
           puntos: number | null
+          role: string | null
           updated_at: string | null
           username: string | null
         }
         Insert: {
           avatar_url?: string | null
+          created_at?: string
           id: string
           puntos?: number | null
+          role?: string | null
           updated_at?: string | null
           username?: string | null
         }
         Update: {
           avatar_url?: string | null
+          created_at?: string
           id?: string
           puntos?: number | null
+          role?: string | null
           updated_at?: string | null
           username?: string | null
         }
@@ -171,117 +177,48 @@ export type Database = {
           },
         ]
       }
-      user_sessions: {
-        Row: {
-          id: string
-          user_id: string
-          academia_id: string
-          tema_id: string
-          mode: string
-          total_questions: number
-          correct_answers: number
-          incorrect_answers: number
-          score_percentage: number | null
-          time_started: string
-          time_completed: string | null
-          duration_seconds: number | null
-          is_completed: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          academia_id: string
-          tema_id: string
-          mode: string
-          total_questions?: number
-          correct_answers?: number
-          incorrect_answers?: number
-          score_percentage?: number | null
-          time_started?: string
-          time_completed?: string | null
-          duration_seconds?: number | null
-          is_completed?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          academia_id?: string
-          tema_id?: string
-          mode?: string
-          total_questions?: number
-          correct_answers?: number
-          incorrect_answers?: number
-          score_percentage?: number | null
-          time_started?: string
-          time_completed?: string | null
-          duration_seconds?: number | null
-          is_completed?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_sessions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "auth.users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_sessions_academia_id_fkey"
-            columns: ["academia_id"]
-            isOneToOne: false
-            referencedRelation: "academias"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_sessions_tema_id_fkey"
-            columns: ["tema_id"]
-            isOneToOne: false
-            referencedRelation: "temas"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       user_answers: {
         Row: {
+          answered_at: string
+          correct_answer: string
           id: string
-          session_id: string
-          user_id: string
+          is_correct: boolean | null
           pregunta_id: string
           selected_answer: string
-          correct_answer: string
-          is_correct: boolean | null
+          session_id: string
           time_spent_seconds: number | null
-          answered_at: string
+          user_id: string
         }
         Insert: {
+          answered_at?: string
+          correct_answer: string
           id?: string
-          session_id: string
-          user_id: string
+          is_correct?: boolean | null
           pregunta_id: string
           selected_answer: string
-          correct_answer: string
-          is_correct?: boolean | null
+          session_id: string
           time_spent_seconds?: number | null
-          answered_at?: string
+          user_id: string
         }
         Update: {
+          answered_at?: string
+          correct_answer?: string
           id?: string
-          session_id?: string
-          user_id?: string
+          is_correct?: boolean | null
           pregunta_id?: string
           selected_answer?: string
-          correct_answer?: string
-          is_correct?: boolean | null
+          session_id?: string
           time_spent_seconds?: number | null
-          answered_at?: string
+          user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "user_answers_pregunta_id_fkey"
+            columns: ["pregunta_id"]
+            isOneToOne: false
+            referencedRelation: "preguntas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "user_answers_session_id_fkey"
             columns: ["session_id"]
@@ -289,67 +226,46 @@ export type Database = {
             referencedRelation: "user_sessions"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "user_answers_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "auth.users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_answers_pregunta_id_fkey"
-            columns: ["pregunta_id"]
-            isOneToOne: false
-            referencedRelation: "preguntas"
-            referencedColumns: ["id"]
-          }
         ]
       }
       user_preferences: {
         Row: {
-          id: string
-          user_id: string
-          theme: string | null
-          notifications_enabled: boolean | null
-          sound_enabled: boolean | null
           auto_advance: boolean | null
+          created_at: string
+          id: string
+          notifications_enabled: boolean | null
           preferred_academia_id: string | null
           preferred_tema_id: string | null
-          created_at: string
+          sound_enabled: boolean | null
+          theme: string | null
           updated_at: string
+          user_id: string
         }
         Insert: {
-          id?: string
-          user_id: string
-          theme?: string | null
-          notifications_enabled?: boolean | null
-          sound_enabled?: boolean | null
           auto_advance?: boolean | null
+          created_at?: string
+          id?: string
+          notifications_enabled?: boolean | null
           preferred_academia_id?: string | null
           preferred_tema_id?: string | null
-          created_at?: string
+          sound_enabled?: boolean | null
+          theme?: string | null
           updated_at?: string
+          user_id: string
         }
         Update: {
-          id?: string
-          user_id?: string
-          theme?: string | null
-          notifications_enabled?: boolean | null
-          sound_enabled?: boolean | null
           auto_advance?: boolean | null
+          created_at?: string
+          id?: string
+          notifications_enabled?: boolean | null
           preferred_academia_id?: string | null
           preferred_tema_id?: string | null
-          created_at?: string
+          sound_enabled?: boolean | null
+          theme?: string | null
           updated_at?: string
+          user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "user_preferences_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "auth.users"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "user_preferences_academia_fkey"
             columns: ["preferred_academia_id"]
@@ -363,7 +279,111 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "temas"
             referencedColumns: ["id"]
-          }
+          },
+        ]
+      }
+      user_pregunta_status: {
+        Row: {
+          created_at: string
+          id: string
+          pregunta_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pregunta_id: string
+          status: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pregunta_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_pregunta_status_pregunta_id_fkey"
+            columns: ["pregunta_id"]
+            isOneToOne: false
+            referencedRelation: "preguntas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_sessions: {
+        Row: {
+          academia_id: string
+          correct_answers: number
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          incorrect_answers: number
+          is_completed: boolean
+          mode: string
+          score_percentage: number | null
+          tema_id: string
+          time_completed: string | null
+          time_started: string
+          total_questions: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          academia_id: string
+          correct_answers?: number
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          incorrect_answers?: number
+          is_completed?: boolean
+          mode: string
+          score_percentage?: number | null
+          tema_id: string
+          time_completed?: string | null
+          time_started?: string
+          total_questions?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          academia_id?: string
+          correct_answers?: number
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          incorrect_answers?: number
+          is_completed?: boolean
+          mode?: string
+          score_percentage?: number | null
+          tema_id?: string
+          time_completed?: string | null
+          time_started?: string
+          total_questions?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_sessions_academia_id_fkey"
+            columns: ["academia_id"]
+            isOneToOne: false
+            referencedRelation: "academias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_sessions_tema_id_fkey"
+            columns: ["tema_id"]
+            isOneToOne: false
+            referencedRelation: "temas"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -371,42 +391,169 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_random_preguntas: {
-        Args: { p_academia_id: string; p_tema_id: string; p_limit?: number }
-        Returns: {
-          academia_id: string
-          created_at: string
-          id: string
-          opcion_a: string
-          opcion_b: string
-          opcion_c: string | null
-          opcion_d: string | null
-          parte: string | null
-          pregunta_texto: string
-          solucion_letra: string
-          tema_id: string
-        }[]
-      }
-      start_quiz_session: {
-        Args: { p_user_id: string, p_academia_id: string; p_tema_id: string; p_mode: string }
-        Returns: string
-      }
-      record_answer: {
-        Args: { 
-          p_session_id: string; 
-          p_pregunta_id: string; 
-          p_selected_answer: string; 
-          p_time_spent_seconds: number 
-        }
+      check_rate_limit: {
+        Args: { action_type: string; limit_per_hour?: number; user_id: string }
         Returns: boolean
       }
       complete_quiz_session: {
         Args: { p_session_id: string }
         Returns: Json
       }
+      fix_user_stats: {
+        Args: { p_user_id: string }
+        Returns: string
+      }
+      get_admin_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          active_users_last_week: number
+          total_questions_answered: number
+          total_sessions: number
+          total_users: number
+        }[]
+      }
+      get_random_preguntas: {
+        Args: { p_academia_id: string; p_limit?: number; p_tema_id: string }
+        Returns: {
+          academia_id: string
+          id: string
+          opcion_a: string
+          opcion_b: string
+          opcion_c: string
+          opcion_d: string
+          parte: string
+          pregunta_texto: string
+          solucion_letra: string
+          tema_id: string
+        }[]
+      }
+      get_smart_preguntas: {
+        Args: {
+          p_academia_id: string
+          p_days_threshold?: number
+          p_include_failed?: boolean
+          p_limit?: number
+          p_tema_id: string
+          p_user_id: string
+        }
+        Returns: {
+          academia_id: string
+          created_at: string
+          days_since_correct: number
+          id: string
+          opcion_a: string
+          opcion_b: string
+          opcion_c: string
+          opcion_d: string
+          parte: string
+          pregunta_texto: string
+          priority_level: number
+          solucion_letra: string
+          tema_id: string
+          times_answered: number
+        }[]
+      }
+      get_topic_analysis: {
+        Args: { p_user_id: string }
+        Returns: {
+          academia_id: string
+          academia_nombre: string
+          nivel_dominio: string
+          porcentaje_acierto: number
+          preguntas_falladas_ids: string[]
+          tema_id: string
+          tema_nombre: string
+          total_correctas: number
+          total_incorrectas: number
+          total_respondidas: number
+          ultima_respuesta: string
+        }[]
+      }
+      get_topic_analysis_summary: {
+        Args: { p_user_id: string }
+        Returns: {
+          promedio_general: number
+          temas_dominados: number
+          temas_necesitan_practica: number
+          total_preguntas_falladas: number
+          total_preguntas_respondidas: number
+          total_temas_evaluados: number
+        }[]
+      }
+      get_user_progress_stats: {
+        Args: { p_academia_id?: string; p_tema_id?: string; p_user_id: string }
+        Returns: {
+          answered_questions: number
+          completion_percentage: number
+          correct_answers: number
+          failed_answers: number
+          remaining_questions: number
+          total_questions: number
+        }[]
+      }
+      get_user_rankings: {
+        Args: { limit_count?: number }
+        Returns: {
+          accuracy: number
+          email: string
+          id: string
+          puntos: number
+          total_sessions: number
+          username: string
+        }[]
+      }
       get_user_stats: {
         Args: { p_user_id: string }
         Returns: Json
+      }
+      get_users_list: {
+        Args: { limit_count?: number }
+        Returns: {
+          email: string
+          last_activity: string
+          nombre: string
+          puntos: number
+          role: string
+          total_questions_answered: number
+          user_id: string
+        }[]
+      }
+      is_user_admin: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
+      record_answer: {
+        Args: {
+          p_pregunta_id: string
+          p_selected_answer: string
+          p_session_id: string
+          p_time_spent_seconds: number
+        }
+        Returns: boolean
+      }
+      refresh_user_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      reset_user_progress: {
+        Args: { p_tema_id?: string; p_user_id: string }
+        Returns: undefined
+      }
+      start_quiz_session: {
+        Args: {
+          p_academia_id: string
+          p_mode: string
+          p_tema_id: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      test_session_creation: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          result: string
+          step: string
+        }[]
       }
     }
     Enums: {

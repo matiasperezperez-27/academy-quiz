@@ -1,4 +1,9 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+// src/hooks/useQuiz.ts - VERSIÓN SIMPLIFICADA SIN BUCLES INFINITOS
+// ========================================
+// MANTIENE 100% COMPATIBILIDAD + SELECCIÓN INTELIGENTE BÁSICA
+// ========================================
+
+import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -35,7 +40,7 @@ export interface QuizState {
     isCorrect: boolean;
     timeSpent: number;
   }>;
-  // Nuevos campos para el sistema de progreso
+  // Campos de progreso
   currentAcademiaId?: string;
   currentTemaId?: string;
   remainingQuestions?: number;
@@ -50,9 +55,7 @@ export interface QuizStats {
   averageTimePerQuestion: number;
   questionsAnswered: number;
   pointsEarned: number;
-  // Nuevo campo para preguntas restantes
   remainingQuestionsInTopic?: number;
-  // NUEVAS PROPIEDADES PARA SOLUCIONAR EL BUG
   originalFailedQuestionsCount?: number;
   questionsStillFailed?: string[];
 }
@@ -92,53 +95,53 @@ function shuffle<T>(arr: T[]): T[] {
   return shuffled;
 }
 
-// Nueva función para obtener preguntas no acertadas
-async function getUnansweredQuestions(userId: string, academiaId: string, temaId: string, limit: number = 10) {
-  console.log("Getting unanswered questions for:", { userId, academiaId, temaId, limit });
+// 🆕 NUEVA FUNCIÓN: Selección inteligente directa con Supabase
+async function getSmartQuestions(userId: string, academiaId: string, temaId: string, limit: number = 10) {
+  console.log("🧠 Getting smart questions:", { userId, academiaId, temaId, limit });
   
-  // Primero obtenemos todas las preguntas del tema
-  const { data: allQuestions, error: questionsError } = await supabase
-    .from("preguntas")
-    .select("*")
-    .eq("academia_id", academiaId)
-    .eq("tema_id", temaId);
+  try {
+    // Intentar usar la nueva función RPC si existe
+    const { data: smartQuestions, error: smartError } = await supabase
+      .rpc('get_smart_preguntas', {
+        p_user_id: userId,
+        p_academia_id: academiaId,
+        p_tema_id: temaId,
+        p_limit: limit,
+        p_days_threshold: 30,
+        p_include_failed: true
+      });
 
-  if (questionsError) throw questionsError;
-  if (!allQuestions || allQuestions.length === 0) {
-    throw new Error("No se encontraron preguntas para esta academia y tema");
+    if (!smartError && smartQuestions && smartQuestions.length > 0) {
+      console.log("✅ Smart selection successful:", smartQuestions.length, "questions");
+      return {
+        questions: smartQuestions,
+        method: 'smart' as const
+      };
+    } else {
+      console.warn("⚠️ Smart selection failed, falling back to random:", smartError);
+    }
+  } catch (err) {
+    console.warn("⚠️ Smart selection error, falling back to random:", err);
   }
 
-  // Obtenemos las preguntas ya acertadas por el usuario usando preguntas_falladas para determinar las no acertadas
-  const { data: failedQuestions, error: statusError } = await supabase
-    .from("preguntas_falladas")
-    .select("pregunta_id")
-    .eq("user_id", userId);
+  // FALLBACK: Usar función random tradicional
+  const { data: randomQuestions, error: randomError } = await supabase
+    .rpc('get_random_preguntas', {
+      p_academia_id: academiaId,
+      p_tema_id: temaId,
+      p_limit: limit
+    });
 
-  if (statusError) throw statusError;
-
-  const failedQuestionIds = new Set((failedQuestions || []).map(item => item.pregunta_id));
+  if (randomError) throw randomError;
   
-  // En modo test, simplemente devolvemos preguntas aleatorias (la lógica de falladas se maneja por las RPC)
-  // En modo práctica, excluimos las preguntas falladas
-  const availableQuestions = allQuestions;
-  
-  console.log(`Found ${allQuestions.length} total questions, ${failedQuestionIds.size} failed questions`);
-  
-  if (availableQuestions.length === 0) {
-    throw new Error("No se encontraron preguntas para este tema.");
-  }
-
-  // Mezclamos y limitamos
-  const shuffled = shuffle(availableQuestions);
-  const selected = shuffled.slice(0, Math.min(limit, shuffled.length));
-  
+  console.log("🎲 Random selection used:", randomQuestions?.length || 0, "questions");
   return {
-    questions: selected,
-    remaining: availableQuestions.length
+    questions: randomQuestions || [],
+    method: 'random' as const
   };
 }
 
-// Función simplificada - solo manejamos preguntas_falladas por compatibilidad
+// Función simplificada - mantener compatibilidad con preguntas_falladas
 async function updateQuestionStatus(userId: string, questionId: string, isCorrect: boolean) {
   console.log("Updating question status:", { userId, questionId, isCorrect });
   
@@ -159,10 +162,19 @@ async function updateQuestionStatus(userId: string, questionId: string, isCorrec
   console.log("Question status updated successfully");
 }
 
-export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: string | null, specificQuestionIds?: string[]) {
+export function useQuiz(
+  mode: QuizMode, 
+  academiaId?: string | null, 
+  temaId?: string | null, 
+  specificQuestionIds?: string[]
+) {
   const [state, setState] = useState<QuizState>(initialState);
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  // 🔧 REF para controlar cargas y evitar bucles infinitos
+  const lastLoadParamsRef = useRef<string>('');
+  const isLoadingRef = useRef(false);
 
   // Reset quiz state
   const resetQuiz = useCallback(() => {
@@ -170,113 +182,48 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
       ...initialState,
       startTime: Date.now(),
     });
+    lastLoadParamsRef.current = '';
+    isLoadingRef.current = false;
   }, []);
 
-  // Load questions and start session
-  const loadQuestions = useCallback(async () => {
-    if (!user) {
-      console.error("No user found");
+  // 🔧 FUNCIÓN INTERNA: Load questions (sin useCallback para evitar bucles)
+  const loadQuestions = async () => {
+    if (!user || isLoadingRef.current) {
       return;
     }
 
     try {
+      isLoadingRef.current = true;
       setState(prev => ({ ...prev, isLoading: true }));
-      console.log("Loading questions for mode:", mode, "user:", user.id);
+      console.log("🚀 Loading questions for mode:", mode, "user:", user.id);
 
-      // 🆕 NUEVA LÓGICA: Si tenemos IDs específicos, cargar solo esas preguntas
+      let questions: any[] = [];
+      let sessionAcademiaId = academiaId;
+      let sessionTemaId = temaId;
+
+      // 🆕 LÓGICA DE SELECCIÓN
       if (specificQuestionIds && specificQuestionIds.length > 0) {
-        console.log("🔍 LOADING SPECIFIC - INPUT:", specificQuestionIds);
-        console.log("🔍 LOADING SPECIFIC - COUNT:", specificQuestionIds.length);
+        // Preguntas específicas (análisis por temas)
+        console.log("🎯 Loading specific questions:", specificQuestionIds.length);
         
         const { data: specificQuestions, error: specificError } = await supabase
           .from("preguntas")
           .select("*")
           .in("id", specificQuestionIds);
 
-        console.log("🔍 LOADED FROM DB:", specificQuestions?.length);
-        console.log("🔍 QUESTIONS IDS:", specificQuestions?.map(q => q.id));
-
         if (specificError) throw specificError;
         if (!specificQuestions || specificQuestions.length === 0) {
           throw new Error("No se encontraron las preguntas específicas solicitadas");
         }
 
-        // Start session for specific questions
-        const { data: sessionId, error: sessionError } = await supabase
-          .rpc("start_quiz_session", {
-            p_user_id: user.id,
-            p_academia_id: specificQuestions[0]?.academia_id || null,
-            p_tema_id: specificQuestions[0]?.tema_id || null,
-            p_mode: "practice"
-          });
+        questions = shuffle(specificQuestions);
+        sessionAcademiaId = questions[0]?.academia_id || null;
+        sessionTemaId = questions[0]?.tema_id || null;
 
-        console.log("🔍 SESSION CREATED:", sessionId);
-
-        if (sessionError) {
-          console.warn("Session creation failed:", sessionError);
-        }
-
-        setState(prev => ({ 
-          ...prev, 
-          sessionId: sessionId || null,
-          questions: shuffle(specificQuestions as Pregunta[]), 
-          isLoading: false,
-          startTime: Date.now(),
-          specificQuestionIds: specificQuestionIds,
-          // 🎯 IMPORTANTE: Guardar academia y tema para uso posterior
-          currentAcademiaId: specificQuestions[0]?.academia_id || null,
-          currentTemaId: specificQuestions[0]?.tema_id || null
-        }));
-
-        console.log("🔍 STATE SET - questions.length:", specificQuestions.length);
-        return;
-      }
-
-      if (mode === "test") {
-        if (!academiaId || !temaId) {
-          throw new Error("Se requiere seleccionar academia y tema para el modo test");
-        }
-
-        // Start quiz session
-        console.log("Starting quiz session with params:", {
-          p_user_id: user.id,
-          p_academia_id: academiaId,
-          p_tema_id: temaId,
-          p_mode: mode
-        });
-
-        const { data: sessionId, error: sessionError } = await supabase
-          .rpc("start_quiz_session", {
-            p_user_id: user.id,
-            p_academia_id: academiaId,
-            p_tema_id: temaId,
-            p_mode: mode
-          });
-
-        if (sessionError) {
-          console.warn("Session creation failed:", sessionError);
-          // Continuamos sin sesión
-        }
-
-        console.log("Session created:", sessionId);
-
-        // NUEVA LÓGICA: Obtener preguntas no acertadas
-        const { questions, remaining } = await getUnansweredQuestions(user.id, academiaId, temaId, 10);
-
-        console.log("Questions loaded:", questions.length, "remaining:", remaining);
-
-        setState(prev => ({ 
-          ...prev, 
-          sessionId: sessionId || null,
-          questions: questions as Pregunta[], 
-          isLoading: false,
-          startTime: Date.now(),
-          currentAcademiaId: academiaId,
-          currentTemaId: temaId,
-          remainingQuestions: remaining
-        }));
-
-      } else { // practice mode
+      } else if (mode === "practice") {
+        // Modo práctica - preguntas falladas
+        console.log("🔄 Loading failed questions for practice");
+        
         const { data: falladas, error: e1 } = await supabase
           .from("preguntas_falladas")
           .select("pregunta_id")
@@ -296,45 +243,96 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
           .in("id", preguntaIds);
 
         if (e2) throw e2;
+        questions = shuffle(preguntas || []);
 
-        // Start practice session
-        console.log("Starting practice session for user:", user.id);
+      } else if (academiaId && temaId) {
+        // Modo test - selección inteligente
+        // NUEVO ORDEN DE PRIORIDADES:
+        // 🔥 PRIORIDAD 1: Preguntas nunca respondidas (contenido nuevo)
+        // 📚 PRIORIDAD 2: Preguntas falladas (reforzar debilidades)  
+        // 🔄 PRIORIDAD 3: Preguntas correctas hace >30 días (repaso)
+        // ❌ EXCLUIR: Preguntas correctas recientes (<30 días)
+        console.log("🧠 Using smart selection for test mode");
         
-        const { data: sessionId, error: sessionError } = await supabase
-          .rpc("start_quiz_session", {
-            p_user_id: user.id,
-            p_academia_id: preguntas[0]?.academia_id || null,
-            p_tema_id: preguntas[0]?.tema_id || null,
-            p_mode: mode
-          });
+        const result = await getSmartQuestions(user.id, academiaId, temaId, 10);
+        questions = result.questions;
+        
+        console.log(`✅ Loaded ${questions.length} questions using ${result.method} selection`);
 
-        if (sessionError) {
-          console.warn("No se pudo crear sesión para práctica:", sessionError);
-        } else {
-          console.log("Practice session created:", sessionId);
-        }
-
-        setState(prev => ({ 
-          ...prev, 
-          sessionId: sessionId || null,
-          questions: shuffle(preguntas as Pregunta[] || []), 
-          isLoading: false,
-          startTime: Date.now()
-        }));
+      } else {
+        throw new Error("Parámetros insuficientes para cargar preguntas");
       }
+
+      // Verificar que tenemos preguntas
+      if (!questions || questions.length === 0) {
+        throw new Error("No se encontraron preguntas disponibles");
+      }
+
+      // Crear sesión si es posible
+      let sessionId = null;
+      if (sessionAcademiaId && sessionTemaId) {
+        try {
+          const { data: sessionData, error: sessionError } = await supabase
+            .rpc("start_quiz_session", {
+              p_user_id: user.id,
+              p_academia_id: sessionAcademiaId,
+              p_tema_id: sessionTemaId,
+              p_mode: mode
+            });
+
+          if (sessionError) {
+            console.warn("Session creation failed:", sessionError);
+          } else {
+            sessionId = sessionData;
+            console.log("✅ Session created:", sessionId);
+          }
+        } catch (err) {
+          console.warn("Could not create session:", err);
+        }
+      }
+
+      // Actualizar estado
+      setState(prev => ({ 
+        ...prev, 
+        sessionId,
+        questions: questions as Pregunta[], 
+        isLoading: false,
+        startTime: Date.now(),
+        specificQuestionIds: specificQuestionIds,
+        currentAcademiaId: sessionAcademiaId,
+        currentTemaId: sessionTemaId,
+        remainingQuestions: questions.length
+      }));
+
+      console.log("✅ Questions loaded successfully:", questions.length);
+
     } catch (err: any) {
-      console.error("Error loading questions:", err);
+      console.error("❌ Error loading questions:", err);
       toast({ 
         title: "Error de carga", 
         description: err.message || "No se pudieron cargar las preguntas.",
         variant: "destructive"
       });
       setState(prev => ({ ...prev, isLoading: false }));
-      throw err;
+    } finally {
+      isLoadingRef.current = false;
     }
-  }, [mode, academiaId, temaId, specificQuestionIds, user, toast]);
+  };
 
-  // Handle answer submission - MEJORADO con nuevo sistema de progreso
+  // 🔧 EFECTO CONTROLADO para cargar preguntas
+  useEffect(() => {
+    if (!user) return;
+
+    const params = `${mode}-${academiaId}-${temaId}-${JSON.stringify(specificQuestionIds)}`;
+    
+    if (lastLoadParamsRef.current !== params) {
+      lastLoadParamsRef.current = params;
+      console.log("🔄 Parameters changed, loading questions...");
+      loadQuestions();
+    }
+  }, [user, mode, academiaId, temaId, JSON.stringify(specificQuestionIds)]);
+
+  // Handle answer submission - MANTENIDO IGUAL
   const submitAnswer = useCallback(async (selectedLetter: string): Promise<boolean> => {
     if (!user || state.isRevealed || state.isAnswering || !state.questions[state.currentIndex]) {
       return false;
@@ -348,10 +346,10 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
     try {
       const isCorrect = currentQuestion.solucion_letra?.toUpperCase() === selectedLetter.toUpperCase();
 
-      // NUEVA LÓGICA: Siempre actualizar el estado de la pregunta
+      // Actualizar estado de la pregunta
       await updateQuestionStatus(user.id, currentQuestion.id, isCorrect);
 
-      // Si hay sesión, usar RPC
+      // Registrar en sesión si existe
       if (state.sessionId) {
         console.log("Recording answer in session:", {
           session: state.sessionId,
@@ -373,7 +371,7 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
         }
       }
 
-      // Mantener lógica legacy para preguntas_falladas en modo práctica
+      // Lógica legacy para preguntas_falladas
       if (mode === "practice") {
         if (isCorrect) {
           // Remove from failed questions if practicing and correct
@@ -384,7 +382,7 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
             .eq("pregunta_id", currentQuestion.id);
         }
       } else if (mode === "test" && !isCorrect) {
-        // Add to failed questions if test mode and incorrect (legacy)
+        // Add to failed questions if test mode and incorrect
         await supabase
           .from("preguntas_falladas")
           .upsert(
@@ -423,7 +421,7 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
     }
   }, [user, state, mode, toast]);
 
-  // Move to next question
+  // Move to next question - MANTENIDO IGUAL
   const nextQuestion = useCallback(() => {
     setState(prev => ({
       ...prev,
@@ -431,11 +429,11 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
       selectedAnswer: null,
       isRevealed: false,
       isAnswering: false,
-      startTime: Date.now(), // Reset timer for next question
+      startTime: Date.now(),
     }));
   }, []);
 
-  // Complete quiz session
+  // Complete quiz session - MANTENIDO IGUAL
   const completeQuiz = useCallback(async (): Promise<QuizStats | null> => {
     try {
       console.log("🔍 COMPLETING QUIZ:");
@@ -448,20 +446,15 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
       let finalStats: QuizStats;
 
       if (state.sessionId) {
-        // Use RPC function to complete session
         const { data: stats, error } = await supabase
           .rpc("complete_quiz_session", {
             p_session_id: state.sessionId
           });
 
-        console.log("🔍 RPC RESULT:", stats);
-        console.log("🔍 RPC ERROR:", error);
-
         if (error) {
           console.error("Error in RPC complete_quiz_session:", error);
           finalStats = getManualStats();
         } else {
-          console.log("Session completed, stats:", stats);
           const statsData = stats as any;
           finalStats = {
             totalQuestions: statsData?.total_questions || state.questions.length,
@@ -474,7 +467,6 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
             questionsAnswered: state.answers.length,
             pointsEarned: statsData?.points_earned || (state.score * 10),
             remainingQuestionsInTopic: state.remainingQuestions ? state.remainingQuestions - state.score : 0,
-            // 🎯 NUEVAS PROPIEDADES PARA DETECTAR ANÁLISIS POR TEMAS
             originalFailedQuestionsCount: state.specificQuestionIds?.length || 0,
             questionsStillFailed: state.answers.filter(a => !a.isCorrect).map(a => a.questionId)
           };
@@ -502,11 +494,7 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
         }
       }
 
-      console.log("🔍 FINAL STATS:", finalStats);
-
-      // Mark the quiz as finished in state
       setState(prev => ({ ...prev, sessionId: null }));
-
       return finalStats;
     } catch (err: any) {
       console.error("Error completing quiz:", err);
@@ -519,14 +507,9 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
     }
   }, [state, user, toast]);
 
-  // Helper function for manual stats calculation
+  // Helper function for manual stats calculation - MANTENIDO IGUAL
   const getManualStats = useCallback((): QuizStats => {
-    console.log("🔍 MANUAL STATS CALCULATION:");
-    console.log("- state.questions.length:", state.questions.length);
-    console.log("- state.score:", state.score);
-    console.log("- state.answers.length:", state.answers.length);
-
-    const manualStats = {
+    return {
       totalQuestions: state.questions.length,
       correctAnswers: state.score,
       incorrectAnswers: state.answers.length - state.score,
@@ -537,26 +520,20 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
       questionsAnswered: state.answers.length,
       pointsEarned: state.score * 10,
       remainingQuestionsInTopic: state.remainingQuestions ? state.remainingQuestions - state.score : 0,
-      // 🎯 PROPIEDADES PARA DETECTAR ANÁLISIS POR TEMAS
       originalFailedQuestionsCount: state.specificQuestionIds?.length || 0,
       questionsStillFailed: state.answers.filter(a => !a.isCorrect).map(a => a.questionId)
     };
-
-    console.log("🔍 MANUAL STATS RESULT:", manualStats);
-    return manualStats;
   }, [state]);
 
-  // Check if quiz is finished
+  // Funciones auxiliares - MANTENIDAS IGUALES
   const isQuizFinished = useCallback(() => {
     return state.currentIndex >= state.questions.length - 1 && state.answers.length === state.questions.length;
   }, [state]);
 
-  // Get current question
   const getCurrentQuestion = useCallback(() => {
     return state.questions[state.currentIndex] || null;
   }, [state.questions, state.currentIndex]);
 
-  // Get quiz statistics
   const getStats = useCallback((): QuizStats => {
     const totalTime = Math.round((Date.now() - state.startTime) / 1000);
     const questionsAnswered = state.answers.length;
@@ -575,12 +552,10 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
     };
   }, [state]);
 
-  // Get progress percentage
   const getProgress = useCallback(() => {
     return state.questions.length > 0 ? ((state.currentIndex + 1) / state.questions.length) * 100 : 0;
   }, [state.currentIndex, state.questions.length]);
 
-  // Get answer options for current question
   const getAnswerOptions = useCallback(() => {
     const currentQuestion = getCurrentQuestion();
     if (!currentQuestion) return [];
@@ -593,15 +568,8 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
     ].filter(option => option.text && option.text.trim() !== "");
   }, [getCurrentQuestion]);
 
-  // Auto-load questions when dependencies change
-  useEffect(() => {
-    if (user) {
-      loadQuestions();
-    }
-  }, [user, loadQuestions]);
-
   return {
-    // State
+    // State original
     ...state,
     
     // Computed values
@@ -611,8 +579,8 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
     stats: getStats(),
     isFinished: isQuizFinished(),
     
-    // Actions
-    loadQuestions,
+    // Actions originales
+    loadQuestions: useCallback(() => loadQuestions(), []), // Wrapper para compatibilidad
     submitAnswer,
     nextQuestion,
     completeQuiz,
@@ -620,7 +588,7 @@ export function useQuiz(mode: QuizMode, academiaId?: string | null, temaId?: str
   };
 }
 
-// Hook for getting user statistics
+// Hook for getting user statistics - MANTENIDO IGUAL
 export function useUserStats() {
   const { user } = useAuth();
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -654,7 +622,6 @@ export function useUserStats() {
         variant: "destructive"
       });
       
-      // Set empty stats as fallback
       setStats({
         total_sessions: 0,
         completed_sessions: 0,
