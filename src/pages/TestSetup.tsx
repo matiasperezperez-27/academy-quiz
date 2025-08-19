@@ -92,11 +92,15 @@ const TestSetup = () => {
     const loadTemas = async () => {
       try {
         setLoadingTemas(true);
-        const { data, error } = await supabase
-          .from("temas")
-          .select("id, nombre")
-          .eq("academia_id", academiaId)
-          .order("nombre");
+const { data, error } = await supabase
+  .from("temas")
+  .select(`
+    id, 
+    nombre,
+    preguntas!inner(id)
+  `)
+  .eq("academia_id", academiaId)
+  .order("nombre");
 
         if (error) throw error;
         setTemas((data || []) as Option[]);
