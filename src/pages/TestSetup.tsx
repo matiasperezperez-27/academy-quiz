@@ -237,65 +237,76 @@ const TestSetup = () => {
   };
 
   return (
-    <main className="min-h-screen p-4 flex items-center justify-center bg-background">
-      <div className="w-full max-w-md space-y-6">
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+      <div className="relative">
+        {/* Hero background with decorative elements */}
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-indigo-600/5 to-purple-600/5 dark:from-blue-400/5 dark:via-indigo-400/5 dark:to-purple-400/5"></div>
+        <div className="absolute top-0 left-0 w-72 h-72 bg-gradient-to-br from-blue-400/20 to-indigo-600/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-indigo-400/20 to-purple-600/20 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2"></div>
         
-        {/* Header with Navigation */}
-        <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/")}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver al Inicio
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/")}
-            className="flex items-center gap-2"
-          >
-            <Home className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {/* Title Section */}
-        <div className="text-center space-y-2">
-          <div className="flex justify-center">
-            <div className="p-3 bg-primary/10 rounded-full">
-              <Target className="h-6 w-6 text-primary" />
-            </div>
-          </div>
-          <h1 className="text-2xl font-bold">Nuevo Test</h1>
-          <p className="text-muted-foreground text-sm">
-            Selecciona la academia y tema para comenzar
-          </p>
-        </div>
-
-        {/* Main Setup Card */}
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <BookOpen className="h-5 w-5" />
-              Configuración del Test
-            </CardTitle>
-          </CardHeader>
-          
-          <CardContent className="space-y-6">
-            {/* Academia Selection */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <label className="text-sm font-medium">Academia</label>
+        <div className="relative p-6">
+          <div className="max-w-2xl mx-auto space-y-8">
+        
+            {/* Header premium con glassmorphism */}
+            <div className="flex items-center justify-between p-6 backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 rounded-2xl shadow-xl shadow-gray-500/10 border border-gray-200/50 dark:border-gray-700/50">
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate("/")}
+                  className="flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors rounded-xl px-3 py-2"
+                >
+                  <ArrowLeft className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Volver al Inicio</span>
+                </Button>
+                <div className="h-6 w-px bg-gradient-to-b from-transparent via-gray-300 dark:via-gray-600 to-transparent"></div>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+                    <Target className="h-6 w-6 text-white" />
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    Nuevo Test
+                  </h1>
+                </div>
               </div>
-              <Select 
-                value={academiaId} 
-                onValueChange={setAcademiaId}
-                disabled={loadingAcademias}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/")}
+                className="flex items-center gap-2 h-10 px-4 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 border border-gray-200 dark:border-gray-700 rounded-xl transition-all duration-200 hover:shadow-md"
               >
-                <SelectTrigger className="w-full">
+                <Home className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              </Button>
+            </div>
+
+            {/* Main Setup Card with premium effects */}
+            <Card className="backdrop-blur-sm bg-white/95 dark:bg-gray-800/95 shadow-xl shadow-gray-500/10 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-2xl transition-all duration-300">
+              <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-b border-gray-200/50 dark:border-gray-700/50">
+                <CardTitle className="text-xl flex items-center gap-3">
+                  <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+                    <BookOpen className="h-6 w-6 text-white" />
+                  </div>
+                  <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-bold">
+                    Configuración del Test
+                  </span>
+                </CardTitle>
+              </CardHeader>
+          
+              <CardContent className="p-8 space-y-8">
+                {/* Academia Selection with premium styling */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg">
+                      <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <label className="text-base font-semibold text-gray-700 dark:text-gray-200">Academia</label>
+                  </div>
+                  <Select 
+                    value={academiaId} 
+                    onValueChange={setAcademiaId}
+                    disabled={loadingAcademias}
+                  >
+                    <SelectTrigger className="w-full rounded-xl border-gray-200/50 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-all duration-200">
                   <SelectValue 
                     placeholder={
                       loadingAcademias 
@@ -310,22 +321,24 @@ const TestSetup = () => {
                       {academia.nombre}
                     </SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            {/* Tema Selection */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-muted-foreground" />
-                <label className="text-sm font-medium">Tema</label>
-              </div>
-              <Select 
-                value={temaId} 
-                onValueChange={setTemaId} 
-                disabled={!academiaId || loadingTemas}
-              >
-                <SelectTrigger className="w-full">
+                {/* Tema Selection with premium styling */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg">
+                      <BookOpen className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    </div>
+                    <label className="text-base font-semibold text-gray-700 dark:text-gray-200">Tema</label>
+                  </div>
+                  <Select 
+                    value={temaId} 
+                    onValueChange={setTemaId} 
+                    disabled={!academiaId || loadingTemas}
+                  >
+                    <SelectTrigger className="w-full rounded-xl border-gray-200/50 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-all duration-200">
                   <SelectValue 
                     placeholder={
                       !academiaId 
@@ -342,18 +355,20 @@ const TestSetup = () => {
                       {tema.nombre}
                     </SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            {/* 🆕 NUEVO: Progreso del Tema */}
-            {topicProgress && !loadingProgress && questionCount > 0 && (
-              <div className="bg-gradient-to-r from-blue-50/50 to-indigo-50/30 dark:from-blue-900/20 dark:to-indigo-900/10 p-4 rounded-lg border border-blue-200/50 dark:border-blue-700/50">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <BarChart3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    <h4 className="font-medium text-sm text-blue-800 dark:text-blue-200">Tu Progreso en este Tema</h4>
-                  </div>
+                {/* 🆕 NUEVO: Progreso del Tema con premium design */}
+                {topicProgress && !loadingProgress && questionCount > 0 && (
+                  <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/50 dark:from-blue-900/30 dark:to-indigo-900/20 p-6 rounded-xl border border-blue-200/50 dark:border-blue-700/50 shadow-lg shadow-blue-500/5">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-lg">
+                          <BarChart3 className="h-5 w-5 text-white" />
+                        </div>
+                        <h4 className="font-bold text-base text-blue-800 dark:text-blue-200">Tu Progreso en este Tema</h4>
+                      </div>
                   
                   <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs">
@@ -394,99 +409,101 @@ const TestSetup = () => {
                         )}
                       </span>
                     </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
+                )}
 
-            {/* Loading Progress Indicator */}
-            {loadingProgress && temaId && questionCount > 0 && (
-              <div className="bg-muted/30 p-4 rounded-lg border border-muted flex items-center justify-center">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                  Cargando progreso...
-                </div>
-              </div>
-            )}
+                {/* Loading Progress Indicator with premium design */}
+                {loadingProgress && temaId && questionCount > 0 && (
+                  <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 p-5 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center">
+                    <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                      <span className="font-medium">Cargando progreso...</span>
+                    </div>
+                  </div>
+                )}
 
-            {/* Question Count Info */}
-            {questionCount > 0 && (
-              <div className="bg-muted/30 p-3 rounded-lg border border-muted">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Preguntas disponibles:</span>
-                  <span className="font-medium text-primary">{questionCount}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm mt-1">
-                  <span className="text-muted-foreground">Test incluirá:</span>
-                  <span className="font-medium">
-                    {Math.min(questionCount, 10)} preguntas
-                  </span>
-                </div>
-              </div>
-            )}
+                {/* Question Count Info with premium styling */}
+                {questionCount > 0 && (
+                  <div className="bg-gradient-to-r from-emerald-50/50 to-blue-50/30 dark:from-emerald-900/10 dark:to-blue-900/10 p-4 rounded-xl border border-emerald-200/50 dark:border-emerald-700/50 shadow-sm">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400 font-medium">Preguntas disponibles:</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400 text-base">{questionCount}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm mt-2">
+                      <span className="text-gray-600 dark:text-gray-400 font-medium">Test incluirá:</span>
+                      <span className="font-bold text-blue-600 dark:text-blue-400">
+                        {Math.min(questionCount, 10)} preguntas
+                      </span>
+                    </div>
+                  </div>
+                )}
 
-            {/* Warning if not enough questions */}
-            {questionCount > 0 && questionCount < 10 && (
-              <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
-                <p className="text-sm text-yellow-800">
-                  ⚠️ Este tema tiene menos de 10 preguntas. El test incluirá {questionCount} pregunta{questionCount !== 1 ? 's' : ''}.
-                </p>
-              </div>
-            )}
+                {/* Warning if not enough questions with premium styling */}
+                {questionCount > 0 && questionCount < 10 && (
+                  <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200/50 dark:border-yellow-700/50 p-5 rounded-xl shadow-lg shadow-yellow-500/5">
+                    <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium">
+                      ⚠️ Este tema tiene menos de 10 preguntas. El test incluirá {questionCount} pregunta{questionCount !== 1 ? 's' : ''}.
+                    </p>
+                  </div>
+                )}
 
-            {/* No questions warning */}
-            {academiaId && temaId && questionCount === 0 && (
-              <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
-                <p className="text-sm text-red-800">
-                  ❌ No hay preguntas disponibles para este tema. Selecciona otro tema.
-                </p>
-              </div>
-            )}
+                {/* No questions warning with premium styling */}
+                {academiaId && temaId && questionCount === 0 && (
+                  <div className="bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border border-red-200/50 dark:border-red-700/50 p-5 rounded-xl shadow-lg shadow-red-500/5">
+                    <p className="text-sm text-red-800 dark:text-red-200 font-medium">
+                      ❌ No hay preguntas disponibles para este tema. Selecciona otro tema.
+                    </p>
+                  </div>
+                )}
 
-            {/* Selection Summary */}
-            {selectedAcademia && selectedTema && questionCount > 0 && (
-              <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
-                <h4 className="font-medium text-sm mb-2">Resumen del Test:</h4>
-                <div className="space-y-1 text-sm text-muted-foreground">
-                  <div><strong>Academia:</strong> {selectedAcademia.nombre}</div>
-                  <div><strong>Tema:</strong> {selectedTema.nombre}</div>
-                  <div><strong>Preguntas:</strong> {Math.min(questionCount, 10)}</div>
-                  <div><strong>Duración estimada:</strong> 5-10 minutos</div>
-                </div>
-              </div>
-            )}
+                {/* Selection Summary with premium design */}
+                {selectedAcademia && selectedTema && questionCount > 0 && (
+                  <div className="bg-gradient-to-r from-emerald-50/80 to-blue-50/50 dark:from-emerald-900/20 dark:to-blue-900/20 p-6 rounded-xl border border-emerald-200/50 dark:border-emerald-700/50 shadow-lg shadow-emerald-500/5">
+                    <h4 className="font-bold text-base mb-3 text-emerald-800 dark:text-emerald-200">Resumen del Test:</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-400 font-medium">Academia:</span> <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedAcademia.nombre}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-400 font-medium">Tema:</span> <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedTema.nombre}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-400 font-medium">Preguntas:</span> <span className="font-semibold text-blue-600 dark:text-blue-400">{Math.min(questionCount, 10)}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-400 font-medium">Duración estimada:</span> <span className="font-semibold text-emerald-600 dark:text-emerald-400">5-10 minutos</span></div>
+                    </div>
+                  </div>
+                )}
 
-            {/* Start Test Button */}
-            <Button
-              className="w-full"
-              size="lg"
-              disabled={!canStart}
-              onClick={handleStartTest}
-            >
-              <Play className="mr-2 h-4 w-4" />
-              {!academiaId 
-                ? "Selecciona una academia" 
-                : !temaId 
-                ? "Selecciona un tema"
-                : questionCount === 0
-                ? "Sin preguntas disponibles"
-                : "Comenzar Test"
-              }
-            </Button>
-          </CardContent>
-        </Card>
+                {/* Start Test Button with gradient effects */}
+                <Button
+                  className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 h-14 rounded-xl font-semibold text-base"
+                  size="lg"
+                  disabled={!canStart}
+                  onClick={handleStartTest}
+                >
+                  <Play className="mr-3 h-5 w-5" />
+                  {!academiaId 
+                    ? "Selecciona una academia" 
+                    : !temaId 
+                    ? "Selecciona un tema"
+                    : questionCount === 0
+                    ? "Sin preguntas disponibles"
+                    : "Comenzar Test"
+                  }
+                </Button>
+              </CardContent>
+            </Card>
 
-        {/* Quick Actions */}
-        <div className="text-center space-y-2">
-          <p className="text-sm text-muted-foreground">¿Ya tienes preguntas falladas?</p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate("/practice")}
-            className="text-sm"
-          >
-            Practicar Preguntas Falladas
-          </Button>
+            {/* Quick Actions with premium styling */}
+            <div className="text-center space-y-3">
+              <p className="text-base text-gray-600 dark:text-gray-400 font-medium">¿Ya tienes preguntas falladas?</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/practice")}
+                className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 border border-gray-200 dark:border-gray-700 rounded-xl transition-all duration-200 hover:shadow-md font-medium"
+              >
+                Practicar Preguntas Falladas
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </main>
