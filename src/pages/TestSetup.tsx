@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Home, Play, BookOpen, Users, Target } from "lucide-react";
+import { ArrowLeft, Home, Play, BookOpen, Users, Target, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
 
 function setSEO(title: string, description: string) {
   document.title = title;
@@ -21,7 +23,16 @@ type Option = {
   _count?: { preguntas: number }; // Para mostrar cantidad de preguntas
 };
 
+// 🆕 NUEVO: Interface para el progreso del tema
+interface TopicProgress {
+  totalQuestions: number;
+  answeredQuestions: number;
+  progressPercentage: number;
+  pendingQuestions: number;
+}
+
 const TestSetup = () => {
+  const { user } = useAuth();
   const [academias, setAcademias] = useState<Option[]>([]);
   const [temas, setTemas] = useState<Option[]>([]);
   const [academiaId, setAcademiaId] = useState<string>("");
@@ -29,6 +40,11 @@ const TestSetup = () => {
   const [loadingAcademias, setLoadingAcademias] = useState(true);
   const [loadingTemas, setLoadingTemas] = useState(false);
   const [questionCount, setQuestionCount] = useState<number>(0);
+  
+  // 🆕 NUEVO: Estado para el progreso del tema
+  const [topicProgress, setTopicProgress] = useState<TopicProgress | null>(null);
+  const [loadingProgress, setLoadingProgress] = useState(false);
+  
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -69,6 +85,7 @@ const TestSetup = () => {
       setTemas([]);
       setTemaId("");
       setQuestionCount(0);
+      setTopicProgress(null); // 🆕 NUEVO: Reset progress
       return;
     }
 
@@ -85,6 +102,7 @@ const TestSetup = () => {
         setTemas((data || []) as Option[]);
         setTemaId(""); // Reset tema selection
         setQuestionCount(0);
+        setTopicProgress(null); // 🆕 NUEVO: Reset progress
       } catch (err: any) {
         console.error("Error loading temas:", err);
         toast({ 
@@ -100,15 +118,72 @@ const TestSetup = () => {
     loadTemas();
   }, [academiaId, toast]);
 
-  // Load question count when tema changes
-  useEffect(() => {
-    if (!academiaId || !temaId) {
-      setQuestionCount(0);
+  // 🆕 NUEVA FUNCIÓN: Obtener progreso del tema
+  const loadTopicProgress = async (temaId: string) => {
+    if (!user || !temaId) {
+      setTopicProgress(null);
       return;
     }
 
-    const loadQuestionCount = async () => {
+    try {
+      setLoadingProgress(true);
+
+      // 1. Obtener total de preguntas del tema
+      const { count: totalQuestions, error: totalError } = await supabase
+        .from("preguntas")
+        .select("*", { count: "exact", head: true })
+        .eq("tema_id", temaId);
+
+      if (totalError) throw totalError;
+
+      // 2. Obtener preguntas únicas respondidas por el usuario en este tema
+      const { data: answeredQuestions, error: answeredError } = await supabase
+        .from("user_answers")
+        .select(`
+          pregunta_id,
+          preguntas!inner(tema_id)
+        `)
+        .eq("user_id", user.id)
+        .eq("preguntas.tema_id", temaId);
+
+      if (answeredError) throw answeredError;
+
+      // 3. Obtener preguntas únicas (sin duplicados)
+      const uniqueAnsweredQuestions = new Set(
+        (answeredQuestions || []).map(answer => answer.pregunta_id)
+      );
+
+      const answeredCount = uniqueAnsweredQuestions.size;
+      const total = totalQuestions || 0;
+      const progressPercentage = total > 0 ? Math.round((answeredCount / total) * 100) : 0;
+      const pendingQuestions = Math.max(0, total - answeredCount);
+
+      setTopicProgress({
+        totalQuestions: total,
+        answeredQuestions: answeredCount,
+        progressPercentage,
+        pendingQuestions
+      });
+
+    } catch (err: any) {
+      console.error("Error loading topic progress:", err);
+      setTopicProgress(null);
+    } finally {
+      setLoadingProgress(false);
+    }
+  };
+
+  // Load question count and progress when tema changes
+  useEffect(() => {
+    if (!academiaId || !temaId) {
+      setQuestionCount(0);
+      setTopicProgress(null);
+      return;
+    }
+
+    const loadQuestionData = async () => {
       try {
+        // Cargar total de preguntas para el contador existente
         const { count, error } = await supabase
           .from("preguntas")
           .select("*", { count: "exact", head: true })
@@ -116,15 +191,33 @@ const TestSetup = () => {
           .eq("tema_id", temaId);
 
         if (error) throw error;
-        setQuestionCount(count || 0);
+        const totalQuestions = count || 0;
+        setQuestionCount(totalQuestions);
+
+        // 🆕 NUEVO: Solo cargar progreso si hay preguntas disponibles
+        if (totalQuestions > 0) {
+          await loadTopicProgress(temaId);
+        } else {
+          setTopicProgress(null);
+        }
+        
       } catch (err: any) {
-        console.error("Error loading question count:", err);
+        console.error("Error loading question data:", err);
         setQuestionCount(0);
+        setTopicProgress(null);
       }
     };
 
-    loadQuestionCount();
-  }, [academiaId, temaId]);
+    loadQuestionData();
+  }, [academiaId, temaId, user]);
+
+  // 🆕 NUEVA FUNCIÓN: Obtener color de progreso
+  const getProgressColor = (percentage: number) => {
+    if (percentage >= 90) return 'from-blue-500 to-indigo-600';
+    if (percentage >= 70) return 'from-green-500 to-emerald-600';
+    if (percentage >= 50) return 'from-yellow-500 to-orange-500';
+    return 'from-orange-500 to-red-500';
+  };
 
   const canStart = useMemo(() => {
     return Boolean(academiaId && temaId && questionCount > 0);
@@ -252,6 +345,69 @@ const TestSetup = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* 🆕 NUEVO: Progreso del Tema */}
+            {topicProgress && !loadingProgress && questionCount > 0 && (
+              <div className="bg-gradient-to-r from-blue-50/50 to-indigo-50/30 dark:from-blue-900/20 dark:to-indigo-900/10 p-4 rounded-lg border border-blue-200/50 dark:border-blue-700/50">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <BarChart3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <h4 className="font-medium text-sm text-blue-800 dark:text-blue-200">Tu Progreso en este Tema</h4>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        📚 Preguntas Respondidas
+                        {topicProgress.pendingQuestions > 0 && (
+                          <span className="text-blue-600 dark:text-blue-400 font-medium">
+                            ({topicProgress.pendingQuestions} pendientes)
+                          </span>
+                        )}
+                      </span>
+                      <span className="font-bold text-sm">
+                        {topicProgress.answeredQuestions}/{topicProgress.totalQuestions}
+                      </span>
+                    </div>
+                    
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 shadow-inner">
+                      <div 
+                        className={cn(
+                          "h-2.5 rounded-full transition-all duration-500 ease-out shadow-sm bg-gradient-to-r",
+                          getProgressColor(topicProgress.progressPercentage)
+                        )}
+                        style={{ width: `${topicProgress.progressPercentage}%` }}
+                      />
+                    </div>
+                    
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-muted-foreground">
+                        {topicProgress.progressPercentage}% completado
+                      </span>
+                      <span className="text-muted-foreground">
+                        {topicProgress.pendingQuestions === 0 ? (
+                          <span className="text-green-600 dark:text-green-400 font-medium">
+                            ✅ Tema completado
+                          </span>
+                        ) : (
+                          `${topicProgress.pendingQuestions} por hacer`
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Loading Progress Indicator */}
+            {loadingProgress && temaId && questionCount > 0 && (
+              <div className="bg-muted/30 p-4 rounded-lg border border-muted flex items-center justify-center">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  Cargando progreso...
+                </div>
+              </div>
+            )}
 
             {/* Question Count Info */}
             {questionCount > 0 && (
