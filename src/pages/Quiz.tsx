@@ -434,18 +434,6 @@ return (
               </div>
             )}
 
-            {/* Session ID Debug (solo en desarrollo) */}
-            {import.meta.env.DEV && (
-              <div className="text-center">
-                <div className="inline-block px-3 py-1.5 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                  <span className="text-xs text-gray-600 dark:text-gray-400 font-mono">
-                    Session ID: {quiz.sessionId || 'No session'} | User: {user?.id?.substring(0, 8) || 'No user'}
-                    {quiz.remainingQuestions !== undefined && ` | Remaining: ${quiz.remainingQuestions}`}
-                  </span>
-                </div>
-              </div>
-            )}
-
             {/* Exit Confirmation Dialog */}
             <ExitConfirmationDialog
               isOpen={isExitDialogOpen}
