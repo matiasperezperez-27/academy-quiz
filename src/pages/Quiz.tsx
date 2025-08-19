@@ -226,7 +226,7 @@ const shouldShowNextButton = quiz.isRevealed && !quiz.isAnswering;
     );
   }
 
-  return (
+return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
       <div className="relative">
         {/* Hero background with decorative elements */}
@@ -258,7 +258,7 @@ const shouldShowNextButton = quiz.isRevealed && !quiz.isAnswering;
               </Button>
             </div>
 
-            {/* Progress Bar premium */}
+            {/* Progress Bar premium (SIN EL SPAN "RESTANTES") */}
             <div className="backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-4 sm:p-6">
               <div className="space-y-4">
                 <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400">
@@ -279,11 +279,6 @@ const shouldShowNextButton = quiz.isRevealed && !quiz.isAnswering;
                         Aciertos: {quiz.score}
                       </span>
                     </div>
-                    {quiz.remainingQuestions !== undefined && (
-                      <span className="text-xs bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 px-3 py-1.5 rounded-lg border border-blue-200/50 dark:border-blue-700/50 font-medium">
-                        Restantes: {Math.max(0, quiz.remainingQuestions - quiz.score)}
-                      </span>
-                    )}
                   </div>
                 </div>
                 
@@ -299,129 +294,132 @@ const shouldShowNextButton = quiz.isRevealed && !quiz.isAnswering;
               </div>
             </div>
 
-          {/* Question Text with premium design */}
-          <div className="space-y-6">
-            <div className="p-6 bg-gradient-to-r from-blue-50/80 to-indigo-50/50 dark:from-blue-900/30 dark:to-indigo-900/20 rounded-2xl border border-blue-200/50 dark:border-blue-700/50 shadow-lg shadow-blue-500/5">
-              <div className="flex items-start gap-4">
-                <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-lg flex-shrink-0">
-                  <BookOpen className="h-5 w-5 text-white" />
-                </div>
-                <p className="text-base sm:text-lg leading-relaxed whitespace-pre-wrap break-words text-gray-800 dark:text-gray-200 font-medium">
-                  {quiz.currentQuestion.pregunta_texto}
-                </p>
-              </div>
-            </div>
-            
-            {/* Part info if available with premium styling */}
-            {quiz.currentQuestion.parte && (
-              <div className="flex justify-center">
-                <div className="text-xs text-gray-600 dark:text-gray-400 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 font-medium">
-                  Parte: {quiz.currentQuestion.parte}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Answer Options with premium gradient effects */}
-          <div className="space-y-4">
-            {quiz.answerOptions.map((option) => {
-              const isSelected = quiz.selectedAnswer === option.key;
-              const isCorrect = quiz.isRevealed && quiz.currentQuestion.solucion_letra?.toUpperCase() === option.key;
-              const isWrong = quiz.isRevealed && isSelected && !isCorrect;
-              
-              return (
-                <Button
-                  key={option.key}
-                  variant={isCorrect ? "default" : isWrong ? "destructive" : "outline"}
-                  className={`
-                    w-full p-4 sm:p-6 h-auto min-h-[4rem] text-left justify-start relative
-                    transition-all duration-300 hover:scale-[1.02] rounded-2xl shadow-lg hover:shadow-xl
-                    ${isCorrect ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-green-500/20" : ""}
-                    ${isWrong ? "bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white shadow-red-500/20" : ""}
-                    ${!quiz.isRevealed && isSelected ? "ring-2 ring-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20" : ""}
-                    ${!quiz.isRevealed && !isSelected ? "bg-gradient-to-r from-white to-blue-50/30 dark:from-gray-800 dark:to-blue-900/10 hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 border border-gray-200 dark:border-gray-700" : ""}
-                  `}
-                  onClick={() => handleAnswer(option.key)}
-                  disabled={quiz.isRevealed || quiz.isAnswering}
-                >
-                  <div className="flex items-start gap-4 w-full">
-                    <div className={`
-                      flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-lg
-                      ${isCorrect ? "bg-white text-green-600" : 
-                        isWrong ? "bg-white text-red-600" : 
-                        "bg-gradient-to-br from-blue-500 to-indigo-600 text-white"}
-                    `}>
-                      {option.key}
+            {/* CONTENIDO DEL QUIZ (SIN EL <Card>) */}
+            <div className="p-6 sm:p-8 space-y-8">
+              {/* Question Text with premium design */}
+              <div className="space-y-6">
+                <div className="p-6 bg-gradient-to-r from-blue-50/80 to-indigo-50/50 dark:from-blue-900/30 dark:to-indigo-900/20 rounded-2xl border border-blue-200/50 dark:border-blue-700/50 shadow-lg shadow-blue-500/5">
+                  <div className="flex items-start gap-4">
+                    <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-lg flex-shrink-0">
+                      <BookOpen className="h-5 w-5 text-white" />
                     </div>
-                    
-                    <span className="flex-1 text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words text-left font-medium">
-                      {option.text}
-                    </span>
-                    
-                    {quiz.isRevealed && (
-                      <div className="flex-shrink-0">
-                        {isCorrect ? (
-                          <CheckCircle2 className="h-5 w-5 text-white" />
-                        ) : isWrong ? (
-                          <XCircle className="h-5 w-5 text-white" />
-                        ) : null}
+                    <p className="text-base sm:text-lg leading-relaxed whitespace-pre-wrap break-words text-gray-800 dark:text-gray-200 font-medium">
+                      {quiz.currentQuestion.pregunta_texto}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Part info if available with premium styling */}
+                {quiz.currentQuestion.parte && (
+                  <div className="flex justify-center">
+                    <div className="text-xs text-gray-600 dark:text-gray-400 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 font-medium">
+                      Parte: {quiz.currentQuestion.parte}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Answer Options with premium gradient effects */}
+              <div className="space-y-4">
+                {quiz.answerOptions.map((option) => {
+                  const isSelected = quiz.selectedAnswer === option.key;
+                  const isCorrect = quiz.isRevealed && quiz.currentQuestion.solucion_letra?.toUpperCase() === option.key;
+                  const isWrong = quiz.isRevealed && isSelected && !isCorrect;
+                  
+                  return (
+                    <Button
+                      key={option.key}
+                      variant={isCorrect ? "default" : isWrong ? "destructive" : "outline"}
+                      className={`
+                        w-full p-4 sm:p-6 h-auto min-h-[4rem] text-left justify-start relative
+                        transition-all duration-300 hover:scale-[1.02] rounded-2xl shadow-lg hover:shadow-xl
+                        ${isCorrect ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-green-500/20" : ""}
+                        ${isWrong ? "bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white shadow-red-500/20" : ""}
+                        ${!quiz.isRevealed && isSelected ? "ring-2 ring-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20" : ""}
+                        ${!quiz.isRevealed && !isSelected ? "bg-gradient-to-r from-white to-blue-50/30 dark:from-gray-800 dark:to-blue-900/10 hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 border border-gray-200 dark:border-gray-700" : ""}
+                      `}
+                      onClick={() => handleAnswer(option.key)}
+                      disabled={quiz.isRevealed || quiz.isAnswering}
+                    >
+                      <div className="flex items-start gap-4 w-full">
+                        <div className={`
+                          flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-lg
+                          ${isCorrect ? "bg-white text-green-600" : 
+                            isWrong ? "bg-white text-red-600" : 
+                            "bg-gradient-to-br from-blue-500 to-indigo-600 text-white"}
+                        `}>
+                          {option.key}
+                        </div>
+                        
+                        <span className="flex-1 text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words text-left font-medium">
+                          {option.text}
+                        </span>
+                        
+                        {quiz.isRevealed && (
+                          <div className="flex-shrink-0">
+                            {isCorrect ? (
+                              <CheckCircle2 className="h-5 w-5 text-white" />
+                            ) : isWrong ? (
+                              <XCircle className="h-5 w-5 text-white" />
+                            ) : null}
+                          </div>
+                        )}
                       </div>
+                    </Button>
+                  );
+                })}
+              </div>
+
+              {/* Answer Status with premium styling */}
+              {quiz.isRevealed && (
+                <div className="pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
+                  <div className={`
+                    flex items-center gap-3 text-base font-semibold p-4 rounded-xl
+                    ${quiz.selectedAnswer === quiz.currentQuestion.solucion_letra?.toUpperCase() 
+                      ? "bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 text-green-700 dark:text-green-300 border border-green-200/50 dark:border-green-700/50" 
+                      : "bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 text-red-700 dark:text-red-300 border border-red-200/50 dark:border-red-700/50"
+                    }
+                  `}>
+                    {quiz.selectedAnswer === quiz.currentQuestion.solucion_letra?.toUpperCase() ? (
+                      <>
+                        <div className="p-1 bg-green-500 rounded-full">
+                          <CheckCircle2 className="h-4 w-4 text-white" />
+                        </div>
+                        ¡Correcto! +10 puntos
+                      </>
+                    ) : (
+                      <>
+                        <div className="p-1 bg-red-500 rounded-full">
+                          <XCircle className="h-4 w-4 text-white" />
+                        </div>
+                        Incorrecto. La respuesta correcta es: {quiz.currentQuestion.solucion_letra}
+                      </>
                     )}
                   </div>
-                </Button>
-              );
-            })}
-          </div>
+                </div>
+              )}
 
-          {/* Answer Status with premium styling */}
-          {quiz.isRevealed && (
-            <div className="pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
-              <div className={`
-                flex items-center gap-3 text-base font-semibold p-4 rounded-xl
-                ${quiz.selectedAnswer === quiz.currentQuestion.solucion_letra?.toUpperCase() 
-                  ? "bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 text-green-700 dark:text-green-300 border border-green-200/50 dark:border-green-700/50" 
-                  : "bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 text-red-700 dark:text-red-300 border border-red-200/50 dark:border-red-700/50"
-                }
-              `}>
-                {quiz.selectedAnswer === quiz.currentQuestion.solucion_letra?.toUpperCase() ? (
-                  <>
-                    <div className="p-1 bg-green-500 rounded-full">
-                      <CheckCircle2 className="h-4 w-4 text-white" />
-                    </div>
-                    ¡Correcto! +10 puntos
-                  </>
-                ) : (
-                  <>
-                    <div className="p-1 bg-red-500 rounded-full">
-                      <XCircle className="h-4 w-4 text-white" />
-                    </div>
-                    Incorrecto. La respuesta correcta es: {quiz.currentQuestion.solucion_letra}
-                  </>
-                )}
-              </div>
+              {/* Botón Siguiente con gradient effects */}
+              {shouldShowNextButton && (
+                <div className="pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
+                  <Button 
+                    onClick={handleNextQuestion}
+                    className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 h-12 sm:h-14 rounded-xl font-semibold text-base"
+                    size="lg"
+                    disabled={quiz.isAnswering}
+                  >
+                    {quiz.isFinished ? (
+                      "Ver Resultados"
+                    ) : (
+                      <>
+                        Siguiente Pregunta
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
-          )}
-
-          {/* Botón Siguiente con gradient effects */}
-          {shouldShowNextButton && (
-            <div className="pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
-              <Button 
-                onClick={handleNextQuestion}
-                className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 h-12 sm:h-14 rounded-xl font-semibold text-base"
-                size="lg"
-                disabled={quiz.isAnswering}
-              >
-                {quiz.isFinished ? (
-                  "Ver Resultados"
-                ) : (
-                  <>
-                    Siguiente Pregunta
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
 
             {/* Navigation hint with premium styling */}
             {quiz.isRevealed && !shouldShowNextButton && (
@@ -431,6 +429,18 @@ const shouldShowNextButton = quiz.isRevealed && !quiz.isAnswering;
                     {quiz.isFinished
                       ? "Finalizando quiz..." 
                       : "Siguiente pregunta en breve..."}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Session ID Debug (solo en desarrollo) */}
+            {import.meta.env.DEV && (
+              <div className="text-center">
+                <div className="inline-block px-3 py-1.5 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                  <span className="text-xs text-gray-600 dark:text-gray-400 font-mono">
+                    Session ID: {quiz.sessionId || 'No session'} | User: {user?.id?.substring(0, 8) || 'No user'}
+                    {quiz.remainingQuestions !== undefined && ` | Remaining: ${quiz.remainingQuestions}`}
                   </span>
                 </div>
               </div>
