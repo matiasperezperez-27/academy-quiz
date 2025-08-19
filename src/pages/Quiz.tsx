@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { ExitConfirmationDialog, useExitConfirmation } from "@/components/ExitConfirmationDialog";
 import { useQuiz } from "@/hooks/useQuiz";
+
 function setSEO(title: string, description: string) {
   document.title = title;
   const meta = document.querySelector('meta[name="description"]') || document.createElement("meta");
@@ -15,18 +16,17 @@ function setSEO(title: string, description: string) {
   meta.setAttribute("content", description);
   document.head.appendChild(meta);
 }
+
 type QuizMode = "test" | "practice";
+
 export default function Quiz() {
-  const {
-    user
-  } = useAuth();
-  const {
-    toast
-  } = useToast();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const params = new URLSearchParams(location.search);
-  const mode: QuizMode = params.get("mode") as QuizMode || "test";
+  
+  const mode: QuizMode = (params.get("mode") as QuizMode) || "test";
   const academiaId = params.get("academia");
   const temaId = params.get("tema");
   const questionsParam = params.get("questions");
@@ -40,12 +40,14 @@ export default function Quiz() {
 
   // USE THE QUIZ HOOK!
   const quiz = useQuiz(mode, academiaId, temaId, specificQuestionIds);
+
   const {
     isOpen: isExitDialogOpen,
     showConfirmation: showExitConfirmation,
     handleConfirm: handleExitConfirm,
-    handleClose: handleExitClose
+    handleClose: handleExitClose,
   } = useExitConfirmation();
+
   useEffect(() => {
     setSEO("Quiz | Academy Quiz", "Responde a las preguntas una por una y mejora tu puntuación.");
   }, []);
@@ -56,88 +58,16 @@ export default function Quiz() {
       console.log("Esperando autenticación del usuario...");
       return;
     }
+
     if (mode === "test" && (!academiaId || !temaId)) {
-      toast({
-        title: "Parámetros faltantes",
+      toast({ 
+        title: "Parámetros faltantes", 
         description: "Se requiere seleccionar academia y tema.",
         variant: "destructive"
       });
-      navigate("/test-setup", {
-        replace: true
-      });
+      navigate("/test-setup", { replace: true });
     }
   }, [user, mode, academiaId, temaId, navigate, toast]);
-
-  // Handle quiz completion
-  useEffect(() => {
-    const handleCompletion = async () => {
-      if (quiz.isFinished && quiz.isRevealed) {
-        // 🔧 FIX: Añadir delay para la última pregunta si fue correcta
-        const isLastQuestionCorrect = quiz.selectedAnswer === quiz.currentQuestion?.solucion_letra?.toUpperCase();
-        if (isLastQuestionCorrect) {
-          // Si la última pregunta fue correcta, esperar el mismo tiempo que otras respuestas correctas
-          console.log("🎯 Última pregunta correcta, aplicando delay de 1500ms...");
-          setTimeout(async () => {
-            await completeQuizAndNavigate();
-          }, 1500);
-        } else {
-          // Si fue incorrecta, no navegar automáticamente - esperar a que el usuario haga clic en "Siguiente"
-          console.log("🎯 Última pregunta incorrecta, esperando acción del usuario...");
-          // No hacer nada aquí - se manejará con el botón "Siguiente"
-        }
-      }
-    };
-    const completeQuizAndNavigate = async () => {
-      // Complete the quiz session in database
-      const quizStats = await quiz.completeQuiz();
-      console.log("🎯 NAVEGANDO A RESULTS CON:");
-      console.log("- quizStats:", quizStats);
-      console.log("- originalFailedQuestionsCount:", quizStats?.originalFailedQuestionsCount);
-      console.log("- questionsStillFailed:", quizStats?.questionsStillFailed);
-      console.log("- specificQuestionIds:", quiz.specificQuestionIds);
-      if (quizStats) {
-        // Navigate to results with complete stats including remaining questions
-        navigate("/results", {
-          state: {
-            score: quizStats.correctAnswers,
-            total: quizStats.totalQuestions,
-            mode,
-            percentage: quizStats.percentage,
-            pointsEarned: quizStats.pointsEarned,
-            averageTimePerQuestion: quizStats.averageTimePerQuestion,
-            // INFORMACIÓN para continuar con más preguntas
-            remainingQuestionsInTopic: quizStats.remainingQuestionsInTopic,
-            academiaId: quiz.currentAcademiaId,
-            temaId: quiz.currentTemaId,
-            // 🎯 NUEVA INFO PARA DETECTAR ORIGEN
-            originalFailedQuestionsCount: quizStats.originalFailedQuestionsCount,
-            questionsStillFailed: quizStats.questionsStillFailed,
-            // 🆕 PASAR LAS PREGUNTAS ORIGINALES PARA REPETIR
-            originalQuestionIds: quiz.specificQuestionIds
-          },
-          replace: true
-        });
-      } else {
-        // Fallback if completion fails
-        navigate("/results", {
-          state: {
-            score: quiz.score,
-            total: quiz.questions.length,
-            mode,
-            academiaId: quiz.currentAcademiaId,
-            temaId: quiz.currentTemaId,
-            // 🎯 FALLBACK PARA DETECTAR ORIGEN
-            originalFailedQuestionsCount: quiz.specificQuestionIds?.length || 0,
-            questionsStillFailed: [],
-            // 🆕 PASAR LAS PREGUNTAS ORIGINALES PARA REPETIR
-            originalQuestionIds: quiz.specificQuestionIds
-          },
-          replace: true
-        });
-      }
-    };
-    handleCompletion();
-  }, [quiz.isFinished, quiz.isRevealed, quiz, mode, navigate]);
 
   // Handle back navigation with confirmation
   const handleGoBack = useCallback(() => {
@@ -172,21 +102,9 @@ export default function Quiz() {
   // Handle answer selection
   const handleAnswer = useCallback(async (selectedLetter: string) => {
     if (quiz.isRevealed || quiz.isAnswering) return;
-    const isCorrect = await quiz.submitAnswer(selectedLetter);
 
-    // 🔧 FIX: Auto-advance si es correcto, INCLUSO en la última pregunta
-    if (isCorrect) {
-      if (quiz.isFinished) {
-        // Si es la última pregunta y es correcta, NO auto-advance aquí
-        // El useEffect se encargará con delay
-        console.log("🎯 Última pregunta correcta - useEffect manejará la navegación con delay");
-      } else {
-        // Si no es la última pregunta, auto-advance normal
-        setTimeout(() => {
-          quiz.nextQuestion();
-        }, 1500);
-      }
-    }
+    const isCorrect = await quiz.submitAnswer(selectedLetter);
+    
     // Si es incorrecto, no avanzamos automáticamente - el usuario debe hacer clic en "Siguiente"
   }, [quiz]);
 
@@ -195,12 +113,13 @@ export default function Quiz() {
     if (quiz.isFinished) {
       // 🔧 FIX: Si es la última pregunta, completar el quiz manualmente
       console.log("🎯 Última pregunta - completando quiz manualmente...");
-
+      
       // Complete the quiz session in database
       const quizStats = await quiz.completeQuiz();
+      
       if (quizStats) {
-        navigate("/results", {
-          state: {
+        navigate("/results", { 
+          state: { 
             score: quizStats.correctAnswers,
             total: quizStats.totalQuestions,
             mode,
@@ -218,8 +137,8 @@ export default function Quiz() {
         });
       } else {
         // Fallback
-        navigate("/results", {
-          state: {
+        navigate("/results", { 
+          state: { 
             score: quiz.score,
             total: quiz.questions.length,
             mode,
@@ -234,20 +153,19 @@ export default function Quiz() {
       }
       return;
     }
-
+    
     // Si no es la última pregunta, continuar normalmente
     quiz.nextQuestion();
   }, [quiz, mode, navigate]);
 
   // Determinar si mostrar el botón "Siguiente"
-  const shouldShowNextButton = quiz.isRevealed && !quiz.isAnswering && (quiz.selectedAnswer !== quiz.currentQuestion?.solucion_letra?.toUpperCase() ||
-  // Respuesta incorrecta
-  quiz.isFinished // Última pregunta
-  );
+const shouldShowNextButton = quiz.isRevealed && !quiz.isAnswering;
+
 
   // Si está cargando o esperando usuario
   if (quiz.isLoading || !user) {
-    return <main className="min-h-screen p-4 flex items-center justify-center bg-background">
+    return (
+      <main className="min-h-screen p-4 flex items-center justify-center bg-background">
         <Card className="w-full max-w-2xl">
           <CardContent className="flex items-center justify-center p-8">
             <div className="text-center space-y-4">
@@ -258,10 +176,13 @@ export default function Quiz() {
             </div>
           </CardContent>
         </Card>
-      </main>;
+      </main>
+    );
   }
+
   if (!quiz.currentQuestion) {
-    return <main className="min-h-screen p-4 flex items-center justify-center bg-background">
+    return (
+      <main className="min-h-screen p-4 flex items-center justify-center bg-background">
         <Card className="w-full max-w-2xl">
           <CardContent className="flex items-center justify-center p-8">
             <div className="text-center space-y-4">
@@ -271,17 +192,30 @@ export default function Quiz() {
             </div>
           </CardContent>
         </Card>
-      </main>;
+      </main>
+    );
   }
-  return <main className="min-h-screen p-4 flex items-center justify-center bg-background">
+
+  return (
+    <main className="min-h-screen p-4 flex items-center justify-center bg-background">
       <div className="w-full max-w-2xl space-y-4">
         {/* Header with Back Button */}
         <div className="flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={handleGoBack} className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleGoBack}
+            className="flex items-center gap-2"
+          >
             <ArrowLeft className="h-4 w-4" />
             Volver
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleGoHome} className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleGoHome}
+            className="flex items-center gap-2"
+          >
             <Home className="h-4 w-4" />
             Inicio
           </Button>
@@ -293,7 +227,11 @@ export default function Quiz() {
             <span>Pregunta {quiz.currentIndex + 1} de {quiz.questions.length}</span>
             <div className="flex items-center gap-4">
               <span>Aciertos: {quiz.score}</span>
-              {quiz.remainingQuestions !== undefined}
+              {quiz.remainingQuestions !== undefined && (
+                <span className="text-xs bg-muted px-2 py-1 rounded">
+                  Restantes: {Math.max(0, quiz.remainingQuestions - quiz.score)}
+                </span>
+              )}
             </div>
           </div>
           <Progress value={quiz.progress} className="w-full" />
@@ -319,29 +257,41 @@ export default function Quiz() {
               </div>
               
               {/* Part info if available */}
-              {quiz.currentQuestion.parte && <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md inline-block">
+              {quiz.currentQuestion.parte && (
+                <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md inline-block">
                   Parte: {quiz.currentQuestion.parte}
-                </div>}
+                </div>
+              )}
             </div>
 
             {/* Answer Options */}
             <div className="space-y-3">
-              {quiz.answerOptions.map(option => {
-              const isSelected = quiz.selectedAnswer === option.key;
-              const isCorrect = quiz.isRevealed && quiz.currentQuestion.solucion_letra?.toUpperCase() === option.key;
-              const isWrong = quiz.isRevealed && isSelected && !isCorrect;
-              return <Button key={option.key} variant={isCorrect ? "default" : isWrong ? "destructive" : "outline"} className={`
+              {quiz.answerOptions.map((option) => {
+                const isSelected = quiz.selectedAnswer === option.key;
+                const isCorrect = quiz.isRevealed && quiz.currentQuestion.solucion_letra?.toUpperCase() === option.key;
+                const isWrong = quiz.isRevealed && isSelected && !isCorrect;
+                
+                return (
+                  <Button
+                    key={option.key}
+                    variant={isCorrect ? "default" : isWrong ? "destructive" : "outline"}
+                    className={`
                       w-full p-4 h-auto min-h-[3rem] text-left justify-start relative
                       transition-all duration-200 hover:scale-[1.02]
                       ${isCorrect ? "bg-green-600 hover:bg-green-700 text-white shadow-lg" : ""}
                       ${isWrong ? "bg-red-600 hover:bg-red-700 text-white" : ""}
                       ${!quiz.isRevealed && isSelected ? "ring-2 ring-primary" : ""}
-                    `} onClick={() => handleAnswer(option.key)} disabled={quiz.isRevealed || quiz.isAnswering}>
+                    `}
+                    onClick={() => handleAnswer(option.key)}
+                    disabled={quiz.isRevealed || quiz.isAnswering}
+                  >
                     <div className="flex items-start gap-3 w-full">
                       {/* Option Letter */}
                       <div className={`
                         flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
-                        ${isCorrect ? "bg-white text-green-600" : isWrong ? "bg-white text-red-600" : "bg-primary text-primary-foreground"}
+                        ${isCorrect ? "bg-white text-green-600" : 
+                          isWrong ? "bg-white text-red-600" : 
+                          "bg-primary text-primary-foreground"}
                       `}>
                         {option.key}
                       </div>
@@ -352,55 +302,96 @@ export default function Quiz() {
                       </span>
                       
                       {/* Status Icon */}
-                      {quiz.isRevealed && <div className="flex-shrink-0">
-                          {isCorrect ? <CheckCircle2 className="h-5 w-5 text-white" /> : isWrong ? <XCircle className="h-5 w-5 text-white" /> : null}
-                        </div>}
+                      {quiz.isRevealed && (
+                        <div className="flex-shrink-0">
+                          {isCorrect ? (
+                            <CheckCircle2 className="h-5 w-5 text-white" />
+                          ) : isWrong ? (
+                            <XCircle className="h-5 w-5 text-white" />
+                          ) : null}
+                        </div>
+                      )}
                     </div>
-                  </Button>;
-            })}
+                  </Button>
+                );
+              })}
             </div>
 
             {/* Answer Status */}
-            {quiz.isRevealed && <div className="pt-4 border-t">
+            {quiz.isRevealed && (
+              <div className="pt-4 border-t">
                 <div className={`
                   flex items-center gap-2 text-sm font-medium
-                  ${quiz.selectedAnswer === quiz.currentQuestion.solucion_letra?.toUpperCase() ? "text-green-600" : "text-red-600"}
+                  ${quiz.selectedAnswer === quiz.currentQuestion.solucion_letra?.toUpperCase() 
+                    ? "text-green-600" 
+                    : "text-red-600"
+                  }
                 `}>
-                  {quiz.selectedAnswer === quiz.currentQuestion.solucion_letra?.toUpperCase() ? <>
+                  {quiz.selectedAnswer === quiz.currentQuestion.solucion_letra?.toUpperCase() ? (
+                    <>
                       <CheckCircle2 className="h-4 w-4" />
                       ¡Correcto! +10 puntos
-                    </> : <>
+                    </>
+                  ) : (
+                    <>
                       <XCircle className="h-4 w-4" />
                       Incorrecto. La respuesta correcta es: {quiz.currentQuestion.solucion_letra}
-                    </>}
+                    </>
+                  )}
                 </div>
-              </div>}
+              </div>
+            )}
 
             {/* NUEVO: Botón Siguiente para respuestas incorrectas */}
-            {shouldShowNextButton && <div className="pt-4 border-t">
-                <Button onClick={handleNextQuestion} className="w-full" size="lg" disabled={quiz.isAnswering}>
-                  {quiz.isFinished ? "Ver Resultados" : <>
+            {shouldShowNextButton && (
+              <div className="pt-4 border-t">
+                <Button 
+                  onClick={handleNextQuestion}
+                  className="w-full"
+                  size="lg"
+                  disabled={quiz.isAnswering}
+                >
+                  {quiz.isFinished ? (
+                    "Ver Resultados"
+                  ) : (
+                    <>
                       Siguiente Pregunta
                       <ArrowRight className="ml-2 h-4 w-4" />
-                    </>}
+                    </>
+                  )}
                 </Button>
-              </div>}
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Navigation hint */}
-        {quiz.isRevealed && !shouldShowNextButton && <div className="text-center text-sm text-muted-foreground">
-            {quiz.isFinished ? "Finalizando quiz..." : "Siguiente pregunta en breve..."}
-          </div>}
+        {quiz.isRevealed && !shouldShowNextButton && (
+          <div className="text-center text-sm text-muted-foreground">
+            {quiz.isFinished
+              ? "Finalizando quiz..." 
+              : "Siguiente pregunta en breve..."}
+          </div>
+        )}
 
         {/* Session ID Debug (solo en desarrollo) */}
-        {import.meta.env.DEV && <div className="text-xs text-muted-foreground text-center">
+        {import.meta.env.DEV && (
+          <div className="text-xs text-muted-foreground text-center">
             Session ID: {quiz.sessionId || 'No session'} | User: {user?.id?.substring(0, 8) || 'No user'}
             {quiz.remainingQuestions !== undefined && ` | Remaining: ${quiz.remainingQuestions}`}
-          </div>}
+          </div>
+        )}
 
         {/* Exit Confirmation Dialog */}
-        <ExitConfirmationDialog isOpen={isExitDialogOpen} onClose={handleExitClose} onConfirm={handleExitConfirm} currentQuestion={quiz.currentIndex} totalQuestions={quiz.questions.length} score={quiz.score} />
+        <ExitConfirmationDialog
+          isOpen={isExitDialogOpen}
+          onClose={handleExitClose}
+          onConfirm={handleExitConfirm}
+          currentQuestion={quiz.currentIndex}
+          totalQuestions={quiz.questions.length}
+          score={quiz.score}
+        />
       </div>
-    </main>;
+    </main>
+  );
 }
