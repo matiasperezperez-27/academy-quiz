@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +10,8 @@ import {
   ArrowLeft,
   RefreshCw,
   PlayCircle,
-  RotateCcw
+  RotateCcw,
+  Search
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTopicAnalysis, getNivelIcon, getNivelColor } from "@/hooks/useTopicAnalysis";
@@ -30,6 +32,9 @@ export default function TopicAnalysisPage() {
     refreshData,
     resetSpecificTopicData 
   } = useTopicAnalysis();
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
   // Estado para controlar el modal de celebración
   const [celebrationModal, setCelebrationModal] = useState<{
@@ -159,7 +164,7 @@ export default function TopicAnalysisPage() {
 
   const handleContinuePractice = () => {
     setCelebrationModal({ isOpen: false, achievement: null });
-    navigate("/topic-analysis");
+    navigate("/analisis-temas");
   };
 
   const handleNextTopic = () => {
@@ -174,6 +179,48 @@ export default function TopicAnalysisPage() {
 
   // ✅ CAMBIO 4: Se elimina la función `testModal`.
   // const testModal = () => { ... };
+
+  const {
+    temasDominados,
+    temasCasiDominados,
+    temasEnProgreso,
+    temasNecesitanPractica
+  } = useMemo(() => {
+    const removeAccents = (str: string) => {
+      if (!str) return "";
+      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    };
+
+    let filtered = topicStats;
+
+    if (activeFilter) {
+        filtered = filtered.filter(t => t?.nivel_dominio === activeFilter);
+    }
+
+    if (searchTerm) {
+        const normalizedSearchTerm = removeAccents(searchTerm.toLowerCase());
+        filtered = filtered.filter(t =>
+            removeAccents(t?.tema_nombre.toLowerCase()).includes(normalizedSearchTerm)
+        );
+    }
+
+    return {
+        temasDominados: filtered.filter(t => t?.nivel_dominio === 'Dominado'),
+        temasCasiDominados: filtered.filter(t => t?.nivel_dominio === 'Casi Dominado'),
+        temasEnProgreso: filtered.filter(t => t?.nivel_dominio === 'En Progreso'),
+        temasNecesitanPractica: filtered.filter(t => t?.nivel_dominio === 'Necesita Práctica'),
+    };
+  }, [topicStats, searchTerm, activeFilter]);
+  const totalPreguntas = topicStats.reduce((sum, t) => sum + (t?.total_respondidas || 0), 0);
+  const totalCorrectas = topicStats.reduce((sum, t) => sum + (t?.total_correctas || 0), 0);
+  const promedioGeneral = totalPreguntas > 0 ? Math.round((totalCorrectas / totalPreguntas) * 100) : 0;
+
+  const filters = [
+    { label: 'Necesitan Práctica', value: 'Necesita Práctica' },
+    { label: 'En Progreso', value: 'En Progreso' },
+    { label: 'Casi Dominados', value: 'Casi Dominado' },
+    { label: 'Dominados', value: 'Dominado' },
+  ];
 
   // --- Subcomponente para las tarjetas de temas ---
   const TopicCard = ({ topic, priority }: { topic: any; priority: 'high' | 'medium' | 'low' | 'achieved' }) => {
@@ -437,69 +484,14 @@ export default function TopicAnalysisPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
-        <div className="p-6">
-          <div className="max-w-7xl mx-auto space-y-8">
-            <div className="flex items-center justify-between">
-              <div className="space-y-3">
-                <div className="h-10 w-80 bg-gradient-to-r from-blue-200 to-indigo-200 dark:from-blue-800 dark:to-indigo-800 rounded-xl animate-pulse" />
-                <div className="h-6 w-64 bg-gradient-to-r from-gray-200 to-blue-200 dark:from-gray-700 dark:to-blue-700 rounded-lg animate-pulse" />
-              </div>
-              <div className="flex gap-3">
-                <div className="h-10 w-10 bg-gradient-to-r from-blue-200 to-indigo-200 dark:from-blue-800 dark:to-indigo-800 rounded-lg animate-pulse" />
-                <div className="h-10 w-24 bg-gradient-to-r from-gray-200 to-blue-200 dark:from-gray-700 dark:to-blue-700 rounded-lg animate-pulse" />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-              {[...Array(4)].map((_, i) => (
-                <Card key={i} className="backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 shadow-lg">
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-2">
-                          <div className="h-4 w-24 bg-gradient-to-r from-gray-200 to-blue-200 dark:from-gray-600 dark:to-blue-600 rounded animate-pulse" />
-                          <div className="h-8 w-16 bg-gradient-to-r from-blue-200 to-indigo-200 dark:from-blue-700 dark:to-indigo-700 rounded animate-pulse" />
-                        </div>
-                        <div className="h-10 w-10 bg-gradient-to-r from-blue-200 to-indigo-200 dark:from-blue-800 dark:to-indigo-800 rounded-full animate-pulse" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, i) => (
-                <Card key={i} className="backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 shadow-lg">
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-6 w-6 bg-gradient-to-r from-blue-200 to-indigo-200 dark:from-blue-700 dark:to-indigo-700 rounded animate-pulse" />
-                        <div className="h-5 w-32 bg-gradient-to-r from-gray-200 to-blue-200 dark:from-gray-600 dark:to-blue-600 rounded animate-pulse" />
-                      </div>
-                      <div className="h-3 w-full bg-gradient-to-r from-gray-200 to-blue-200 dark:from-gray-600 dark:to-blue-600 rounded-full animate-pulse" />
-                      <div className="h-3 w-full bg-gradient-to-r from-gray-200 to-blue-200 dark:from-gray-600 dark:to-blue-600 rounded-full animate-pulse" />
-                      <div className="h-9 w-full bg-gradient-to-r from-blue-200 to-indigo-200 dark:from-blue-700 dark:to-indigo-700 rounded-lg animate-pulse" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </div>
-      </main>
+      // Aquí puedes poner el componente de carga que uses
+      // Por ejemplo, un componente simple con texto:
+      <div className="flex items-center justify-center min-h-screen text-lg text-gray-500 dark:text-gray-400">
+        Cargando tus estadísticas... ⏳
+      </div>
     );
   }
-
-  const temasDominados = topicStats.filter(t => t?.nivel_dominio === 'Dominado');
-  const temasCasiDominados = topicStats.filter(t => t?.nivel_dominio === 'Casi Dominado');
-  const temasEnProgreso = topicStats.filter(t => t?.nivel_dominio === 'En Progreso');
-  const temasNecesitanPractica = topicStats.filter(t => t?.nivel_dominio === 'Necesita Práctica');
-  const totalPreguntas = topicStats.reduce((sum, t) => sum + (t?.total_respondidas || 0), 0);
-  const totalCorrectas = topicStats.reduce((sum, t) => sum + (t?.total_correctas || 0), 0);
-  const promedioGeneral = totalPreguntas > 0 ? Math.round((totalCorrectas / totalPreguntas) * 100) : 0;
-
+  
   return (
     <>
       <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
@@ -549,6 +541,38 @@ export default function TopicAnalysisPage() {
                     <RefreshCw className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Actualizar</span>
                   </Button>
+                </div>
+              </div>
+
+              {/* Search and Filter Section */}
+              <div className="space-y-4 p-4 backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50">
+                <div className="relative">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Input
+                    placeholder="Buscar tema por nombre..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-11 w-full h-12 text-base rounded-xl"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={() => setActiveFilter(null)}
+                    variant={activeFilter === null ? 'default' : 'outline'}
+                    className="rounded-full"
+                  >
+                    Todos
+                  </Button>
+                  {filters.map(filter => (
+                    <Button
+                      key={filter.value}
+                      onClick={() => setActiveFilter(activeFilter === filter.value ? null : filter.value)}
+                      variant={activeFilter === filter.value ? 'default' : 'outline'}
+                      className="rounded-full"
+                    >
+                      {filter.label}
+                    </Button>
+                  ))}
                 </div>
               </div>
 
@@ -734,6 +758,27 @@ export default function TopicAnalysisPage() {
                         {temasDominados.map((topic) => (
                           <TopicCard key={topic.tema_id} topic={topic} priority="achieved" />
                         ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                {topicStats.length > 0 && 
+                  temasNecesitanPractica.length === 0 && 
+                  temasEnProgreso.length === 0 && 
+                  temasCasiDominados.length === 0 && 
+                  temasDominados.length === 0 && (
+                  <Card className="backdrop-blur-sm bg-white/95 dark:bg-gray-800/95 shadow-xl shadow-gray-500/10 border border-gray-200/50 dark:border-gray-700/50">
+                    <CardContent className="flex items-center justify-center p-16">
+                      <div className="text-center space-y-6 max-w-md">
+                        <div className="w-24 h-24 mx-auto bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-full flex items-center justify-center mb-4">
+                          <Search className="h-12 w-12 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <h3 className="text-xl font-bold bg-gradient-to-r from-gray-700 to-gray-900 dark:from-gray-200 dark:to-gray-100 bg-clip-text text-transparent">
+                          No se encontraron temas
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                          Prueba con otro término de búsqueda o un filtro diferente.
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
