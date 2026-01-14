@@ -32,6 +32,54 @@ export type Database = {
         }
         Relationships: []
       }
+      MAL_PARA_CORREGIR: {
+        Row: {
+          ACADEMIA: string | null
+          id: number
+          ID: number | null
+          opcion_a: string | null
+          opcion_b: string | null
+          opcion_c: string | null
+          opcion_d: string | null
+          ORIGINAL: string | null
+          parte: string | null
+          pregunta_texto: string
+          solucion_letra: string | null
+          solucion_letra_2: string | null
+          TEMA: string | null
+        }
+        Insert: {
+          ACADEMIA?: string | null
+          id?: number
+          ID?: number | null
+          opcion_a?: string | null
+          opcion_b?: string | null
+          opcion_c?: string | null
+          opcion_d?: string | null
+          ORIGINAL?: string | null
+          parte?: string | null
+          pregunta_texto: string
+          solucion_letra?: string | null
+          solucion_letra_2?: string | null
+          TEMA?: string | null
+        }
+        Update: {
+          ACADEMIA?: string | null
+          id?: number
+          ID?: number | null
+          opcion_a?: string | null
+          opcion_b?: string | null
+          opcion_c?: string | null
+          opcion_d?: string | null
+          ORIGINAL?: string | null
+          parte?: string | null
+          pregunta_texto?: string
+          solucion_letra?: string | null
+          solucion_letra_2?: string | null
+          TEMA?: string | null
+        }
+        Relationships: []
+      }
       preguntas: {
         Row: {
           academia_id: string
@@ -145,6 +193,54 @@ export type Database = {
           role?: string | null
           updated_at?: string | null
           username?: string | null
+        }
+        Relationships: []
+      }
+      "SIN RESPUESTA": {
+        Row: {
+          ACADEMIA: string | null
+          id: number
+          ID: number | null
+          opcion_a: string | null
+          opcion_b: string | null
+          opcion_c: string | null
+          opcion_d: string | null
+          ORIGINAL: string | null
+          parte: string | null
+          pregunta_texto: string | null
+          solucion_letra: string | null
+          solucion_letra_2: string | null
+          TEMA: string | null
+        }
+        Insert: {
+          ACADEMIA?: string | null
+          id?: number
+          ID?: number | null
+          opcion_a?: string | null
+          opcion_b?: string | null
+          opcion_c?: string | null
+          opcion_d?: string | null
+          ORIGINAL?: string | null
+          parte?: string | null
+          pregunta_texto?: string | null
+          solucion_letra?: string | null
+          solucion_letra_2?: string | null
+          TEMA?: string | null
+        }
+        Update: {
+          ACADEMIA?: string | null
+          id?: number
+          ID?: number | null
+          opcion_a?: string | null
+          opcion_b?: string | null
+          opcion_c?: string | null
+          opcion_d?: string | null
+          ORIGINAL?: string | null
+          parte?: string | null
+          pregunta_texto?: string | null
+          solucion_letra?: string | null
+          solucion_letra_2?: string | null
+          TEMA?: string | null
         }
         Relationships: []
       }
@@ -395,16 +491,10 @@ export type Database = {
         Args: { action_type: string; limit_per_hour?: number; user_id: string }
         Returns: boolean
       }
-      complete_quiz_session: {
-        Args: { p_session_id: string }
-        Returns: Json
-      }
-      fix_user_stats: {
-        Args: { p_user_id: string }
-        Returns: string
-      }
+      complete_quiz_session: { Args: { p_session_id: string }; Returns: Json }
+      fix_user_stats: { Args: { p_user_id: string }; Returns: string }
       get_admin_stats: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           active_users_last_week: number
           total_questions_answered: number
@@ -502,10 +592,7 @@ export type Database = {
           username: string
         }[]
       }
-      get_user_stats: {
-        Args: { p_user_id: string }
-        Returns: Json
-      }
+      get_user_stats: { Args: { p_user_id: string }; Returns: Json }
       get_users_list: {
         Args: { limit_count?: number }
         Returns: {
@@ -518,10 +605,7 @@ export type Database = {
           user_id: string
         }[]
       }
-      is_user_admin: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
+      is_user_admin: { Args: { user_id: string }; Returns: boolean }
       record_answer: {
         Args: {
           p_pregunta_id: string
@@ -531,10 +615,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      refresh_user_stats: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      refresh_user_stats: { Args: never; Returns: undefined }
       reset_user_progress: {
         Args: { p_tema_id?: string; p_user_id: string }
         Returns: undefined
@@ -549,7 +630,7 @@ export type Database = {
         Returns: string
       }
       test_session_creation: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           result: string
           step: string
