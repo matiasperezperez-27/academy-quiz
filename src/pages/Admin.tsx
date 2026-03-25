@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import AdminStats from '@/components/admin/AdminStats';
 import UsersList from '@/components/admin/UsersList';
 import ResetProgress from '@/components/admin/ResetProgress';
+import ProfesorManager from '@/components/admin/ProfesorManager';
 import { Shield, ArrowLeft } from 'lucide-react';
 
 function setSEO(title: string, description: string) {
@@ -145,6 +146,12 @@ export default function Admin() {
             </Card>
           </section>
         </div>
+
+        {/* Gestión de Profesores */}
+        <section>
+          <h2 className="text-xl font-semibold mb-4">Gestión de Profesores</h2>
+          <ProfesorManager />
+        </section>
 
         {/* Lista de Usuarios */}
         <section>

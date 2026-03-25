@@ -7,13 +7,14 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Settings, 
-  LogOut, 
-  User, 
-  BookOpen, 
+import {
+  Settings,
+  LogOut,
+  User,
+  BookOpen,
   Target,
   Shield,
+  GraduationCap,
   Moon,
   Sun,
   Bell,
@@ -23,6 +24,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
+import { useProfesor } from "@/hooks/useProfesor";
 import { useNavigate } from "react-router-dom";
 import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
@@ -36,6 +38,7 @@ interface MobileDrawerProps {
 const MobileDrawer = ({ open, onClose }: MobileDrawerProps) => {
   const { user, signOut } = useAuth();
   const { isAdmin } = useAdmin();
+  const { isProfesor } = useProfesor();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const [notifications, setNotifications] = useState(true);
@@ -113,6 +116,20 @@ const MobileDrawer = ({ open, onClose }: MobileDrawerProps) => {
               <BarChart3 className="mr-3 h-5 w-5 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-200" />
               <span className="font-medium">Análisis por Temas</span>
             </Button>
+
+            {isProfesor && (
+              <Button
+                variant="ghost"
+                className="w-full justify-start h-12 rounded-xl hover:bg-teal-50 dark:hover:bg-teal-900/20 hover:scale-[1.02] transition-all duration-200 group border border-teal-200/50 dark:border-teal-700/50"
+                onClick={() => handleNavigation("/profesor")}
+              >
+                <GraduationCap className="mr-3 h-5 w-5 text-teal-600 dark:text-teal-400 group-hover:scale-110 transition-transform duration-200" />
+                <span className="font-medium text-teal-600 dark:text-teal-400">Panel Profesor</span>
+                <div className="ml-auto">
+                  <span className="text-xs bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 px-2 py-1 rounded-full">PROFESOR</span>
+                </div>
+              </Button>
+            )}
 
             {isAdmin && (
               <Button

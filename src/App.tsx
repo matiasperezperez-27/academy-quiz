@@ -15,6 +15,7 @@ import Quiz from "./pages/Quiz";
 import Results from "./pages/Results";
 import Practice from "./pages/Practice";
 import Admin from '@/pages/Admin';
+import Profesor from '@/pages/Profesor';
 import TopicAnalysisPage from "@/pages/TopicAnalysisPage";
 import StatsPage from "@/pages/StatsPage"; // NUEVO
 import RankingPage from "@/pages/RankingPage"; // NUEVO
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/quiz" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
             <Route path="/results" element={<ProtectedRoute><Results /></ProtectedRoute>} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/profesor" element={<Profesor />} />
             
             {/* Rutas con layout principal */}
             <Route element={<MainLayout />}>
