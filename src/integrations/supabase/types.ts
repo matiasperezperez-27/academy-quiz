@@ -32,6 +32,93 @@ export type Database = {
         }
         Relationships: []
       }
+      examen_preguntas: {
+        Row: {
+          examen_id: string
+          id: string
+          orden: number
+          pregunta_id: string
+        }
+        Insert: {
+          examen_id: string
+          id?: string
+          orden?: number
+          pregunta_id: string
+        }
+        Update: {
+          examen_id?: string
+          id?: string
+          orden?: number
+          pregunta_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "examen_preguntas_examen_id_fkey"
+            columns: ["examen_id"]
+            isOneToOne: false
+            referencedRelation: "examenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "examen_preguntas_pregunta_id_fkey"
+            columns: ["pregunta_id"]
+            isOneToOne: false
+            referencedRelation: "preguntas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      examenes: {
+        Row: {
+          academia_id: string
+          activo: boolean
+          creado_por: string
+          created_at: string
+          descripcion: string | null
+          duracion_minutos: number | null
+          id: string
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          academia_id: string
+          activo?: boolean
+          creado_por: string
+          created_at?: string
+          descripcion?: string | null
+          duracion_minutos?: number | null
+          id?: string
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          academia_id?: string
+          activo?: boolean
+          creado_por?: string
+          created_at?: string
+          descripcion?: string | null
+          duracion_minutos?: number | null
+          id?: string
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "examenes_academia_id_fkey"
+            columns: ["academia_id"]
+            isOneToOne: false
+            referencedRelation: "academias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "examenes_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       MAL_PARA_CORREGIR: {
         Row: {
           ACADEMIA: string | null
@@ -83,7 +170,9 @@ export type Database = {
       preguntas: {
         Row: {
           academia_id: string
+          creada_por: string | null
           created_at: string
+          explicacion: string | null
           id: string
           opcion_a: string
           opcion_b: string
@@ -91,12 +180,19 @@ export type Database = {
           opcion_d: string | null
           parte: string | null
           pregunta_texto: string
+          rechazada: boolean
           solucion_letra: string
           tema_id: string
+          verificacion_notas: string | null
+          verificada: boolean
+          verificada_at: string | null
+          verificada_por: string | null
         }
         Insert: {
           academia_id: string
+          creada_por?: string | null
           created_at?: string
+          explicacion?: string | null
           id?: string
           opcion_a: string
           opcion_b: string
@@ -104,12 +200,19 @@ export type Database = {
           opcion_d?: string | null
           parte?: string | null
           pregunta_texto: string
+          rechazada?: boolean
           solucion_letra: string
           tema_id: string
+          verificacion_notas?: string | null
+          verificada?: boolean
+          verificada_at?: string | null
+          verificada_por?: string | null
         }
         Update: {
           academia_id?: string
+          creada_por?: string | null
           created_at?: string
+          explicacion?: string | null
           id?: string
           opcion_a?: string
           opcion_b?: string
@@ -117,8 +220,13 @@ export type Database = {
           opcion_d?: string | null
           parte?: string | null
           pregunta_texto?: string
+          rechazada?: boolean
           solucion_letra?: string
           tema_id?: string
+          verificacion_notas?: string | null
+          verificada?: boolean
+          verificada_at?: string | null
+          verificada_por?: string | null
         }
         Relationships: [
           {
@@ -129,10 +237,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "preguntas_creada_por_fkey"
+            columns: ["creada_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "preguntas_tema_id_fkey"
             columns: ["tema_id"]
             isOneToOne: false
             referencedRelation: "temas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preguntas_verificada_por_fkey"
+            columns: ["verificada_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -162,6 +284,52 @@ export type Database = {
             columns: ["pregunta_id"]
             isOneToOne: false
             referencedRelation: "preguntas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profesor_academias: {
+        Row: {
+          academia_id: string
+          assigned_at: string
+          assigned_by: string | null
+          id: string
+          profesor_id: string
+        }
+        Insert: {
+          academia_id: string
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          profesor_id: string
+        }
+        Update: {
+          academia_id?: string
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          profesor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profesor_academias_academia_id_fkey"
+            columns: ["academia_id"]
+            isOneToOne: false
+            referencedRelation: "academias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profesor_academias_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profesor_academias_profesor_id_fkey"
+            columns: ["profesor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -492,6 +660,10 @@ export type Database = {
         Returns: boolean
       }
       complete_quiz_session: { Args: { p_session_id: string }; Returns: Json }
+      crear_tema: {
+        Args: { p_academia_id: string; p_nombre: string; p_profesor_id: string }
+        Returns: string
+      }
       fix_user_stats: { Args: { p_user_id: string }; Returns: string }
       get_admin_stats: {
         Args: never
@@ -500,6 +672,84 @@ export type Database = {
           total_questions_answered: number
           total_sessions: number
           total_users: number
+        }[]
+      }
+      get_preguntas_para_verificar: {
+        Args: {
+          p_academia_id?: string
+          p_estado?: string
+          p_limit?: number
+          p_offset?: number
+          p_profesor_id: string
+          p_tema_id?: string
+        }
+        Returns: {
+          academia_id: string
+          academia_nombre: string
+          id: string
+          opcion_a: string
+          opcion_b: string
+          opcion_c: string
+          opcion_d: string
+          parte: string
+          pregunta_texto: string
+          rechazada: boolean
+          solucion_letra: string
+          tema_id: string
+          tema_nombre: string
+          total_count: number
+          verificacion_notas: string
+          verificada: boolean
+          verificada_at: string
+        }[]
+      }
+      get_profesor_academias: {
+        Args: { p_profesor_id: string }
+        Returns: {
+          academia_id: string
+          academia_nombre: string
+          assigned_at: string
+          preguntas_pendientes: number
+          preguntas_verificadas: number
+          total_preguntas: number
+          total_temas: number
+        }[]
+      }
+      get_profesor_stats: {
+        Args: { p_profesor_id: string }
+        Returns: {
+          preguntas_pendientes: number
+          preguntas_verificadas: number
+          total_academias: number
+          total_estudiantes: number
+          total_preguntas: number
+          total_temas: number
+        }[]
+      }
+      get_profesor_student_stats: {
+        Args: { p_academia_id?: string; p_profesor_id: string }
+        Returns: {
+          accuracy: number
+          correct_answers: number
+          email: string
+          last_session_at: string
+          puntos: number
+          total_answered: number
+          total_sessions: number
+          user_id: string
+          username: string
+        }[]
+      }
+      get_profesor_topic_stats: {
+        Args: { p_academia_id?: string; p_profesor_id: string }
+        Returns: {
+          academia_nombre: string
+          avg_accuracy: number
+          tema_id: string
+          tema_nombre: string
+          total_estudiantes: number
+          total_preguntas_contestadas: number
+          total_sesiones: number
         }[]
       }
       get_random_preguntas: {
@@ -606,6 +856,7 @@ export type Database = {
         }[]
       }
       is_user_admin: { Args: { user_id: string }; Returns: boolean }
+      is_user_profesor: { Args: { p_user_id: string }; Returns: boolean }
       record_answer: {
         Args: {
           p_pregunta_id: string
@@ -635,6 +886,31 @@ export type Database = {
           result: string
           step: string
         }[]
+      }
+      upsert_pregunta: {
+        Args: {
+          p_academia_id?: string
+          p_opcion_a?: string
+          p_opcion_b?: string
+          p_opcion_c?: string
+          p_opcion_d?: string
+          p_parte?: string
+          p_pregunta_id?: string
+          p_pregunta_texto?: string
+          p_profesor_id: string
+          p_solucion_letra?: string
+          p_tema_id?: string
+        }
+        Returns: string
+      }
+      verificar_pregunta: {
+        Args: {
+          p_accion: string
+          p_notas?: string
+          p_pregunta_id: string
+          p_profesor_id: string
+        }
+        Returns: boolean
       }
     }
     Enums: {
