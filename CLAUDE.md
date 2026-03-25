@@ -143,7 +143,7 @@ Six-tab dashboard at `src/pages/Profesor.tsx`. Access requires `is_user_profesor
 | Tab | Component | Purpose |
 |-----|-----------|---------|
 | Inicio | `ProfesorStats` + `ProfesorAcademias` | KPI cards + academia list with verification progress bars |
-| Verificar | `VerificacionPreguntas` | Review pending/verified/rejected questions with approve/reject + notes |
+| Verificar | `VerificacionPreguntas` | Review pending/verified/rejected questions with inline edit dialog + approve/reject |
 | Preguntas | `GestionPreguntas` | CRUD questions via Dialog form |
 | Temas | `GestionTemas` | Create new temas per academia |
 | Exámenes | `CrearExamen` + `ExamenForm` | 3-step stepper: basic info → select verified questions → review & create |
@@ -152,6 +152,8 @@ Six-tab dashboard at `src/pages/Profesor.tsx`. Access requires `is_user_profesor
 Admin panel (`/admin`) includes a **Gestión de Profesores** section (`ProfesorManager`) to assign/remove the `profesor` role and manage `profesor_academias` assignments.
 
 **Select empty-value convention**: Radix UI prohibits `value=""` in `<SelectItem>`. Use `"__all__"` as the sentinel for "all/none selected" and convert to `undefined` before passing to RPCs/queries.
+
+**Verification edit flow**: `VerificacionPreguntas` includes a pencil icon per question that opens a Dialog pre-filled with all editable fields (parte, pregunta_texto, opciones A-D, solucion_letra). Saving calls `upsert_pregunta` which resets `verificada/rechazada` to false — the question returns to pending and must be re-verified. Academia and tema are not editable from this view.
 
 ### Mobile-first design
 

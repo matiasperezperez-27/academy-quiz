@@ -2,10 +2,14 @@ import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useVerificacion } from '@/hooks/useVerificacion';
+import { CheckCircle, XCircle, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
+import { useVerificacion, type PreguntaParaVerificar } from '@/hooks/useVerificacion';
+import { useGestionPreguntas, type PreguntaForm } from '@/hooks/useGestionPreguntas';
 import { supabase } from '@/integrations/supabase/client';
 import type { ProfesorAcademia } from '@/hooks/useProfesorData';
 
@@ -15,18 +19,22 @@ interface Props {
 }
 
 const PAGE_SIZE = 10;
-
-const OPCIONES = ['A', 'B', 'C', 'D'] as const;
+const SOLUCIONES = ['A', 'B', 'C', 'D'] as const;
 
 export default function VerificacionPreguntas({ profesorId, academias }: Props) {
   const { preguntas, loading, cargar, verificar } = useVerificacion(profesorId);
+  const { saving, guardar } = useGestionPreguntas(profesorId);
+
   const [academiaId, setAcademiaId] = useState('__all__');
   const [temaId, setTemaId] = useState('__all__');
   const [estado, setEstado] = useState('pendiente');
   const [temas, setTemas] = useState<{ id: string; nombre: string }[]>([]);
   const [page, setPage] = useState(0);
-  const [notas, setNotas] = useState<Record<string, string>>({});
   const [procesando, setProcesando] = useState<string | null>(null);
+
+  // Edit dialog state
+  const [editando, setEditando] = useState<PreguntaParaVerificar | null>(null);
+  const [form, setForm] = useState<PreguntaForm | null>(null);
 
   const recargar = useCallback(() => {
     cargar({
@@ -59,9 +67,35 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
 
   const handleAccion = async (preguntaId: string, accion: 'verificar' | 'rechazar') => {
     setProcesando(preguntaId);
-    const ok = await verificar(preguntaId, accion, notas[preguntaId]);
+    const ok = await verificar(preguntaId, accion);
     if (ok) recargar();
     setProcesando(null);
+  };
+
+  const abrirEdicion = (p: PreguntaParaVerificar) => {
+    setEditando(p);
+    setForm({
+      id: p.id,
+      academia_id: p.academia_id,
+      tema_id: p.tema_id,
+      parte: p.parte || '',
+      pregunta_texto: p.pregunta_texto,
+      opcion_a: p.opcion_a,
+      opcion_b: p.opcion_b,
+      opcion_c: p.opcion_c || '',
+      opcion_d: p.opcion_d || '',
+      solucion_letra: p.solucion_letra,
+    });
+  };
+
+  const handleGuardar = async () => {
+    if (!form) return;
+    const id = await guardar(form);
+    if (id) {
+      setEditando(null);
+      setForm(null);
+      recargar();
+    }
   };
 
   const estadoLabel: Record<string, string> = {
@@ -151,14 +185,26 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
             return (
               <Card key={p.id} className="border-l-4 border-l-amber-400">
                 <CardHeader className="pb-2">
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    <Badge variant="outline" className="text-xs">{p.academia_nombre}</Badge>
-                    <Badge variant="outline" className="text-xs">{p.tema_nombre}</Badge>
-                    {p.parte && <Badge variant="outline" className="text-xs">{p.parte}</Badge>}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        <Badge variant="outline" className="text-xs">{p.academia_nombre}</Badge>
+                        <Badge variant="outline" className="text-xs">{p.tema_nombre}</Badge>
+                        {p.parte && <Badge variant="outline" className="text-xs">{p.parte}</Badge>}
+                      </div>
+                      <CardTitle className="text-base font-medium leading-snug">
+                        {p.pregunta_texto}
+                      </CardTitle>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex-shrink-0 text-muted-foreground hover:text-teal-600"
+                      onClick={() => abrirEdicion(p)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <CardTitle className="text-base font-medium leading-snug">
-                    {p.pregunta_texto}
-                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -180,38 +226,30 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
                   </div>
 
                   {estado === 'pendiente' && (
-                    <div className="space-y-2 pt-2 border-t">
-                      <Textarea
-                        placeholder="Notas de verificación (opcional)"
-                        value={notas[p.id] || ''}
-                        onChange={e => setNotas(prev => ({ ...prev, [p.id]: e.target.value }))}
-                        className="text-sm h-16 resize-none"
-                      />
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          className="flex-1 bg-green-600 hover:bg-green-700"
-                          disabled={procesando === p.id}
-                          onClick={() => handleAccion(p.id, 'verificar')}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Verificar
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          className="flex-1"
-                          disabled={procesando === p.id}
-                          onClick={() => handleAccion(p.id, 'rechazar')}
-                        >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Rechazar
-                        </Button>
-                      </div>
+                    <div className="flex gap-2 pt-2 border-t">
+                      <Button
+                        size="sm"
+                        className="flex-1 bg-green-600 hover:bg-green-700"
+                        disabled={procesando === p.id}
+                        onClick={() => handleAccion(p.id, 'verificar')}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Verificar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="flex-1"
+                        disabled={procesando === p.id}
+                        onClick={() => handleAccion(p.id, 'rechazar')}
+                      >
+                        <XCircle className="h-4 w-4 mr-1" />
+                        Rechazar
+                      </Button>
                     </div>
                   )}
 
-                  {p.verificacion_notas && (
+                  {estado !== 'pendiente' && p.verificacion_notas && (
                     <p className="text-xs text-muted-foreground italic border-t pt-2">
                       Nota: {p.verificacion_notas}
                     </p>
@@ -223,26 +261,93 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
 
           {/* Paginación */}
           <div className="flex justify-center items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page === 0}
-              onClick={() => setPage(p => p - 1)}
-            >
+            <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-sm text-muted-foreground">Página {page + 1}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={preguntas.length < PAGE_SIZE}
-              onClick={() => setPage(p => p + 1)}
-            >
+            <Button variant="outline" size="sm" disabled={preguntas.length < PAGE_SIZE} onClick={() => setPage(p => p + 1)}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
       )}
+
+      {/* Dialog de edición */}
+      <Dialog open={!!editando} onOpenChange={open => { if (!open) { setEditando(null); setForm(null); } }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Pregunta</DialogTitle>
+          </DialogHeader>
+          {form && (
+            <div className="space-y-4 pt-2">
+              <div className="space-y-2">
+                <Label>Parte (opcional)</Label>
+                <Input
+                  value={form.parte || ''}
+                  onChange={e => setForm(f => f && ({ ...f, parte: e.target.value }))}
+                  placeholder="ej. Parte 1, Bloque A..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Pregunta</Label>
+                <Textarea
+                  value={form.pregunta_texto}
+                  onChange={e => setForm(f => f && ({ ...f, pregunta_texto: e.target.value }))}
+                  className="h-24"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {(['opcion_a', 'opcion_b', 'opcion_c', 'opcion_d'] as const).map((key, i) => (
+                  <div key={key} className="space-y-1">
+                    <Label>Opción {SOLUCIONES[i]}{i >= 2 ? ' (opcional)' : ''}</Label>
+                    <Input
+                      value={(form as any)[key] || ''}
+                      onChange={e => setForm(f => f && ({ ...f, [key]: e.target.value }))}
+                      placeholder={`Opción ${SOLUCIONES[i]}`}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Respuesta correcta</Label>
+                <Select
+                  value={form.solucion_letra}
+                  onValueChange={v => setForm(f => f && ({ ...f, solucion_letra: v }))}
+                >
+                  <SelectTrigger className="w-36">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SOLUCIONES.map(s => (
+                      <SelectItem key={s} value={s}>Opción {s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <p className="text-xs text-muted-foreground bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded p-2">
+                Al guardar la edición, la pregunta volverá a estado <strong>pendiente</strong> para ser reverificada.
+              </p>
+
+              <div className="flex gap-2 pt-1">
+                <Button variant="outline" className="flex-1" onClick={() => { setEditando(null); setForm(null); }}>
+                  Cancelar
+                </Button>
+                <Button
+                  className="flex-1 bg-teal-600 hover:bg-teal-700"
+                  disabled={saving || !form.pregunta_texto || !form.opcion_a || !form.opcion_b}
+                  onClick={handleGuardar}
+                >
+                  {saving ? 'Guardando...' : 'Guardar cambios'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
