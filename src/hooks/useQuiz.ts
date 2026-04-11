@@ -19,6 +19,11 @@ export interface Pregunta {
   tema_id?: string;
   academia_id?: string;
   parte?: string | null;
+  // Explicaciones por opción (generadas con IA, pueden ser null si aún no procesadas)
+  explicacion_a?: string | null;
+  explicacion_b?: string | null;
+  explicacion_c?: string | null;
+  explicacion_d?: string | null;
 }
 
 export type QuizMode = "test" | "practice";
@@ -93,6 +98,19 @@ function shuffle<T>(arr: T[]): T[] {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
+}
+
+// Enriquecer preguntas con explicaciones por opción (1 query extra por sesión)
+async function enrichWithExplanations(questions: any[]): Promise<any[]> {
+  if (!questions.length) return questions;
+  const ids = questions.map((q: any) => q.id);
+  const { data } = await supabase
+    .from("preguntas")
+    .select("id, explicacion_a, explicacion_b, explicacion_c, explicacion_d")
+    .in("id", ids);
+  if (!data) return questions;
+  const map = Object.fromEntries(data.map((e: any) => [e.id, e]));
+  return questions.map((q: any) => ({ ...q, ...map[q.id] }));
 }
 
 // 🆕 NUEVA FUNCIÓN: Selección inteligente directa con Supabase
@@ -216,7 +234,7 @@ export function useQuiz(
           throw new Error("No se encontraron las preguntas específicas solicitadas");
         }
 
-        questions = shuffle(specificQuestions);
+        questions = shuffle(await enrichWithExplanations(specificQuestions));
         sessionAcademiaId = questions[0]?.academia_id || null;
         sessionTemaId = questions[0]?.tema_id || null;
 
@@ -243,7 +261,7 @@ export function useQuiz(
           .in("id", preguntaIds);
 
         if (e2) throw e2;
-        questions = shuffle(preguntas || []);
+        questions = shuffle(await enrichWithExplanations(preguntas || []));
 
       } else if (academiaId && temaId) {
         // Modo test - selección inteligente
@@ -255,7 +273,7 @@ export function useQuiz(
         console.log("🧠 Using smart selection for test mode");
         
         const result = await getSmartQuestions(user.id, academiaId, temaId, 10);
-        questions = result.questions;
+        questions = await enrichWithExplanations(result.questions);
         
         console.log(`✅ Loaded ${questions.length} questions using ${result.method} selection`);
 

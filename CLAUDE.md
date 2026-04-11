@@ -54,6 +54,14 @@ Verification fields added to `preguntas`:
 - `verificacion_notas` (text) — reviewer notes
 - `creada_por` (uuid → profiles) — who created it (professors)
 
+Explanation fields added to `preguntas` (AI-generated, may be null):
+- `explicacion_a` (text) — explanation for option A
+- `explicacion_b` (text) — explanation for option B
+- `explicacion_c` (text) — explanation for option C
+- `explicacion_d` (text) — explanation for option D
+
+These are shown in the quiz UI after the user answers. The correct option shows a detailed explanation (~350 chars); distractors show a brief note on why they are wrong. Loaded via `enrichWithExplanations()` in `useQuiz.ts` (1 extra query per session, merged into the question objects).
+
 ### Roles
 
 The app has three roles in `profiles.role`:

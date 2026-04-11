@@ -7,7 +7,7 @@ import { AlertCircle, CheckCircle2, XCircle, ArrowLeft, Home, ArrowRight, Target
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { ExitConfirmationDialog, useExitConfirmation } from "@/components/ExitConfirmationDialog";
-import { useQuiz } from "@/hooks/useQuiz";
+import { useQuiz, Pregunta } from "@/hooks/useQuiz";
 
 function setSEO(title: string, description: string) {
   document.title = title;
@@ -351,9 +351,21 @@ return (
                           {option.key}
                         </div>
                         
-                        <span className="flex-1 text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words text-left font-medium">
-                          {option.text}
-                        </span>
+                        <div className="flex-1 text-left">
+                          <span className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words font-medium">
+                            {option.text}
+                          </span>
+
+                          {quiz.isRevealed && (() => {
+                            const exp = quiz.currentQuestion[`explicacion_${option.key.toLowerCase()}` as keyof Pregunta] as string | null;
+                            if (!exp) return null;
+                            return (
+                              <p className={`mt-2 text-xs leading-relaxed font-normal opacity-90 ${isCorrect ? "text-green-50" : isWrong ? "text-red-50" : "text-gray-500 dark:text-gray-400"}`}>
+                                {exp}
+                              </p>
+                            );
+                          })()}
+                        </div>
                         
                         {quiz.isRevealed && (
                           <div className="flex-shrink-0">
