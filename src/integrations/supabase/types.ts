@@ -173,6 +173,11 @@ export type Database = {
           creada_por: string | null
           created_at: string
           explicacion: string | null
+          explicacion_a: string | null
+          explicacion_b: string | null
+          explicacion_c: string | null
+          explicacion_d: string | null
+          explicacion_modelo: string | null
           id: string
           opcion_a: string
           opcion_b: string
@@ -193,6 +198,11 @@ export type Database = {
           creada_por?: string | null
           created_at?: string
           explicacion?: string | null
+          explicacion_a?: string | null
+          explicacion_b?: string | null
+          explicacion_c?: string | null
+          explicacion_d?: string | null
+          explicacion_modelo?: string | null
           id?: string
           opcion_a: string
           opcion_b: string
@@ -213,6 +223,11 @@ export type Database = {
           creada_por?: string | null
           created_at?: string
           explicacion?: string | null
+          explicacion_a?: string | null
+          explicacion_b?: string | null
+          explicacion_c?: string | null
+          explicacion_d?: string | null
+          explicacion_modelo?: string | null
           id?: string
           opcion_a?: string
           opcion_b?: string
