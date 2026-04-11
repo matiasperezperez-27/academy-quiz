@@ -351,7 +351,7 @@ return (
                           {option.key}
                         </div>
                         
-                        <div className="flex-1 text-left">
+                        <div className="flex-1 min-w-0 text-left">
                           <span className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words font-medium">
                             {option.text}
                           </span>
@@ -360,7 +360,7 @@ return (
                             const exp = quiz.currentQuestion[`explicacion_${option.key.toLowerCase()}` as keyof Pregunta] as string | null;
                             if (!exp) return null;
                             return (
-                              <p className={`mt-2 text-xs leading-relaxed font-normal opacity-90 ${isCorrect ? "text-green-50" : isWrong ? "text-red-50" : "text-gray-500 dark:text-gray-400"}`}>
+                              <p className={`mt-2 text-xs leading-relaxed font-normal opacity-90 break-words whitespace-normal ${isCorrect ? "text-green-50" : isWrong ? "text-red-50" : "text-gray-500 dark:text-gray-400"}`}>
                                 {exp}
                               </p>
                             );
