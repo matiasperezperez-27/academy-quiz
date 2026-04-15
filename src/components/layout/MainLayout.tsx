@@ -9,7 +9,7 @@ const MainLayout = () => {
   const location = useLocation();
   
   // Páginas donde NO mostrar la navegación inferior
-  const hideNavRoutes = ['/auth', '/quiz', '/results', '/admin'];
+  const hideNavRoutes = ['/auth', '/results', '/admin'];
   const shouldShowNav = !hideNavRoutes.some(route => 
     location.pathname.startsWith(route)
   );

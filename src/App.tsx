@@ -32,7 +32,6 @@ const App = () => (
           <Routes>
             {/* Rutas sin layout */}
             <Route path="/auth" element={<Auth />} />
-            <Route path="/quiz" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
             <Route path="/results" element={<ProtectedRoute><Results /></ProtectedRoute>} />
             <Route path="/admin" element={<Admin />} />
 
@@ -45,6 +44,7 @@ const App = () => (
               <Route path="/practice" element={<ProtectedRoute><Practice /></ProtectedRoute>} />
               <Route path="/analisis-temas" element={<ProtectedRoute><TopicAnalysisPage /></ProtectedRoute>} />
               <Route path="/profesor" element={<ProtectedRoute><Profesor /></ProtectedRoute>} />
+              <Route path="/quiz" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
             </Route>
             
             {/* Ruta 404 */}
