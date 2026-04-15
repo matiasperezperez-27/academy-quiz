@@ -229,11 +229,13 @@ export default function Practice() {
               </SelectTrigger>
               <SelectContent>
                 {academias.map(a => (
-                  <SelectItem key={a.id} value={a.id}>
-                    <div className="flex items-center gap-2 w-full min-w-0">
-                      <span className="truncate flex-1 min-w-0">{a.nombre}</span>
-                      <span className="flex-shrink-0 text-xs text-muted-foreground">· {a.count} falladas</span>
-                    </div>
+                  <SelectItem
+                    key={a.id}
+                    value={a.id}
+                    className="[&>span:last-child]:flex [&>span:last-child]:w-full [&>span:last-child]:min-w-0 [&>span:last-child]:overflow-hidden [&>span:last-child]:items-center [&>span:last-child]:gap-2"
+                  >
+                    <span className="truncate flex-1 min-w-0">{a.nombre}</span>
+                    <span className="flex-shrink-0 text-xs text-muted-foreground whitespace-nowrap">· {a.count} falladas</span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -257,11 +259,13 @@ export default function Practice() {
                 </SelectTrigger>
                 <SelectContent className="w-[var(--radix-select-trigger-width)]">
                   {temas.map(t => (
-                    <SelectItem key={t.id} value={t.id} className="pr-2">
-                      <div className="flex items-center gap-2 overflow-hidden">
-                        <span className="truncate">{t.nombre}</span>
-                        <span className="flex-shrink-0 text-xs text-muted-foreground whitespace-nowrap">· {t.count} falladas</span>
-                      </div>
+                    <SelectItem
+                      key={t.id}
+                      value={t.id}
+                      className="[&>span:last-child]:flex [&>span:last-child]:w-full [&>span:last-child]:min-w-0 [&>span:last-child]:overflow-hidden [&>span:last-child]:items-center [&>span:last-child]:gap-2"
+                    >
+                      <span className="truncate flex-1 min-w-0">{t.nombre}</span>
+                      <span className="flex-shrink-0 text-xs text-muted-foreground whitespace-nowrap">· {t.count} falladas</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
