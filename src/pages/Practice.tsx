@@ -195,17 +195,19 @@ export default function Practice() {
               <button
                 key={key}
                 onClick={() => { setScope(key); setAcademiaId(""); setTemaId(""); }}
-                className={`rounded-xl border px-3 py-3 text-left transition-all ${
+                className={`rounded-xl border px-3 py-3 text-left transition-all flex flex-col justify-between min-h-[88px] ${
                   active
                     ? "border-teal-400 bg-teal-50 dark:bg-teal-900/20"
                     : "border-gray-200 dark:border-gray-700 bg-card hover:bg-muted/40"
                 }`}
               >
-                <Icon className={`h-4 w-4 mb-1.5 ${active ? "text-teal-600 dark:text-teal-400" : "text-muted-foreground"}`} />
-                <p className={`text-xs font-semibold leading-tight ${active ? "text-teal-700 dark:text-teal-300" : "text-foreground"}`}>
-                  {label}
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{desc}</p>
+                <div>
+                  <Icon className={`h-4 w-4 mb-1.5 ${active ? "text-teal-600 dark:text-teal-400" : "text-muted-foreground"}`} />
+                  <p className={`text-xs font-semibold leading-tight ${active ? "text-teal-700 dark:text-teal-300" : "text-foreground"}`}>
+                    {label}
+                  </p>
+                </div>
+                <p className="text-[10px] text-muted-foreground">{desc}</p>
               </button>
             );
           })}
