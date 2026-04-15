@@ -239,9 +239,9 @@ export function useQuiz(
         sessionTemaId = questions[0]?.tema_id || null;
 
       } else if (mode === "practice") {
-        // Modo práctica - preguntas falladas
-        console.log("🔄 Loading failed questions for practice");
-        
+        // Modo práctica - preguntas falladas (opcionalmente filtradas por academia/tema)
+        console.log("🔄 Loading failed questions for practice", { academiaId, temaId });
+
         const { data: falladas, error: e1 } = await supabase
           .from("preguntas_falladas")
           .select("pregunta_id")
@@ -250,18 +250,28 @@ export function useQuiz(
         if (e1) throw e1;
 
         const preguntaIds = (falladas || []).map((f: any) => f.pregunta_id);
-        
+
         if (preguntaIds.length === 0) {
           throw new Error("No tienes preguntas falladas para practicar");
         }
 
-        const { data: preguntas, error: e2 } = await supabase
-          .from("preguntas")
-          .select("*")
-          .in("id", preguntaIds);
+        let query = supabase.from("preguntas").select("*").in("id", preguntaIds);
+        if (academiaId) query = query.eq("academia_id", academiaId);
+        if (temaId)     query = query.eq("tema_id", temaId);
+
+        const { data: preguntas, error: e2 } = await query;
 
         if (e2) throw e2;
-        questions = shuffle(await enrichWithExplanations(preguntas || []));
+
+        if (!preguntas || preguntas.length === 0) {
+          throw new Error("No hay preguntas falladas con el filtro seleccionado");
+        }
+
+        questions = shuffle(await enrichWithExplanations(preguntas));
+
+        // Establecer academia/tema para la sesión si están disponibles
+        if (!sessionAcademiaId && academiaId) sessionAcademiaId = academiaId;
+        if (!sessionTemaId && temaId)         sessionTemaId = temaId;
 
       } else if (academiaId && temaId) {
         // Modo test - selección inteligente
