@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useProfesor } from '@/hooks/useProfesor';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,7 +13,7 @@ import GestionPreguntas from '@/components/profesor/GestionPreguntas';
 import GestionTemas from '@/components/profesor/GestionTemas';
 import CrearExamen from '@/components/profesor/CrearExamen';
 import EstadisticasEstudiantes from '@/components/profesor/EstadisticasEstudiantes';
-import { GraduationCap, ArrowLeft } from 'lucide-react';
+import { GraduationCap } from 'lucide-react';
 
 function setSEO(title: string, description: string) {
   document.title = title;
@@ -79,23 +78,12 @@ export default function Profesor() {
     <main className="min-h-screen p-4 bg-background">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver
-          </Button>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
-              <GraduationCap className="h-8 w-8 text-teal-500" />
-              Panel del Profesor
-            </h1>
-            <p className="text-muted-foreground text-sm">Gestión de contenido y seguimiento de alumnos</p>
-          </div>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+            <GraduationCap className="h-8 w-8 text-teal-500" />
+            Panel del Profesor
+          </h1>
+          <p className="text-muted-foreground text-sm">Gestión de contenido y seguimiento de alumnos</p>
         </div>
 
         {/* Tabs */}
