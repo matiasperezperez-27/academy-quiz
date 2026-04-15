@@ -250,17 +250,17 @@ export default function Practice() {
               <Select value={temaId} onValueChange={setTemaId} disabled={!academiaId || temas.length === 0}>
                 <SelectTrigger className="w-full h-10 rounded-lg text-sm">
                   <SelectValue placeholder={
-                    !academiaId        ? "Primero selecciona una academia"
+                    !academiaId          ? "Primero selecciona una academia"
                     : temas.length === 0 ? "Sin temas con falladas"
-                    :                   "Selecciona un tema"
+                    :                     "Selecciona un tema"
                   } />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="w-[var(--radix-select-trigger-width)]">
                   {temas.map(t => (
-                    <SelectItem key={t.id} value={t.id}>
-                      <div className="flex items-center gap-2 w-full min-w-0">
-                        <span className="truncate flex-1 min-w-0">{t.nombre}</span>
-                        <span className="flex-shrink-0 text-xs text-muted-foreground">· {t.count} falladas</span>
+                    <SelectItem key={t.id} value={t.id} className="pr-2">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <span className="truncate">{t.nombre}</span>
+                        <span className="flex-shrink-0 text-xs text-muted-foreground whitespace-nowrap">· {t.count} falladas</span>
                       </div>
                     </SelectItem>
                   ))}
