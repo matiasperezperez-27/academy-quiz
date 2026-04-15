@@ -112,11 +112,7 @@ export default function StatsPage() {
             <TrendChip />
           </div>
 
-          <div className="rounded-xl border bg-card p-4">
-            <div className="h-64">
-              <PerformanceChart sessions={stats?.recentSessions || []} title="" />
-            </div>
-          </div>
+          <PerformanceChart sessions={stats?.recentSessions || []} title="" />
 
           <ComparisonCard
             userAverage={stats?.overallAccuracy || 0}
@@ -130,7 +126,9 @@ export default function StatsPage() {
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Maestría por tema
             </p>
-            <span className="text-xs text-muted-foreground">{topicStats.length} temas</span>
+            <span className="text-xs text-muted-foreground">
+              {new Set(topicStats.map(t => t.academia_id)).size} academias · {topicStats.length} temas
+            </span>
           </div>
 
           <TopicMasteryGrid topics={topicStats} loading={topicsLoading} />
