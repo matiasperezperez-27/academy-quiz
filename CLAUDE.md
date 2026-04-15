@@ -24,10 +24,12 @@ Generated types are at `src/integrations/supabase/types.ts` — run `mcp__supaba
 ### Routing structure
 
 Two layout modes defined in `src/App.tsx`:
-- **Without layout** (fullscreen): `/auth`, `/quiz`, `/results`, `/admin`, `/profesor`
-- **With `MainLayout`** (bottom nav bar): `/`, `/stats`, `/ranking`, `/test-setup`, `/practice`, `/analisis-temas`
+- **Without layout** (fullscreen): `/auth`, `/results`, `/admin`
+- **With `MainLayout`** (bottom nav bar): `/`, `/stats`, `/ranking`, `/test-setup`, `/practice`, `/analisis-temas`, `/profesor`, `/quiz`
 
-All routes except `/auth`, `/admin`, and `/profesor` are wrapped in `<ProtectedRoute>`. The `/admin` and `/profesor` routes manage their own auth + role check internally (same pattern: `useEffect` with 500ms delay).
+All routes except `/auth` and `/admin` are wrapped in `<ProtectedRoute>`. The `/admin` route manages its own auth + role check internally. `/profesor` uses `useProfesor` hook internally for role gating but is inside `MainLayout` + `ProtectedRoute`.
+
+`hideNavRoutes` in `MainLayout.tsx` = `['/auth', '/results', '/admin']` — bottom nav is visible on all other routes including `/quiz` and `/profesor`.
 
 ### Data model (Supabase)
 
@@ -137,12 +139,22 @@ Note: the quiz RPCs do NOT filter by `verificada`. All questions are available t
 
 ### Quiz flow
 
-1. User selects academia + tema in `TestSetup` (`/test-setup`)
+**Test mode:**
+1. User selects academia + tema in `TestSetup` (`/test-setup`). Supports `?tema=<id>` URL param for pre-selection (resolves academia automatically).
 2. Navigates to `/quiz?mode=test&academia=<id>&tema=<id>`
 3. `useQuiz` calls `start_quiz_session` → loads questions via `get_smart_preguntas`
 4. Each answer calls `record_answer` RPC + updates `preguntas_falladas`
 5. On finish, `complete_quiz_session` RPC returns final stats
 6. Navigates to `/results` with stats via router state
+
+**Practice mode:**
+1. `/practice` shows a scope selector: **Todas** / **Por academia** / **Por tema**
+   - Loads all `preguntas_falladas` for the user + joins `preguntas` to get `academia_id`/`tema_id`
+   - Derives available academias/temas with live falladas counts
+   - Shows count card updating in real time per scope
+2. Navigates to `/quiz?mode=practice[&academia=<id>][&tema=<id>]`
+3. `useQuiz` in practice mode fetches all fallada IDs, then queries `preguntas` filtered by `academia_id`/`tema_id` if provided
+4. Correct answers remove the question from `preguntas_falladas`; wrong answers are kept
 
 ### Profesor panel (`/profesor`)
 
@@ -182,6 +194,14 @@ The app is designed to be used as a **mobile web app** (installable via browser,
 - Styling uses Tailwind utility classes with `cn()` from `src/lib/utils.ts` (clsx + tailwind-merge).
 - Dark mode is managed by `ThemeContext` (wraps `next-themes`).
 - Toast notifications: use `useToast` hook (shadcn) or `sonner` for imperative toasts.
-- Components use glassmorphism patterns: `backdrop-blur-sm bg-white/80`, gradient borders, and shadow utilities.
+- The app uses a **compact professional** design language across all pages (no glassmorphism blobs):
+  - Section rows: `rounded-xl border border-l-4 border-l-{color}-400 bg-card`
+  - Page containers: `max-w-2xl mx-auto px-4 pb-24 space-y-4`
+  - KPI cells: `w-7 h-7 rounded-full {bg} flex items-center justify-center` + bold number + tiny label
+  - Section headers: `text-xs font-semibold uppercase tracking-wider text-muted-foreground`
+  - Progress bars: `h-1.5` thin bars, teal ≥80%, amber 50-79%, blue/red otherwise
+- Color thresholds (consistent across all pages): teal ≥70-80%, amber 30-70%, red <30%
 - Profesor panel uses **teal** color scheme (`text-teal-500`, `bg-teal-600`) to distinguish from the orange admin panel.
 - New RPC calls use `supabase.rpc('name' as any, { ... })` to bypass strict TypeScript types until `types.ts` is regenerated.
+
+**Radix Select with truncated items**: To make `SelectItem` children use flex layout (for truncating long names + pinning a count to the right), add `className="[&>span:last-child]:flex [&>span:last-child]:w-full [&>span:last-child]:min-w-0 [&>span:last-child]:overflow-hidden [&>span:last-child]:items-center [&>span:last-child]:gap-2"` to `SelectItem`, and `className="w-[var(--radix-select-trigger-width)]"` to `SelectContent`. This targets the `SelectPrimitive.ItemText` span (which is the last child) without modifying the shadcn component.
