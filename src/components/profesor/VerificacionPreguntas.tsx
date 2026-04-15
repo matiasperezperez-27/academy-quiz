@@ -81,20 +81,23 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
   useEffect(() => {
     if (!academias.length) return;
     const load = async () => {
-      let query = supabase
-        .from('preguntas')
-        .select('verificada, rechazada')
-        .in('academia_id', academias.map(a => a.academia_id));
-      if (academiaId !== '__all__') query = query.eq('academia_id', academiaId);
-      if (temaId !== '__all__') query = query.eq('tema_id', temaId);
-      const { data } = await query;
-      if (!data) return;
-      setFilterCounts({
-        pendientes: data.filter(p => !p.verificada && !p.rechazada).length,
-        verificadas: data.filter(p => p.verificada).length,
-        rechazadas: data.filter(p => p.rechazada).length,
-        total: data.length,
-      });
+      const ids = academias.map(a => a.academia_id);
+      const base = () => {
+        let q = supabase.from('preguntas').select('*', { count: 'exact', head: true });
+        if (academiaId !== '__all__') q = q.eq('academia_id', academiaId);
+        else q = q.in('academia_id', ids);
+        if (temaId !== '__all__') q = q.eq('tema_id', temaId);
+        return q;
+      };
+      const [pendRes, verRes, rechRes] = await Promise.all([
+        base().eq('verificada', false).eq('rechazada', false),
+        base().eq('verificada', true),
+        base().eq('rechazada', true),
+      ]);
+      const pendientes = pendRes.count ?? 0;
+      const verificadas = verRes.count ?? 0;
+      const rechazadas = rechRes.count ?? 0;
+      setFilterCounts({ pendientes, verificadas, rechazadas, total: pendientes + verificadas + rechazadas });
     };
     load();
   }, [academiaId, temaId, academias]);
