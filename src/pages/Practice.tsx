@@ -230,8 +230,10 @@ export default function Practice() {
               <SelectContent>
                 {academias.map(a => (
                   <SelectItem key={a.id} value={a.id}>
-                    {a.nombre}
-                    <span className="ml-2 text-xs text-muted-foreground">· {a.count} falladas</span>
+                    <div className="flex items-center gap-2 w-full min-w-0">
+                      <span className="truncate flex-1 min-w-0">{a.nombre}</span>
+                      <span className="flex-shrink-0 text-xs text-muted-foreground">· {a.count} falladas</span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -256,8 +258,10 @@ export default function Practice() {
                 <SelectContent>
                   {temas.map(t => (
                     <SelectItem key={t.id} value={t.id}>
-                      {t.nombre}
-                      <span className="ml-2 text-xs text-muted-foreground">· {t.count} falladas</span>
+                      <div className="flex items-center gap-2 w-full min-w-0">
+                        <span className="truncate flex-1 min-w-0">{t.nombre}</span>
+                        <span className="flex-shrink-0 text-xs text-muted-foreground">· {t.count} falladas</span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
