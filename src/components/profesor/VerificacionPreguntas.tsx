@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle, XCircle, ChevronLeft, ChevronRight, Pencil, GraduationCap } from 'lucide-react';
+import { CheckCircle, XCircle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Pencil, GraduationCap, Trophy, Filter } from 'lucide-react';
 import { useVerificacion, type PreguntaParaVerificar } from '@/hooks/useVerificacion';
 import { useGestionPreguntas, type PreguntaForm } from '@/hooks/useGestionPreguntas';
 import PreguntaFormDialog from '@/components/profesor/PreguntaFormDialog';
@@ -18,10 +18,27 @@ interface FilterCounts {
   total: number;
 }
 
+interface TemaStats {
+  id: string;
+  nombre: string;
+  pendientes: number;
+  verificadas: number;
+  rechazadas: number;
+  total: number;
+}
+
 function getProgressColor(pct: number) {
   if (pct >= 70) return { border: 'border-teal-400', bar: 'bg-teal-500', text: 'text-teal-600 dark:text-teal-400', bg: 'bg-teal-50 dark:bg-teal-900/20' };
   if (pct >= 30) return { border: 'border-amber-400', bar: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20' };
   return { border: 'border-red-400', bar: 'bg-red-500', text: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20' };
+}
+
+function temaIcon(pct: number) {
+  if (pct === 100) return '🏆';
+  if (pct >= 70) return '✅';
+  if (pct >= 30) return '🔄';
+  if (pct > 0)   return '🔴';
+  return '⭕';
 }
 
 interface Props {
@@ -43,6 +60,9 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
   const [page, setPage] = useState(0);
   const [procesando, setProcesando] = useState<string | null>(null);
   const [filterCounts, setFilterCounts] = useState<FilterCounts | null>(null);
+  const [expandedAcademia, setExpandedAcademia] = useState<string | null>(null);
+  const [temaStatsMap, setTemaStatsMap] = useState<Record<string, TemaStats[]>>({});
+  const [loadingTemas, setLoadingTemas] = useState<string | null>(null);
 
   // Edit dialog state
   const [editando, setEditando] = useState<PreguntaParaVerificar | null>(null);
@@ -109,6 +129,40 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
     setProcesando(null);
   };
 
+  const loadTemaStats = useCallback(async (acaId: string) => {
+    if (temaStatsMap[acaId]) return; // already loaded
+    setLoadingTemas(acaId);
+    try {
+      const { data: temaList } = await supabase.from('temas').select('id, nombre').eq('academia_id', acaId).order('nombre');
+      if (!temaList || temaList.length === 0) { setTemaStatsMap(prev => ({ ...prev, [acaId]: [] })); return; }
+      const results = await Promise.all(
+        temaList.map(async t => {
+          const base = () => supabase.from('preguntas').select('*', { count: 'exact', head: true }).eq('tema_id', t.id);
+          const [pend, ver, rech] = await Promise.all([
+            base().eq('verificada', false).eq('rechazada', false),
+            base().eq('verificada', true),
+            base().eq('rechazada', true),
+          ]);
+          const pendientes = pend.count ?? 0;
+          const verificadas = ver.count ?? 0;
+          const rechazadas = rech.count ?? 0;
+          return { id: t.id, nombre: t.nombre, pendientes, verificadas, rechazadas, total: pendientes + verificadas + rechazadas } as TemaStats;
+        })
+      );
+      // Sort: incomplete first (by % ascending), complete at bottom
+      results.sort((a, b) => {
+        const pctA = a.total > 0 ? a.verificadas / a.total : 0;
+        const pctB = b.total > 0 ? b.verificadas / b.total : 0;
+        if (pctA === 1 && pctB !== 1) return 1;
+        if (pctB === 1 && pctA !== 1) return -1;
+        return pctA - pctB;
+      });
+      setTemaStatsMap(prev => ({ ...prev, [acaId]: results }));
+    } finally {
+      setLoadingTemas(null);
+    }
+  }, [temaStatsMap]);
+
   const abrirEdicion = (p: PreguntaParaVerificar) => {
     setEditando(p);
     setForm({
@@ -158,24 +212,39 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
           const rechazadas = Math.max(0, a.total_preguntas - a.preguntas_verificadas - a.preguntas_pendientes);
           const colors = getProgressColor(pct);
           const isActive = academiaId === a.academia_id;
+          const isExpanded = expandedAcademia === a.academia_id;
+          const temaStats = temaStatsMap[a.academia_id];
           return (
             <Card
               key={a.academia_id}
-              className={`border-l-4 cursor-pointer transition-all duration-200 hover:shadow-md ${colors.border} ${isActive ? `${colors.bg} ring-2 ring-offset-1 ${colors.border.replace('border', 'ring')}` : ''}`}
-              onClick={() => {
-                setAcademiaId(isActive ? '__all__' : a.academia_id);
-                setTemaId('__all__');
-                setPage(0);
-              }}
+              className={`border-l-4 transition-all duration-200 hover:shadow-md ${colors.border} ${isActive ? `${colors.bg} ring-2 ring-offset-1 ${colors.border.replace('border', 'ring')}` : ''}`}
             >
               <CardContent className="p-4 space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <GraduationCap className={`h-4 w-4 flex-shrink-0 ${colors.text}`} />
-                    <span className="font-semibold text-sm truncate">{a.academia_nombre}</span>
-                  </div>
-                  <span className={`text-sm font-bold flex-shrink-0 ${colors.text}`}>{pct}%</span>
+                {/* Header row: filter click + expand toggle */}
+                <div className="flex items-center gap-2">
+                  <button
+                    className="flex-1 flex items-center justify-between gap-2 text-left"
+                    onClick={() => { setAcademiaId(isActive ? '__all__' : a.academia_id); setTemaId('__all__'); setPage(0); }}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <GraduationCap className={`h-4 w-4 flex-shrink-0 ${colors.text}`} />
+                      <span className="font-semibold text-sm truncate">{a.academia_nombre}</span>
+                    </div>
+                    <span className={`text-sm font-bold flex-shrink-0 ${colors.text}`}>{pct}%</span>
+                  </button>
+                  <button
+                    className={`flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors border ${isExpanded ? 'bg-teal-100 dark:bg-teal-900/40 border-teal-300 dark:border-teal-700 text-teal-700 dark:text-teal-300' : 'bg-muted border-border text-muted-foreground hover:bg-accent hover:text-foreground'}`}
+                    onClick={() => {
+                      if (!isExpanded) loadTemaStats(a.academia_id);
+                      setExpandedAcademia(isExpanded ? null : a.academia_id);
+                    }}
+                    title={isExpanded ? 'Ocultar temas' : 'Ver progreso por tema'}
+                  >
+                    Temas
+                    {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                  </button>
                 </div>
+
                 <Progress value={pct} className="h-2" />
                 <div className="flex gap-3 text-xs flex-wrap">
                   <span className="text-amber-600 dark:text-amber-400 font-medium">
@@ -191,6 +260,51 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">{a.total_preguntas.toLocaleString()} preguntas · {a.total_temas} temas</p>
+
+                {/* Expandable tema grid */}
+                {isExpanded && (
+                  <div className="pt-2 border-t mt-1">
+                    {loadingTemas === a.academia_id ? (
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {[...Array(6)].map((_, i) => (
+                          <div key={i} className="animate-pulse h-14 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+                        ))}
+                      </div>
+                    ) : temaStats && temaStats.length > 0 ? (
+                      <div className="max-h-72 overflow-y-auto pr-0.5">
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {temaStats.map(t => {
+                            const tPct = t.total > 0 ? Math.round((t.verificadas / t.total) * 100) : 0;
+                            const tColors = getProgressColor(tPct);
+                            const icon = temaIcon(tPct);
+                            const isComplete = tPct === 100;
+                            return (
+                              <button
+                                key={t.id}
+                                className={`text-left p-2 rounded-lg border transition-all hover:shadow-sm active:scale-95 ${isComplete ? 'bg-teal-50/60 dark:bg-teal-900/10 border-teal-200 dark:border-teal-800 opacity-60' : 'bg-background border-muted hover:border-muted-foreground/40'}`}
+                                onClick={() => { setAcademiaId(a.academia_id); setTemaId(t.id); setPage(0); }}
+                              >
+                                <div className="flex items-center gap-1 mb-1">
+                                  <span className="text-xs leading-none flex-shrink-0">{icon}</span>
+                                  <span className={`text-xs font-medium truncate flex-1 min-w-0 ${isComplete ? 'line-through text-muted-foreground' : ''}`}>{t.nombre}</span>
+                                  <span className={`text-xs font-bold flex-shrink-0 ml-0.5 ${tColors.text}`}>{tPct}%</span>
+                                </div>
+                                <div className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                  <div className={`h-full rounded-full ${tColors.bar}`} style={{ width: `${tPct}%` }} />
+                                </div>
+                                <p className="text-[10px] text-muted-foreground mt-1 truncate">
+                                  {t.pendientes} pend. · {t.verificadas} verif.
+                                </p>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground text-center py-2">Sin temas</p>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           );

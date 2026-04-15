@@ -161,7 +161,9 @@ Admin panel (`/admin`) includes a **Gestión de Profesores** section (`ProfesorM
 
 **Select empty-value convention**: Radix UI prohibits `value=""` in `<SelectItem>`. Use `"__all__"` as the sentinel for "all/none selected" and convert to `undefined` before passing to RPCs/queries.
 
-**Verification edit flow**: `VerificacionPreguntas` includes a pencil icon per question that opens a Dialog pre-filled with all editable fields (parte, pregunta_texto, opciones A-D, solucion_letra). Saving calls `upsert_pregunta` which resets `verificada/rechazada` to false — the question returns to pending and must be re-verified. Academia and tema are not editable from this view.
+**Verification edit flow**: `VerificacionPreguntas` includes a pencil icon per question that opens `PreguntaFormDialog` pre-filled with all editable fields (parte, pregunta_texto, opciones A-D, solucion_letra, explicaciones A-D). Saving calls `upsert_pregunta` which resets `verificada/rechazada` to false — the question returns to pending and must be re-verified. Academia and tema are not editable from this view.
+
+**Verification dashboard**: `VerificacionPreguntas` shows a mini-dashboard at the top with one card per academia. Each card displays color-coded verification progress (teal ≥70%, amber 30-70%, red <30%) with a "Temas" toggle button. Clicking the toggle expands a 2-column grid of tema chips (max-h-72, scrollable) showing gamified icons (🏆100%, ✅≥70%, 🔄30-70%, 🔴<30%, ⭕0%), a mini progress bar, and pending/verified counts. Tema stats are loaded lazily on first expand using parallel `{ count: 'exact', head: true }` queries and cached in component state. Clicking a tema chip sets the filter to that academia+tema. A context bar below the filters shows live counts for the current filter scope.
 
 ### Mobile-first design
 
