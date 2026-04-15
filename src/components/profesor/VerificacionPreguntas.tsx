@@ -208,21 +208,33 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {opciones.filter(([, v]) => v).map(([letra, texto]) => (
-                      <div
-                        key={letra}
-                        className={`p-2 rounded border text-sm flex gap-2 ${
-                          p.solucion_letra === letra
-                            ? 'bg-green-50 border-green-300 dark:bg-green-900/20 dark:border-green-700'
-                            : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700'
-                        }`}
-                      >
-                        <span className={`font-bold flex-shrink-0 ${p.solucion_letra === letra ? 'text-green-600' : 'text-muted-foreground'}`}>
-                          {letra}.
-                        </span>
-                        <span>{texto}</span>
-                      </div>
-                    ))}
+                    {opciones.filter(([, v]) => v).map(([letra, texto]) => {
+                      const esCorrecta = p.solucion_letra === letra;
+                      const expKey = `explicacion_${letra.toLowerCase()}` as keyof typeof p;
+                      const explicacion = p[expKey] as string | null;
+                      return (
+                        <div
+                          key={letra}
+                          className={`p-2 rounded border text-sm flex gap-2 ${
+                            esCorrecta
+                              ? 'bg-green-50 border-green-300 dark:bg-green-900/20 dark:border-green-700'
+                              : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700'
+                          }`}
+                        >
+                          <span className={`font-bold flex-shrink-0 ${esCorrecta ? 'text-green-600' : 'text-muted-foreground'}`}>
+                            {letra}.
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <span className="break-words">{texto}</span>
+                            {explicacion && (
+                              <p className={`mt-1 text-xs leading-relaxed break-words whitespace-normal ${esCorrecta ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'}`}>
+                                {explicacion}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {estado === 'pendiente' && (

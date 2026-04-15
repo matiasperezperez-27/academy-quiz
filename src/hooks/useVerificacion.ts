@@ -20,6 +20,10 @@ export interface PreguntaParaVerificar {
   verificacion_notas: string | null;
   verificada_at: string | null;
   total_count: number;
+  explicacion_a: string | null;
+  explicacion_b: string | null;
+  explicacion_c: string | null;
+  explicacion_d: string | null;
 }
 
 export interface VerificacionFiltros {
@@ -47,9 +51,16 @@ export function useVerificacion(profesorId: string) {
         p_offset: filtros.offset || 0,
       });
       if (error) throw error;
-      if (Array.isArray(data)) {
-        setPreguntas(data as PreguntaParaVerificar[]);
-        setTotal(data.length > 0 ? (data[0] as PreguntaParaVerificar).total_count ?? data.length : 0);
+      if (Array.isArray(data) && data.length > 0) {
+        const ids = (data as any[]).map((p: any) => p.id);
+        const { data: expData } = await supabase
+          .from('preguntas')
+          .select('id, explicacion_a, explicacion_b, explicacion_c, explicacion_d')
+          .in('id', ids);
+        const expMap = Object.fromEntries((expData || []).map((e: any) => [e.id, e]));
+        const enriched = (data as any[]).map((p: any) => ({ ...p, ...expMap[p.id] }));
+        setPreguntas(enriched as PreguntaParaVerificar[]);
+        setTotal((data[0] as any).total_count ?? data.length);
       } else {
         setPreguntas([]);
         setTotal(0);
