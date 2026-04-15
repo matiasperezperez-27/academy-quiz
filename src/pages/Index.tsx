@@ -394,7 +394,7 @@ function ProfesorHome({ user }: { user: any }) {
           <p className="text-xs text-muted-foreground flex-1">
             <span className="font-semibold text-foreground">{pending} preguntas</span> esperan verificación
           </p>
-          <Button size="sm" className="h-8 px-3 text-xs bg-amber-500 hover:bg-amber-600" onClick={() => navigate('/profesor')}>
+          <Button size="sm" className="h-8 px-3 text-xs bg-amber-500 hover:bg-amber-600" onClick={() => navigate('/profesor?tab=verificar')}>
             Verificar
           </Button>
         </div>
@@ -412,7 +412,7 @@ function ProfesorHome({ user }: { user: any }) {
             badge={pending > 0 ? pending : undefined}
             badgeColor="bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
             btnLabel="Ir a verificar"
-            onClick={() => navigate('/profesor')}
+            onClick={() => navigate('/profesor?tab=verificar')}
           />
           <ActionCard
             icon={ClipboardList}
@@ -421,7 +421,7 @@ function ProfesorHome({ user }: { user: any }) {
             description="Crea, edita y organiza el banco de preguntas"
             btnLabel="Gestionar"
             btnVariant="outline"
-            onClick={() => navigate('/profesor')}
+            onClick={() => navigate('/profesor?tab=preguntas')}
           />
           <ActionCard
             icon={Users}
@@ -430,7 +430,7 @@ function ProfesorHome({ user }: { user: any }) {
             description="Rendimiento y progreso de tus estudiantes"
             btnLabel="Ver alumnos"
             btnVariant="outline"
-            onClick={() => navigate('/profesor')}
+            onClick={() => navigate('/profesor?tab=alumnos')}
           />
           <ActionCard
             icon={BarChart3}
@@ -439,7 +439,7 @@ function ProfesorHome({ user }: { user: any }) {
             description="Crea y gestiona exámenes para tus academias"
             btnLabel="Ver exámenes"
             btnVariant="outline"
-            onClick={() => navigate('/profesor')}
+            onClick={() => navigate('/profesor?tab=examenes')}
           />
         </div>
       </div>

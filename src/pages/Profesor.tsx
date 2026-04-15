@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useProfesor } from '@/hooks/useProfesor';
@@ -27,7 +27,11 @@ export default function Profesor() {
   const { user } = useAuth();
   const { isProfesor, loading } = useProfesor();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const VALID_TABS = ['dashboard', 'verificar', 'preguntas', 'temas', 'examenes', 'alumnos'];
+  const tabParam = searchParams.get('tab') ?? '';
+  const defaultTab = VALID_TABS.includes(tabParam) ? tabParam : 'dashboard';
   const { stats, academias, loading: dataLoading, refresh } = useProfesorData(user?.id);
 
   useEffect(() => {
@@ -87,7 +91,7 @@ export default function Profesor() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="dashboard">
+        <Tabs defaultValue={defaultTab}>
           <TabsList className="w-full grid grid-cols-3 sm:grid-cols-6 h-auto">
             <TabsTrigger value="dashboard" className="text-xs sm:text-sm">Inicio</TabsTrigger>
             <TabsTrigger value="verificar" className="text-xs sm:text-sm">Verificar</TabsTrigger>
