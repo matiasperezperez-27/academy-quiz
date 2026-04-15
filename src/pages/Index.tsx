@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Play,
   BookOpen,
@@ -14,554 +12,518 @@ import {
   Clock,
   CheckCircle2,
   RefreshCw,
-  Zap,
   Flame,
   Star,
   BarChart3,
   Shield,
+  GraduationCap,
+  FileCheck,
+  Users,
+  AlertCircle,
+  ChevronRight,
+  Zap,
+  BookMarked,
+  ClipboardList,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
+import { useProfesor } from "@/hooks/useProfesor";
+import { useProfesorData } from "@/hooks/useProfesorData";
 import { supabase } from "@/integrations/supabase/client";
 
-export default function SimpleDashboard() {
-  const { user, signOut } = useAuth();
-  const { isAdmin } = useAdmin();
-  const [rawData, setRawData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+// ── Level system ─────────────────────────────────────────────────────────────
+const LEVEL_THRESHOLDS = [0, 100, 300, 600, 1000, 1500, 2500, 4000];
+const LEVEL_TITLES     = ['Principiante','Aprendiz','Estudiante','Conocedor','Avanzado','Experto','Maestro','Leyenda'];
+const LEVEL_COLORS     = [
+  'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400',
+  'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400',
+  'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400',
+  'bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-400',
+  'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400',
+  'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400',
+  'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400',
+  'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400',
+];
+const LEVEL_BAR_COLORS = ['bg-gray-400','bg-green-500','bg-blue-500','bg-teal-500','bg-purple-500','bg-indigo-500','bg-amber-500','bg-orange-500'];
 
-  // Función súper simple para cargar solo lo básico
-  const loadBasicStats = async () => {
-    if (!user) return;
+function computeLevel(points: number) {
+  let idx = 0;
+  for (let i = 0; i < LEVEL_THRESHOLDS.length; i++) {
+    if (points >= LEVEL_THRESHOLDS[i]) idx = i;
+  }
+  const level = idx + 1;
+  const currentThreshold = LEVEL_THRESHOLDS[idx] ?? 0;
+  const nextThreshold    = LEVEL_THRESHOLDS[idx + 1] ?? LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
+  const xpRange = nextThreshold - currentThreshold;
+  const xpPct   = xpRange > 0 ? Math.min(100, Math.round(((points - currentThreshold) / xpRange) * 100)) : 100;
+  return { level, title: LEVEL_TITLES[idx], color: LEVEL_COLORS[idx], bar: LEVEL_BAR_COLORS[idx], xpPct, nextThreshold, isMax: level >= 8 };
+}
 
-    try {
-      setLoading(true);
-      setError(null);
+function accColor(pct: number) {
+  if (pct >= 80) return { text: 'text-teal-600 dark:text-teal-400', bg: 'bg-teal-100 dark:bg-teal-900/40', bar: 'bg-teal-500' };
+  if (pct >= 60) return { text: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-100 dark:bg-amber-900/40', bar: 'bg-amber-500' };
+  return { text: 'text-red-600 dark:text-red-400', bg: 'bg-red-100 dark:bg-red-900/40', bar: 'bg-red-500' };
+}
 
-      // Solo usar la función RPC que sabemos que funciona
-      const { data: basicStats, error: rpcError } = await supabase
-        .rpc("get_user_stats", { p_user_id: user.id });
+function verColor(pct: number) {
+  if (pct >= 70) return { border: 'border-l-teal-400', text: 'text-teal-600 dark:text-teal-400', bar: 'bg-teal-500' };
+  if (pct >= 30) return { border: 'border-l-amber-400', text: 'text-amber-600 dark:text-amber-400', bar: 'bg-amber-500' };
+  return { border: 'border-l-red-400', text: 'text-red-600 dark:text-red-400', bar: 'bg-red-500' };
+}
 
-      if (rpcError) {
-        throw new Error(`Error RPC: ${rpcError.message}`);
-      }
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Buenos días";
+  if (h < 18) return "Buenas tardes";
+  return "Buenas noches";
+}
 
-      // Guardar datos raw sin procesar
-      setRawData(basicStats);
-    } catch (err) {
-      setError(err.message);
+function getDisplayName(user: any) {
+  if (user?.user_metadata?.username) return user.user_metadata.username;
+  if (user?.email) return user.email.split("@")[0];
+  return "Usuario";
+}
 
-      // Si falla todo, poner datos vacíos
-      setRawData({
-        total_sessions: 0,
-        completed_sessions: 0,
-        total_questions_answered: 0,
-        total_correct_answers: 0,
-        overall_accuracy_percentage: 0,
-        current_failed_questions: 0,
-        best_session_score_percentage: 0,
-        last_activity: null,
-        points: 0,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+// ── KPI cell ─────────────────────────────────────────────────────────────────
+function KpiCell({ label, value, icon: Icon, iconBg, iconColor }: { label: string; value: string | number; icon: React.ElementType; iconBg: string; iconColor: string }) {
+  return (
+    <div className="flex flex-col items-center text-center px-1 py-2 rounded-xl border bg-card">
+      <div className={`w-7 h-7 rounded-full ${iconBg} flex items-center justify-center mb-1`}>
+        <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
+      </div>
+      <span className="text-base font-bold leading-none tabular-nums">{value}</span>
+      <span className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{label}</span>
+    </div>
+  );
+}
 
-  useEffect(() => {
-    loadBasicStats();
-  }, [user]);
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Buenos días";
-    if (hour < 18) return "Buenas tardes";
-    return "Buenas noches";
-  };
-
-  const getUserDisplayName = () => {
-    if (user?.user_metadata?.username) return user.user_metadata.username;
-    if (user?.email) return user.email.split("@")[0];
-    return "Usuario";
-  };
-
-  const getLevel = (points) => {
-    const pts = Number(points) || 0;
-    if (pts >= 4000) return { level: 8, title: "Leyenda" };
-    if (pts >= 2500) return { level: 7, title: "Maestro" };
-    if (pts >= 1500) return { level: 6, title: "Experto" };
-    if (pts >= 1000) return { level: 5, title: "Avanzado" };
-    if (pts >= 600) return { level: 4, title: "Conocedor" };
-    if (pts >= 300) return { level: 3, title: "Estudiante" };
-    if (pts >= 100) return { level: 2, title: "Aprendiz" };
-    return { level: 1, title: "Principiante" };
-  };
-
-  // Función súper segura para obtener valores
-  const safeGet = (obj, key, defaultValue = 0) => {
-    if (!obj || typeof obj !== "object") return defaultValue;
-    const value = obj[key];
-    return value !== null && value !== undefined ? value : defaultValue;
-  };
-
-  // Componentes UI puros
-  const MobileHeader = () => (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div className="flex items-center gap-3">
-        <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-            {getGreeting()}, {getUserDisplayName()}! 👋
-          </h1>
-          <p className="text-muted-foreground dark:text-gray-300 text-sm sm:text-base">
-            ¿Listo para tu próximo desafío de aprendizaje?
-          </p>
+// ── Action card ───────────────────────────────────────────────────────────────
+function ActionCard({
+  icon: Icon, iconBg, title, description, badge, badgeColor = 'bg-red-500 text-white',
+  btnLabel, btnVariant = 'default', onClick, disabled = false,
+}: {
+  icon: React.ElementType; iconBg: string; title: string; description: string;
+  badge?: string | number; badgeColor?: string;
+  btnLabel: string; btnVariant?: 'default' | 'outline'; onClick: () => void; disabled?: boolean;
+}) {
+  return (
+    <div className="rounded-xl border bg-card p-4 flex flex-col gap-3">
+      <div className="flex items-start gap-3">
+        <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center flex-shrink-0`}>
+          <Icon className="h-5 w-5 text-white" />
         </div>
-        <LevelBadge points={safeGet(rawData, "points", 0)} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-semibold">{title}</p>
+            {badge !== undefined && Number(badge) > 0 && (
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${badgeColor}`}>{badge}</span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+        </div>
       </div>
       <Button
-        variant="ghost"
         size="sm"
-        onClick={loadBasicStats}
-        disabled={loading}
-        className="flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-gray-700 transition-all duration-200"
+        variant={btnVariant}
+        className="w-full h-9"
+        onClick={onClick}
+        disabled={disabled}
       >
-        <RefreshCw
-          className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
-        />
-        <span className="hidden sm:inline">Actualizar</span>
+        {btnLabel}
       </Button>
     </div>
   );
+}
 
-  const LevelBadge = ({ points }) => {
-    const levelInfo = getLevel(points);
-    return (
-      <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-800/30 dark:to-blue-800/30 rounded-full border dark:border-gray-600">
-        <Star className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-        <span className="text-sm font-medium dark:text-gray-200">
-          Nivel {levelInfo.level} · {points} pts
-        </span>
-      </div>
-    );
+// ═══════════════════════════════════════════════════════════════════════════════
+// VISTA ALUMNO
+// ═══════════════════════════════════════════════════════════════════════════════
+function StudentHome({ user }: { user: any }) {
+  const navigate = useNavigate();
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const { data: d } = await supabase.rpc("get_user_stats", { p_user_id: user.id });
+      setData(d ?? {});
+    } catch { setData({}); }
+    finally { setLoading(false); }
+  }, [user]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const safe = (key: string, def = 0) => {
+    if (!data || typeof data !== 'object') return def;
+    return data[key] ?? def;
   };
 
-  const StatsCard = ({ title, value, subtitle, icon, color = "text-primary", gradient = "from-blue-50 to-indigo-50" }) => (
-    <Card className={`hover:shadow-lg transition-all duration-300 hover:scale-105 backdrop-blur-sm bg-gradient-to-br ${gradient} dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-700 border-0 shadow-sm dark:shadow-gray-900/20`}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
-        <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">{title}</CardTitle>
-        <div className={`h-6 w-6 sm:h-8 sm:w-8 ${color} p-1 bg-white/80 dark:bg-gray-800/80 rounded-lg`}>
-          {React.cloneElement(icon, { className: "h-full w-full" })}
+  const points        = safe('points');
+  const accuracy      = Math.round(safe('overall_accuracy_percentage'));
+  const sessions      = safe('completed_sessions');
+  const totalQ        = safe('total_questions_answered');
+  const failed        = safe('current_failed_questions');
+  const bestScore     = Math.round(safe('best_session_score_percentage'));
+  const lastActivity  = safe('last_activity', null) as string | null;
+
+  const lv  = computeLevel(points);
+  const ac  = accColor(accuracy);
+
+  const motivational = () => {
+    if (sessions === 0) return { emoji: '🌟', msg: '¡Comienza tu viaje! Haz tu primer test y empieza a ganar XP.' };
+    if (failed > 10) return { emoji: '💪', msg: `Tienes ${failed} preguntas pendientes. Repasarlas es la forma más rápida de mejorar.` };
+    if (accuracy >= 80) return { emoji: '🏆', msg: '¡Excelente rendimiento! Estás por encima del 80% de precisión. ¡Sigue así!' };
+    return { emoji: '🎯', msg: `${sessions} sesiones completadas. La constancia es la clave del éxito.` };
+  };
+  const mot = motivational();
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 pb-24 space-y-4">
+
+      {/* Header */}
+      <div className="flex items-center justify-between pt-2">
+        <div>
+          <p className="text-xs text-muted-foreground">{getGreeting()}</p>
+          <h1 className="text-xl font-bold">{getDisplayName(user)}</h1>
         </div>
-      </CardHeader>
-      <CardContent className="px-4 pb-4">
-        <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-gray-100">{value}</div>
-        {subtitle && (
-          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{subtitle}</p>
-        )}
-      </CardContent>
-    </Card>
-  );
-
-  const QuickActions = () => {
-    const failedQuestions = safeGet(rawData, "current_failed_questions", 0);
-    const totalAnswers = safeGet(rawData, "total_questions_answered", 0);
-
-    return (
-      <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {/* Nuevo Test Card */}
-        <Card className="hover:shadow-xl transition-all duration-300 hover:scale-105 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 dark:bg-gray-800 border-0 dark:border-gray-600">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-3">
-              <div className="p-3 bg-blue-600 rounded-xl shadow-lg">
-                <Play className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <div className="text-xl font-bold text-gray-900 dark:text-gray-100">Nuevo Test</div>
-                <div className="text-sm text-gray-600 dark:text-gray-300 font-normal">
-                  Elige tema y pon a prueba tus conocimientos
-                </div>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                <Clock className="h-4 w-4" />
-                Duración: 5-10 minutos
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                <Target className="h-4 w-4" />
-                10 preguntas aleatorias
-              </div>
-              <Button
-                className="w-full h-12 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white shadow-md hover:shadow-lg transition-all duration-200"
-                size="lg"
-                onClick={() => (window.location.href = "/test-setup")}
-              >
-                <Play className="mr-2 h-4 w-4" />
-                Comenzar Test
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Practice Card */}
-        <Card className="hover:shadow-xl transition-all duration-300 hover:scale-105 bg-gradient-to-br from-orange-50 to-red-100 dark:from-orange-900/20 dark:to-red-900/20 dark:bg-gray-800 border-0 dark:border-gray-600">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-3">
-              <div className="p-3 bg-orange-600 rounded-xl shadow-lg">
-                <BookOpen className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <div className="text-xl font-bold text-gray-900 dark:text-gray-100">Modo Práctica</div>
-                <div className="text-sm text-gray-600 dark:text-gray-300 font-normal">
-                  Repasa tus preguntas falladas
-                </div>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {failedQuestions > 0 ? (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-300">
-                      Preguntas pendientes:
-                    </span>
-                    <Badge variant="destructive" className="text-xs bg-red-500">
-                      {failedQuestions}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                    <TrendingUp className="h-4 w-4" />
-                    Mejora tu puntuación
-                  </div>
-                  <Button
-                    className="w-full h-12 bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600 text-white shadow-md hover:shadow-lg transition-all duration-200"
-                    size="lg"
-                    onClick={() => (window.location.href = "/practice")}
-                  >
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    Practicar Ahora
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <div className="text-center py-4">
-                    <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      ¡Excelente! No tienes preguntas falladas para practicar.
-                    </p>
-                  </div>
-                  <Button
-                    className="w-full h-12 bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed"
-                    size="lg"
-                    disabled
-                  >
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    Sin Preguntas Pendientes
-                  </Button>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Análisis por Temas Card */}
-        <Card className="hover:shadow-xl transition-all duration-300 hover:scale-105 bg-gradient-to-br from-purple-50 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 dark:bg-gray-800 border-0 dark:border-gray-600">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-3">
-              <div className="p-3 bg-purple-600 rounded-xl shadow-lg">
-                <BarChart3 className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <div className="text-xl font-bold text-gray-900 dark:text-gray-100">Análisis por Temas</div>
-                <div className="text-sm text-gray-600 dark:text-gray-300 font-normal">
-                  Ve tu progreso detallado por tema
-                </div>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                <Target className="h-4 w-4" />
-                Identifica tus puntos fuertes
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                <TrendingUp className="h-4 w-4" />
-                Enfócate en lo que necesitas
-              </div>
-              <Button
-                className="w-full h-12 border-2 border-purple-600 dark:border-purple-400 text-purple-600 dark:text-purple-400 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-500 dark:hover:text-white shadow-md hover:shadow-lg transition-all duration-200"
-                variant="outline"
-                size="lg"
-                onClick={() => (window.location.href = "/analisis-temas")}
-                disabled={totalAnswers === 0}
-              >
-                <BarChart3 className="mr-2 h-4 w-4" />
-                {totalAnswers > 0 ? "Ver Análisis" : "Sin Datos Aún"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <Button variant="outline" size="sm" onClick={load} disabled={loading} className="h-8 gap-1.5">
+          <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+          <span className="hidden sm:inline text-xs">Actualizar</span>
+        </Button>
       </div>
-    );
-  };
+
+      {/* Level + XP card */}
+      {loading ? (
+        <div className="rounded-xl border bg-card p-4 animate-pulse space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-14 h-14 rounded-full bg-muted" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 bg-muted rounded w-1/3" />
+              <div className="h-2.5 bg-muted rounded w-full" />
+            </div>
+          </div>
+          <div className="grid grid-cols-4 gap-1">
+            {[...Array(4)].map((_, i) => <div key={i} className="h-14 bg-muted rounded-xl" />)}
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-xl border bg-card p-4 space-y-4">
+          {/* Level + XP bar */}
+          <div className="flex items-center gap-3">
+            <div className={`w-14 h-14 rounded-full flex flex-col items-center justify-center flex-shrink-0 ${lv.color}`}>
+              <span className="text-lg font-black leading-none">{lv.level}</span>
+              <Star className="h-3 w-3 mt-0.5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline justify-between gap-2 mb-1.5">
+                <span className="text-sm font-bold">{lv.title}</span>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {lv.isMax ? `${points.toLocaleString()} XP · Nivel máximo` : `${points.toLocaleString()} / ${lv.nextThreshold.toLocaleString()} XP`}
+                </span>
+              </div>
+              <div className="w-full h-2.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full transition-all duration-700 ${lv.bar}`} style={{ width: `${lv.xpPct}%` }} />
+              </div>
+            </div>
+          </div>
+
+          {/* KPI strip */}
+          <div className="grid grid-cols-4 gap-1 border-t pt-3">
+            <KpiCell label="Precisión"  value={`${accuracy}%`}            icon={Target}   iconBg={ac.bg}                                        iconColor={ac.text} />
+            <KpiCell label="Sesiones"   value={sessions.toLocaleString()}  icon={BarChart3} iconBg="bg-blue-100 dark:bg-blue-900/40"             iconColor="text-blue-600 dark:text-blue-400" />
+            <KpiCell label="Preguntas"  value={totalQ.toLocaleString()}    icon={BookOpen}  iconBg="bg-purple-100 dark:bg-purple-900/40"          iconColor="text-purple-600 dark:text-purple-400" />
+            <KpiCell label="Falladas"   value={failed.toLocaleString()}    icon={AlertCircle} iconBg={failed > 0 ? 'bg-red-100 dark:bg-red-900/40' : 'bg-gray-100 dark:bg-gray-800'} iconColor={failed > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400'} />
+          </div>
+        </div>
+      )}
+
+      {/* Motivational banner */}
+      {!loading && (
+        <div className="rounded-xl border bg-card px-4 py-3 flex items-center gap-3">
+          <span className="text-xl flex-shrink-0">{mot.emoji}</span>
+          <p className="text-xs text-muted-foreground leading-relaxed">{mot.msg}</p>
+          {sessions === 0 && (
+            <Button size="sm" className="flex-shrink-0 h-8 px-3 text-xs" onClick={() => navigate('/test-setup')}>
+              Empezar
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Quick actions */}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-0.5">Acciones</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <ActionCard
+            icon={Play}
+            iconBg="bg-teal-600"
+            title="Nuevo Test"
+            description="Elige academia y tema para empezar"
+            btnLabel="Comenzar test"
+            onClick={() => navigate('/test-setup')}
+          />
+          <ActionCard
+            icon={BookOpen}
+            iconBg={failed > 0 ? 'bg-orange-500' : 'bg-gray-400'}
+            title="Modo Práctica"
+            description={failed > 0 ? `${failed} preguntas falladas pendientes` : 'No hay preguntas falladas'}
+            badge={failed > 0 ? failed : undefined}
+            btnLabel={failed > 0 ? 'Practicar ahora' : 'Sin pendientes'}
+            btnVariant="outline"
+            onClick={() => navigate('/practice')}
+            disabled={failed === 0}
+          />
+          <ActionCard
+            icon={BarChart3}
+            iconBg="bg-blue-600"
+            title="Análisis por Temas"
+            description="Ve tu progreso detallado por tema"
+            btnLabel={totalQ > 0 ? 'Ver análisis' : 'Sin datos aún'}
+            btnVariant="outline"
+            onClick={() => navigate('/analisis-temas')}
+            disabled={totalQ === 0}
+          />
+          <ActionCard
+            icon={TrendingUp}
+            iconBg="bg-purple-600"
+            title="Mis Estadísticas"
+            description="Actividad, rendimiento y maestría"
+            btnLabel="Ver estadísticas"
+            btnVariant="outline"
+            onClick={() => navigate('/stats')}
+          />
+        </div>
+      </div>
+
+      {/* Quick stats row */}
+      {!loading && sessions > 0 && (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-0.5">Resumen</p>
+          <div className="rounded-xl border bg-card divide-y">
+            {[
+              { label: 'Mejor puntuación',   value: `${bestScore}%` },
+              { label: 'Última actividad',    value: lastActivity ? new Date(lastActivity).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' }) : 'Nunca' },
+              { label: 'Ranking',             value: <button className="text-xs text-teal-600 dark:text-teal-400 flex items-center gap-0.5" onClick={() => navigate('/ranking')}>Ver ranking <ChevronRight className="h-3 w-3" /></button> },
+            ].map((row, i) => (
+              <div key={i} className="flex items-center justify-between px-4 py-2.5">
+                <span className="text-xs text-muted-foreground">{row.label}</span>
+                <span className="text-xs font-semibold">{row.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VISTA PROFESOR
+// ═══════════════════════════════════════════════════════════════════════════════
+function ProfesorHome({ user }: { user: any }) {
+  const navigate = useNavigate();
+  const { stats, academias, loading, refresh } = useProfesorData(user?.id);
+
+  const totalP   = stats?.total_preguntas     ?? 0;
+  const verified = stats?.preguntas_verificadas ?? 0;
+  const pending  = stats?.preguntas_pendientes  ?? 0;
+  const verPct   = totalP > 0 ? Math.round((verified / totalP) * 100) : 0;
+  const vc       = verColor(verPct);
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 pb-24 space-y-4">
+
+      {/* Header */}
+      <div className="flex items-center justify-between pt-2">
+        <div>
+          <p className="text-xs text-muted-foreground">{getGreeting()}, profesor</p>
+          <h1 className="text-xl font-bold">{getDisplayName(user)}</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={refresh} disabled={loading} className="h-8 gap-1.5">
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline text-xs">Actualizar</span>
+          </Button>
+          <Button size="sm" className="h-8 gap-1.5 bg-teal-600 hover:bg-teal-700" onClick={() => navigate('/profesor')}>
+            <Shield className="h-3.5 w-3.5" />
+            <span className="text-xs">Panel completo</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Verification health bar */}
+      {loading ? (
+        <div className="rounded-xl border bg-card p-4 animate-pulse space-y-3">
+          <div className="h-4 bg-muted rounded w-1/3" />
+          <div className="h-2 bg-muted rounded w-full" />
+          <div className="grid grid-cols-3 gap-1">
+            {[...Array(3)].map((_, i) => <div key={i} className="h-14 bg-muted rounded-xl" />)}
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-xl border bg-card p-4 space-y-4">
+          {/* Health bar */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Salud del contenido</p>
+              <span className={`text-sm font-bold ${vc.text}`}>{verPct}% verificado</span>
+            </div>
+            <div className="w-full h-2.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div className={`h-full rounded-full transition-all duration-700 ${vc.bar}`} style={{ width: `${verPct}%` }} />
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {verified} verificadas · {pending} pendientes · {totalP} total
+            </p>
+          </div>
+
+          {/* KPI strip */}
+          <div className="grid grid-cols-3 gap-1 border-t pt-3">
+            <KpiCell label="Academias"  value={stats?.total_academias ?? 0}    icon={GraduationCap} iconBg="bg-teal-100 dark:bg-teal-900/40"   iconColor="text-teal-600 dark:text-teal-400" />
+            <KpiCell label="Temas"      value={stats?.total_temas ?? 0}        icon={BookMarked}    iconBg="bg-blue-100 dark:bg-blue-900/40"    iconColor="text-blue-600 dark:text-blue-400" />
+            <KpiCell label="Estudiantes" value={stats?.total_estudiantes ?? 0} icon={Users}         iconBg="bg-purple-100 dark:bg-purple-900/40" iconColor="text-purple-600 dark:text-purple-400" />
+          </div>
+        </div>
+      )}
+
+      {/* Pending alert */}
+      {!loading && pending > 0 && (
+        <div className="rounded-xl border border-l-4 border-l-amber-400 bg-card px-4 py-3 flex items-center gap-3">
+          <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0" />
+          <p className="text-xs text-muted-foreground flex-1">
+            <span className="font-semibold text-foreground">{pending} preguntas</span> esperan verificación
+          </p>
+          <Button size="sm" className="h-8 px-3 text-xs bg-amber-500 hover:bg-amber-600" onClick={() => navigate('/profesor')}>
+            Verificar
+          </Button>
+        </div>
+      )}
+
+      {/* Quick actions */}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-0.5">Acciones rápidas</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <ActionCard
+            icon={FileCheck}
+            iconBg={pending > 0 ? 'bg-amber-500' : 'bg-teal-600'}
+            title="Verificar Preguntas"
+            description={pending > 0 ? `${pending} preguntas pendientes de revisión` : 'Todas las preguntas están verificadas'}
+            badge={pending > 0 ? pending : undefined}
+            badgeColor="bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+            btnLabel="Ir a verificar"
+            onClick={() => navigate('/profesor')}
+          />
+          <ActionCard
+            icon={ClipboardList}
+            iconBg="bg-blue-600"
+            title="Gestionar Preguntas"
+            description="Crea, edita y organiza el banco de preguntas"
+            btnLabel="Gestionar"
+            btnVariant="outline"
+            onClick={() => navigate('/profesor')}
+          />
+          <ActionCard
+            icon={Users}
+            iconBg="bg-purple-600"
+            title="Estadísticas Alumnos"
+            description="Rendimiento y progreso de tus estudiantes"
+            btnLabel="Ver alumnos"
+            btnVariant="outline"
+            onClick={() => navigate('/profesor')}
+          />
+          <ActionCard
+            icon={BarChart3}
+            iconBg="bg-indigo-600"
+            title="Exámenes"
+            description="Crea y gestiona exámenes para tus academias"
+            btnLabel="Ver exámenes"
+            btnVariant="outline"
+            onClick={() => navigate('/profesor')}
+          />
+        </div>
+      </div>
+
+      {/* Academia list */}
+      {!loading && academias.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-0.5">
+            Mis academias
+          </p>
+          <div className="space-y-2">
+            {academias.map(a => {
+              const pct = a.total_preguntas > 0 ? Math.round((a.preguntas_verificadas / a.total_preguntas) * 100) : 0;
+              const c   = verColor(pct);
+              return (
+                <div key={a.academia_id} className={`rounded-xl border border-l-4 ${c.border} bg-card px-4 py-3`}>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{a.academia_nombre}</p>
+                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
+                        <span>{a.total_temas} temas</span>
+                        <span>·</span>
+                        <span>{a.total_preguntas} preguntas</span>
+                        {a.preguntas_pendientes > 0 && (
+                          <>
+                            <span>·</span>
+                            <span className="text-amber-600 dark:text-amber-400">{a.preguntas_pendientes} pendientes</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <span className={`text-sm font-bold flex-shrink-0 ${c.text}`}>{pct}%</span>
+                  </div>
+                  <div className="mt-2 w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${c.bar}`} style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Empty state (no academias assigned) */}
+      {!loading && academias.length === 0 && (
+        <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
+          <GraduationCap className="h-8 w-8 mx-auto mb-3 opacity-30" />
+          <p className="text-sm">No tienes academias asignadas aún.</p>
+          <p className="text-xs mt-1">Contacta con un administrador para que te asigne academias.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ROOT — decide qué vista mostrar
+// ═══════════════════════════════════════════════════════════════════════════════
+export default function HomePage() {
+  const { user } = useAuth();
+  const { isAdmin }    = useAdmin();
+  const { isProfesor, loading: profLoading } = useProfesor();
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800">
-        <Card className="backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 shadow-xl">
-          <CardContent className="p-6">
-            <p className="text-lg dark:text-gray-200">Cargando usuario...</p>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <p className="text-muted-foreground text-sm">Cargando...</p>
       </div>
     );
   }
 
-  // Variables súper seguras
-  const completedSessions = safeGet(rawData, "completed_sessions", 0);
-  const totalSessions = safeGet(rawData, "total_sessions", 0);
-  const accuracy = Math.round(
-    safeGet(rawData, "overall_accuracy_percentage", 0)
-  );
-  const correctAnswers = safeGet(rawData, "total_correct_answers", 0);
-  const totalAnswers = safeGet(rawData, "total_questions_answered", 0);
-  const failedQuestions = safeGet(rawData, "current_failed_questions", 0);
-  const points = safeGet(rawData, "points", 0);
-  const bestScore = Math.round(
-    safeGet(rawData, "best_session_score_percentage", 0)
-  );
-  const lastActivity = safeGet(rawData, "last_activity", null);
-
-  const levelInfo = getLevel(points);
-
-  return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8">
-        
-        {/* Mobile-First Header */}
-        <MobileHeader />
-
-        {/* Error Display */}
-        {error && (
-          <Card className="border-red-200 dark:border-red-800 bg-red-50/80 dark:bg-red-900/20 backdrop-blur-sm">
-            <CardContent className="p-4">
-              <p className="text-red-800 dark:text-red-400">⚠️ Error: {error}</p>
-              <Button onClick={loadBasicStats} className="mt-2" size="sm">
-                Reintentar
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Loading */}
-        {loading && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <Card key={i} className="p-4 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm">
-                <div className="space-y-3">
-                  <div className="h-4 w-20 bg-muted rounded animate-pulse" />
-                  <div className="h-8 w-16 bg-muted rounded animate-pulse" />
-                  <div className="h-3 w-24 bg-muted rounded animate-pulse" />
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Essential Stats - Mobile: 2 cols, Desktop: 4 cols */}
-        {!loading && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            <StatsCard
-              title="Tests Completados"
-              value={completedSessions}
-              icon={<Trophy />}
-              color="text-yellow-600"
-              gradient="from-yellow-50 to-orange-100"
-              subtitle="sesiones finalizadas"
-            />
-
-            <StatsCard
-              title="Precisión General"
-              value={`${accuracy}%`}
-              icon={<Target />}
-              color="text-blue-600"
-              gradient="from-blue-50 to-cyan-100"
-              subtitle={`${correctAnswers}/${totalAnswers} correctas`}
-            />
-
-            <StatsCard
-              title="Preguntas Falladas"
-              value={failedQuestions}
-              icon={<BookOpen />}
-              color="text-orange-600"
-              gradient="from-orange-50 to-red-100"
-              subtitle="para practicar"
-            />
-
-            <StatsCard
-              title={`Nivel ${levelInfo.level}`}
-              value={levelInfo.title}
-              icon={<Star />}
-              color="text-purple-600"
-              gradient="from-purple-50 to-pink-100"
-              subtitle={`${points} puntos`}
-            />
-          </div>
-        )}
-
-        {/* Quick Action Buttons */}
-        <QuickActions />
-
-        {/* Collapsible Stats for Mobile */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Level Info */}
-          <Card className="backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Star className="h-5 w-5 text-yellow-600" />
-                Tu Nivel
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-800/50 dark:to-purple-700/50 rounded-full">
-                    <Star className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <div>
-                    <div className="text-xl font-bold">
-                      Nivel {levelInfo.level}
-                    </div>
-                    <div className="text-sm text-muted-foreground dark:text-gray-400">
-                      {levelInfo.title}
-                    </div>
-                  </div>
-                  <div className="ml-auto">
-                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                      {points}
-                    </div>
-                    <div className="text-xs text-muted-foreground dark:text-gray-400">puntos</div>
-                  </div>
-                </div>
-
-                <div className="text-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border dark:border-gray-600">
-                  <p className="text-sm text-gray-700 dark:text-gray-300">
-                    {points < 100
-                      ? `Te faltan ${100 - points} puntos para Nivel 2`
-                      : "¡Sigue así para seguir subiendo de nivel!"}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Stats */}
-          <Card className="backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <BarChart3 className="h-5 w-5" />
-                Estadísticas Rápidas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground dark:text-gray-400">
-                    Total de sesiones:
-                  </span>
-                  <span className="font-medium dark:text-gray-200">{totalSessions}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground dark:text-gray-400">
-                    Sesiones completadas:
-                  </span>
-                  <span className="font-medium dark:text-gray-200">{completedSessions}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground dark:text-gray-400">
-                    Preguntas respondidas:
-                  </span>
-                  <span className="font-medium dark:text-gray-200">{totalAnswers}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground dark:text-gray-400">
-                    Mejor puntuación:
-                  </span>
-                  <span className="font-medium dark:text-gray-200">{bestScore}%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground dark:text-gray-400">
-                    Última actividad:
-                  </span>
-                  <span className="font-medium dark:text-gray-200">
-                    {lastActivity
-                      ? new Date(lastActivity).toLocaleDateString("es-ES")
-                      : "Nunca"}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+  if (profLoading) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 pt-8 space-y-3 animate-pulse">
+        <div className="h-8 bg-muted rounded w-1/2" />
+        <div className="h-32 bg-muted rounded-xl" />
+        <div className="grid grid-cols-2 gap-2">
+          <div className="h-28 bg-muted rounded-xl" />
+          <div className="h-28 bg-muted rounded-xl" />
         </div>
-
-        {/* Motivational Message */}
-        <Card className="backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 shadow-lg">
-          <CardContent className="p-6 text-center">
-            <div className="space-y-3">
-              {failedQuestions > 0 ? (
-                <>
-                  <div className="text-lg font-semibold">
-                    💪 ¡Tienes {failedQuestions} preguntas esperándote!
-                  </div>
-                  <p className="text-muted-foreground dark:text-gray-300">
-                    Cada pregunta que practiques te acerca más a la perfección.
-                    ¡Es hora de brillar! ✨
-                  </p>
-                  <Button
-                    onClick={() => (window.location.href = "/practice")}
-                    className="mt-3 bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600 h-12 px-6"
-                  >
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    Empezar a Practicar
-                  </Button>
-                </>
-              ) : completedSessions === 0 ? (
-                <>
-                  <div className="text-lg font-semibold">
-                    🌟 ¡Comienza tu viaje de aprendizaje!
-                  </div>
-                  <p className="text-muted-foreground dark:text-gray-300">
-                    Cada experto fue una vez un principiante. ¡Haz tu primer
-                    test hoy!
-                  </p>
-                  <Button
-                    onClick={() => (window.location.href = "/test-setup")}
-                    className="mt-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 h-12 px-6"
-                  >
-                    <Play className="mr-2 h-4 w-4" />
-                    Mi Primer Test
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <div className="text-lg font-semibold">🎯 ¡Sigue así!</div>
-                  <p className="text-muted-foreground dark:text-gray-300">
-                    Has completado {completedSessions} sesiones. ¡Tu dedicación
-                    está dando frutos!
-                  </p>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
       </div>
-    </main>
-  );
-}
+    );
+  }
 
+  if (isProfesor) return <ProfesorHome user={user} />;
+  return <StudentHome user={user} />;
+}
