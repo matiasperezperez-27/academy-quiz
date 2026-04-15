@@ -1,44 +1,94 @@
 import { useEffect, useCallback, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { AlertCircle, CheckCircle2, XCircle, ArrowLeft, Home, ArrowRight, Target, BookOpen } from "lucide-react";
+import { AlertCircle, CheckCircle2, XCircle, ArrowLeft, ArrowRight, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { ExitConfirmationDialog, useExitConfirmation } from "@/components/ExitConfirmationDialog";
 import { useQuiz, Pregunta } from "@/hooks/useQuiz";
 
-function setSEO(title: string, description: string) {
-  document.title = title;
-  const meta = document.querySelector('meta[name="description"]') || document.createElement("meta");
-  meta.setAttribute("name", "description");
-  meta.setAttribute("content", description);
-  document.head.appendChild(meta);
-}
-
 type QuizMode = "test" | "practice";
 
+// ── Answer option button ──────────────────────────────────────────────────────
+function OptionButton({
+  optKey, text, explanation, isRevealed, isSelected, isCorrect, isWrong, disabled, onClick,
+}: {
+  optKey: string; text: string; explanation?: string | null;
+  isRevealed: boolean; isSelected: boolean; isCorrect: boolean; isWrong: boolean;
+  disabled: boolean; onClick: () => void;
+}) {
+  let containerCls = "w-full text-left rounded-xl border border-l-4 px-4 py-3 transition-all duration-150 ";
+  let keyBg        = "bg-muted text-muted-foreground ";
+
+  if (!isRevealed) {
+    if (isSelected) {
+      containerCls += "border-l-teal-400 bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800";
+      keyBg         = "bg-teal-600 text-white ";
+    } else {
+      containerCls += "border-l-gray-200 dark:border-l-gray-700 bg-card hover:border-l-gray-400 hover:bg-muted/40 cursor-pointer";
+    }
+  } else if (isCorrect) {
+    containerCls += "border-l-teal-400 bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800";
+    keyBg         = "bg-teal-600 text-white ";
+  } else if (isWrong) {
+    containerCls += "border-l-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800";
+    keyBg         = "bg-red-500 text-white ";
+  } else {
+    containerCls += "border-l-gray-200 dark:border-l-gray-700 bg-card opacity-50";
+  }
+
+  return (
+    <button className={containerCls} onClick={onClick} disabled={disabled}>
+      <div className="flex items-start gap-3">
+        <span className={`flex-shrink-0 w-7 h-7 rounded-full ${keyBg} flex items-center justify-center text-xs font-bold mt-0.5`}>
+          {optKey}
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words font-medium text-foreground">
+            {text}
+          </p>
+          {isRevealed && explanation && (
+            <p className={`mt-1.5 text-xs leading-relaxed ${
+              isCorrect ? "text-teal-700 dark:text-teal-300"
+              : isWrong ? "text-red-700 dark:text-red-300"
+              : "text-muted-foreground"
+            }`}>
+              {explanation}
+            </p>
+          )}
+        </div>
+        {isRevealed && (isCorrect || isWrong) && (
+          <div className="flex-shrink-0 mt-0.5">
+            {isCorrect
+              ? <CheckCircle2 className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+              : <XCircle className="h-4 w-4 text-red-500" />
+            }
+          </div>
+        )}
+      </div>
+    </button>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
 export default function Quiz() {
-  const { user } = useAuth();
+  const { user }  = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const params = new URLSearchParams(location.search);
-  
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const params    = new URLSearchParams(location.search);
+
   const mode: QuizMode = (params.get("mode") as QuizMode) || "test";
-  const academiaId = params.get("academia");
-  const temaId = params.get("tema");
+  const academiaId     = params.get("academia");
+  const temaId         = params.get("tema");
   const questionsParam = params.get("questions");
 
-  // 🔧 FIX: Memoizar specificQuestionIds para evitar recreación
   const specificQuestionIds = useMemo(() => {
     if (!questionsParam) return undefined;
-    const ids = questionsParam.split(',').filter(id => id.length > 0);
+    const ids = questionsParam.split(",").filter(id => id.length > 0);
     return ids.length > 0 ? ids : undefined;
-  }, [questionsParam]); // Solo cambia si questionsParam cambia
+  }, [questionsParam]);
 
-  // USE THE QUIZ HOOK!
   const quiz = useQuiz(mode, academiaId, temaId, specificQuestionIds);
 
   const {
@@ -49,34 +99,17 @@ export default function Quiz() {
   } = useExitConfirmation();
 
   useEffect(() => {
-    setSEO("Quiz | Academy Quiz", "Responde a las preguntas una por una y mejora tu puntuación.");
-  }, []);
-
-  // Handle navigation errors
-  useEffect(() => {
-    if (!user) {
-      console.log("Esperando autenticación del usuario...");
-      return;
-    }
-
+    if (!user) return;
     if (mode === "test" && (!academiaId || !temaId)) {
-      toast({ 
-        title: "Parámetros faltantes", 
-        description: "Se requiere seleccionar academia y tema.",
-        variant: "destructive"
-      });
+      toast({ title: "Parametros faltantes", description: "Se requiere academia y tema.", variant: "destructive" });
       navigate("/test-setup", { replace: true });
     }
   }, [user, mode, academiaId, temaId, navigate, toast]);
 
-  // Handle back navigation with confirmation
   const handleGoBack = useCallback(() => {
     if (quiz.currentIndex > 0 || quiz.score > 0) {
       showExitConfirmation(async () => {
-        // Mark session as abandoned if exiting mid-quiz
-        if (quiz.sessionId && !quiz.isFinished) {
-          await quiz.completeQuiz(); // This will mark it as incomplete
-        }
+        if (quiz.sessionId && !quiz.isFinished) await quiz.completeQuiz();
         navigate(-1);
       });
     } else {
@@ -84,380 +117,212 @@ export default function Quiz() {
     }
   }, [quiz, showExitConfirmation, navigate]);
 
-  // Handle home navigation with confirmation
-  const handleGoHome = useCallback(() => {
-    if (quiz.currentIndex > 0 || quiz.score > 0) {
-      showExitConfirmation(async () => {
-        // Mark session as abandoned if exiting mid-quiz
-        if (quiz.sessionId && !quiz.isFinished) {
-          await quiz.completeQuiz(); // This will mark it as incomplete
-        }
-        navigate("/");
-      });
-    } else {
-      navigate("/");
-    }
-  }, [quiz, showExitConfirmation, navigate]);
-
-  // Handle answer selection
-  const handleAnswer = useCallback(async (selectedLetter: string) => {
+  const handleAnswer = useCallback(async (letter: string) => {
     if (quiz.isRevealed || quiz.isAnswering) return;
-
-    const isCorrect = await quiz.submitAnswer(selectedLetter);
-    
-    // Si es incorrecto, no avanzamos automáticamente - el usuario debe hacer clic en "Siguiente"
+    await quiz.submitAnswer(letter);
   }, [quiz]);
 
-  // Handle manual next question (for incorrect answers)
-  const handleNextQuestion = useCallback(async () => {
+  const handleNext = useCallback(async () => {
     if (quiz.isFinished) {
-      // 🔧 FIX: Si es la última pregunta, completar el quiz manualmente
-      console.log("🎯 Última pregunta - completando quiz manualmente...");
-      
-      // Complete the quiz session in database
-      const quizStats = await quiz.completeQuiz();
-      
-      if (quizStats) {
-        navigate("/results", { 
-          state: { 
-            score: quizStats.correctAnswers,
-            total: quizStats.totalQuestions,
-            mode,
-            percentage: quizStats.percentage,
-            pointsEarned: quizStats.pointsEarned,
-            averageTimePerQuestion: quizStats.averageTimePerQuestion,
-            remainingQuestionsInTopic: quizStats.remainingQuestionsInTopic,
-            academiaId: quiz.currentAcademiaId,
-            temaId: quiz.currentTemaId,
-            originalFailedQuestionsCount: quizStats.originalFailedQuestionsCount,
-            questionsStillFailed: quizStats.questionsStillFailed,
-            originalQuestionIds: quiz.specificQuestionIds
+      const s = await quiz.completeQuiz();
+      if (s) {
+        navigate("/results", {
+          state: {
+            score: s.correctAnswers, total: s.totalQuestions, mode,
+            percentage: s.percentage, pointsEarned: s.pointsEarned,
+            averageTimePerQuestion: s.averageTimePerQuestion,
+            remainingQuestionsInTopic: s.remainingQuestionsInTopic,
+            academiaId: quiz.currentAcademiaId, temaId: quiz.currentTemaId,
+            originalFailedQuestionsCount: s.originalFailedQuestionsCount,
+            questionsStillFailed: s.questionsStillFailed,
+            originalQuestionIds: quiz.specificQuestionIds,
           },
-          replace: true
+          replace: true,
         });
       } else {
-        // Fallback
-        navigate("/results", { 
-          state: { 
-            score: quiz.score,
-            total: quiz.questions.length,
-            mode,
-            academiaId: quiz.currentAcademiaId,
-            temaId: quiz.currentTemaId,
+        navigate("/results", {
+          state: {
+            score: quiz.score, total: quiz.questions.length, mode,
+            academiaId: quiz.currentAcademiaId, temaId: quiz.currentTemaId,
             originalFailedQuestionsCount: quiz.specificQuestionIds?.length || 0,
-            questionsStillFailed: [],
-            originalQuestionIds: quiz.specificQuestionIds
+            questionsStillFailed: [], originalQuestionIds: quiz.specificQuestionIds,
           },
-          replace: true
+          replace: true,
         });
       }
       return;
     }
-    
-    // Si no es la última pregunta, continuar normalmente
     quiz.nextQuestion();
   }, [quiz, mode, navigate]);
 
-  // Determinar si mostrar el botón "Siguiente"
-const shouldShowNextButton = quiz.isRevealed && !quiz.isAnswering;
+  const shouldShowNext  = quiz.isRevealed && !quiz.isAnswering;
+  const isCorrectAnswer = quiz.selectedAnswer === quiz.currentQuestion?.solucion_letra?.toUpperCase();
+  const progressPct     = quiz.questions.length > 0
+    ? Math.round((quiz.currentIndex / quiz.questions.length) * 100) : 0;
 
-
-  // Si está cargando o esperando usuario
+  // Loading
   if (quiz.isLoading || !user) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
-        <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-indigo-600/5 to-purple-600/5 dark:from-blue-400/5 dark:via-indigo-400/5 dark:to-purple-400/5"></div>
-          <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-indigo-600/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-indigo-400/20 to-purple-600/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
-          
-          <div className="relative p-4 sm:p-6 flex items-center justify-center min-h-screen">
-            <Card className="backdrop-blur-sm bg-white/95 dark:bg-gray-800/95 shadow-xl border border-gray-200/50 dark:border-gray-700/50 w-full max-w-2xl">
-              <CardContent className="flex items-center justify-center p-8 sm:p-12">
-                <div className="text-center space-y-6">
-                  <div className="relative">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/20 to-indigo-600/20 blur-xl"></div>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-gray-600 dark:text-gray-400 font-medium">
-                      {!user ? "Verificando autenticación..." : "Cargando preguntas..."}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-3">
+          <div className="h-8 w-8 rounded-full border-2 border-teal-500 border-t-transparent animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground">
+            {!user ? "Verificando sesion..." : "Cargando preguntas..."}
+          </p>
         </div>
-      </main>
+      </div>
     );
   }
 
+  // No questions
   if (!quiz.currentQuestion) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
-        <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-indigo-600/5 to-purple-600/5 dark:from-blue-400/5 dark:via-indigo-400/5 dark:to-purple-400/5"></div>
-          <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-indigo-600/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-indigo-400/20 to-purple-600/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
-          
-          <div className="relative p-4 sm:p-6 flex items-center justify-center min-h-screen">
-            <Card className="backdrop-blur-sm bg-white/95 dark:bg-gray-800/95 shadow-xl border border-gray-200/50 dark:border-gray-700/50 w-full max-w-2xl">
-              <CardContent className="flex items-center justify-center p-8 sm:p-12">
-                <div className="text-center space-y-6 max-w-md">
-                  <div className="w-16 h-16 mx-auto bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30 rounded-full flex items-center justify-center">
-                    <AlertCircle className="h-8 w-8 text-orange-600 dark:text-orange-400" />
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-gray-600 dark:text-gray-400 font-medium">No se encontraron preguntas disponibles.</p>
-                  </div>
-                  <Button 
-                    onClick={() => navigate("/")} 
-                    className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 h-12 px-8 rounded-xl font-semibold"
-                  >
-                    Volver al inicio
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="text-center space-y-4 max-w-sm">
+          <div className="w-14 h-14 mx-auto rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
+            <AlertCircle className="h-7 w-7 text-amber-500" />
           </div>
+          <p className="text-sm text-muted-foreground">No se encontraron preguntas disponibles.</p>
+          <Button onClick={() => navigate("/")} className="bg-teal-600 hover:bg-teal-700">
+            Volver al inicio
+          </Button>
         </div>
-      </main>
+      </div>
     );
   }
 
-return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
-      <div className="relative">
-        {/* Hero background with decorative elements */}
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-indigo-600/5 to-purple-600/5 dark:from-blue-400/5 dark:via-indigo-400/5 dark:to-purple-400/5"></div>
-        <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-indigo-600/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-indigo-400/20 to-purple-600/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
-        
-        <div className="relative p-4 sm:p-6">
-          <div className="w-full max-w-4xl mx-auto space-y-6">
-            {/* Header premium con glassmorphism */}
-            <div className="flex items-center justify-between p-4 sm:p-6 backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 rounded-2xl shadow-xl shadow-gray-500/10 border border-gray-200/50 dark:border-gray-700/50">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleGoBack}
-                className="flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors rounded-xl px-3 py-2"
-              >
-                <ArrowLeft className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Volver</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleGoHome}
-                className="flex items-center gap-2 h-10 px-4 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 border border-gray-200 dark:border-gray-700 rounded-xl transition-all duration-200 hover:shadow-md"
-              >
-                <Home className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Inicio</span>
-              </Button>
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+
+      {/* Top bar with progress */}
+      <div className="flex-shrink-0 border-b bg-card">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+          <button
+            onClick={handleGoBack}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Salir</span>
+          </button>
+
+          <div className="flex-1 min-w-0 space-y-1">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>
+                {mode === "practice" ? "Practica" : "Test"} · {quiz.currentIndex + 1} de {quiz.questions.length}
+              </span>
+              <span className="flex items-center gap-1 font-semibold text-teal-600 dark:text-teal-400">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                {quiz.score} aciertos
+              </span>
             </div>
-
-            {/* Progress Bar premium (SIN EL SPAN "RESTANTES") */}
-            <div className="backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-4 sm:p-6">
-              <div className="space-y-4">
-                <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
-                      <Target className="h-4 w-4 text-white" />
-                    </div>
-                    <span className="font-medium">
-                      Pregunta {quiz.currentIndex + 1} de {quiz.questions.length}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1 bg-green-100 dark:bg-green-900/30 rounded">
-                        <CheckCircle2 className="h-3 w-3 text-green-600 dark:text-green-400" />
-                      </div>
-                      <span className="font-semibold text-green-600 dark:text-green-400">
-                        Aciertos: {quiz.score}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="relative">
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 shadow-inner">
-                    <div 
-                      className="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all duration-500 ease-out shadow-sm"
-                      style={{ width: `${quiz.progress}%` }}
-                    />
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent rounded-full pointer-events-none"></div>
-                </div>
-              </div>
+            <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full bg-teal-500 transition-all duration-500"
+                style={{ width: `${progressPct}%` }}
+              />
             </div>
-
-            {/* CONTENIDO DEL QUIZ (SIN EL <Card>) */}
-            <div className="p-6 sm:p-8 space-y-8">
-              {/* Question Text with premium design */}
-              <div className="space-y-6">
-                <div className="p-6 bg-gradient-to-r from-blue-50/80 to-indigo-50/50 dark:from-blue-900/30 dark:to-indigo-900/20 rounded-2xl border border-blue-200/50 dark:border-blue-700/50 shadow-lg shadow-blue-500/5">
-                  <div className="flex items-start gap-4">
-                    <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-lg flex-shrink-0">
-                      <BookOpen className="h-5 w-5 text-white" />
-                    </div>
-                    <p className="text-base sm:text-lg leading-relaxed whitespace-pre-wrap break-words text-gray-800 dark:text-gray-200 font-medium">
-                      {quiz.currentQuestion.pregunta_texto}
-                    </p>
-                  </div>
-                </div>
-                
-                {/* Part info if available with premium styling */}
-                {quiz.currentQuestion.parte && (
-                  <div className="flex justify-center">
-                    <div className="text-xs text-gray-600 dark:text-gray-400 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 font-medium">
-                      Parte: {quiz.currentQuestion.parte}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Answer Options with premium gradient effects */}
-              <div className="space-y-4">
-                {quiz.answerOptions.map((option) => {
-                  const isSelected = quiz.selectedAnswer === option.key;
-                  const isCorrect = quiz.isRevealed && quiz.currentQuestion.solucion_letra?.toUpperCase() === option.key;
-                  const isWrong = quiz.isRevealed && isSelected && !isCorrect;
-                  
-                  return (
-                    <Button
-                      key={option.key}
-                      variant={isCorrect ? "default" : isWrong ? "destructive" : "outline"}
-                      className={`
-                        w-full p-4 sm:p-6 h-auto min-h-[4rem] text-left justify-start relative
-                        transition-all duration-300 hover:scale-[1.02] rounded-2xl shadow-lg hover:shadow-xl
-                        ${isCorrect ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-green-500/20" : ""}
-                        ${isWrong ? "bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white shadow-red-500/20" : ""}
-                        ${!quiz.isRevealed && isSelected ? "ring-2 ring-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20" : ""}
-                        ${!quiz.isRevealed && !isSelected ? "bg-gradient-to-r from-white to-blue-50/30 dark:from-gray-800 dark:to-blue-900/10 hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 border border-gray-200 dark:border-gray-700" : ""}
-                      `}
-                      onClick={() => handleAnswer(option.key)}
-                      disabled={quiz.isRevealed || quiz.isAnswering}
-                    >
-                      <div className="flex items-start gap-4 w-full">
-                        <div className={`
-                          flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-lg
-                          ${isCorrect ? "bg-white text-green-600" : 
-                            isWrong ? "bg-white text-red-600" : 
-                            "bg-gradient-to-br from-blue-500 to-indigo-600 text-white"}
-                        `}>
-                          {option.key}
-                        </div>
-                        
-                        <div className="flex-1 min-w-0 text-left">
-                          <span className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words font-medium">
-                            {option.text}
-                          </span>
-
-                          {quiz.isRevealed && (() => {
-                            const exp = quiz.currentQuestion[`explicacion_${option.key.toLowerCase()}` as keyof Pregunta] as string | null;
-                            if (!exp) return null;
-                            return (
-                              <p className={`mt-2 text-xs leading-relaxed font-normal opacity-90 break-words whitespace-normal ${isCorrect ? "text-green-50" : isWrong ? "text-red-50" : "text-gray-500 dark:text-gray-400"}`}>
-                                {exp}
-                              </p>
-                            );
-                          })()}
-                        </div>
-                        
-                        {quiz.isRevealed && (
-                          <div className="flex-shrink-0">
-                            {isCorrect ? (
-                              <CheckCircle2 className="h-5 w-5 text-white" />
-                            ) : isWrong ? (
-                              <XCircle className="h-5 w-5 text-white" />
-                            ) : null}
-                          </div>
-                        )}
-                      </div>
-                    </Button>
-                  );
-                })}
-              </div>
-
-              {/* Answer Status with premium styling */}
-              {quiz.isRevealed && (
-                <div className="pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
-                  <div className={`
-                    flex items-center gap-3 text-base font-semibold p-4 rounded-xl
-                    ${quiz.selectedAnswer === quiz.currentQuestion.solucion_letra?.toUpperCase() 
-                      ? "bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 text-green-700 dark:text-green-300 border border-green-200/50 dark:border-green-700/50" 
-                      : "bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 text-red-700 dark:text-red-300 border border-red-200/50 dark:border-red-700/50"
-                    }
-                  `}>
-                    {quiz.selectedAnswer === quiz.currentQuestion.solucion_letra?.toUpperCase() ? (
-                      <>
-                        <div className="p-1 bg-green-500 rounded-full">
-                          <CheckCircle2 className="h-4 w-4 text-white" />
-                        </div>
-                        ¡Correcto! +10 puntos
-                      </>
-                    ) : (
-                      <>
-                        <div className="p-1 bg-red-500 rounded-full">
-                          <XCircle className="h-4 w-4 text-white" />
-                        </div>
-                        Incorrecto. La respuesta correcta es: {quiz.currentQuestion.solucion_letra}
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Botón Siguiente con gradient effects */}
-              {shouldShowNextButton && (
-                <div className="pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
-                  <Button 
-                    onClick={handleNextQuestion}
-                    className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 h-12 sm:h-14 rounded-xl font-semibold text-base"
-                    size="lg"
-                    disabled={quiz.isAnswering}
-                  >
-                    {quiz.isFinished ? (
-                      "Ver Resultados"
-                    ) : (
-                      <>
-                        Siguiente Pregunta
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {/* Navigation hint with premium styling */}
-            {quiz.isRevealed && !shouldShowNextButton && (
-              <div className="text-center">
-                <div className="inline-block px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200/50 dark:border-blue-700/50">
-                  <span className="text-sm text-blue-700 dark:text-blue-300 font-medium">
-                    {quiz.isFinished
-                      ? "Finalizando quiz..." 
-                      : "Siguiente pregunta en breve..."}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Exit Confirmation Dialog */}
-            <ExitConfirmationDialog
-              isOpen={isExitDialogOpen}
-              onClose={handleExitClose}
-              onConfirm={handleExitConfirm}
-              currentQuestion={quiz.currentIndex}
-              totalQuestions={quiz.questions.length}
-              score={quiz.score}
-            />
           </div>
         </div>
       </div>
-    </main>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-2xl mx-auto px-4 py-4 space-y-3 pb-28">
+
+          {/* Question card */}
+          <div className="rounded-xl border border-l-4 border-l-blue-400 bg-card px-4 py-4">
+            <div className="flex items-start gap-3">
+              <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <BookOpen className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                {quiz.currentQuestion.parte && (
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                    {quiz.currentQuestion.parte}
+                  </p>
+                )}
+                <p className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words font-medium">
+                  {quiz.currentQuestion.pregunta_texto}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Answer options */}
+          <div className="space-y-2">
+            {quiz.answerOptions.map((option) => {
+              const isSelected = quiz.selectedAnswer === option.key;
+              const isCorrect  = quiz.isRevealed && quiz.currentQuestion!.solucion_letra?.toUpperCase() === option.key;
+              const isWrong    = quiz.isRevealed && isSelected && !isCorrect;
+              const explanation = quiz.currentQuestion![`explicacion_${option.key.toLowerCase()}` as keyof Pregunta] as string | null;
+              return (
+                <OptionButton
+                  key={option.key}
+                  optKey={option.key}
+                  text={option.text}
+                  explanation={explanation}
+                  isRevealed={quiz.isRevealed}
+                  isSelected={isSelected}
+                  isCorrect={isCorrect}
+                  isWrong={isWrong}
+                  disabled={quiz.isRevealed || quiz.isAnswering}
+                  onClick={() => handleAnswer(option.key)}
+                />
+              );
+            })}
+          </div>
+
+          {/* Result feedback */}
+          {quiz.isRevealed && (
+            <div className={`rounded-xl border border-l-4 px-4 py-3 flex items-center gap-3 ${
+              isCorrectAnswer
+                ? "border-l-teal-400 bg-teal-50 dark:bg-teal-900/20"
+                : "border-l-red-400 bg-red-50 dark:bg-red-900/20"
+            }`}>
+              {isCorrectAnswer
+                ? <CheckCircle2 className="h-5 w-5 text-teal-600 dark:text-teal-400 flex-shrink-0" />
+                : <XCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+              }
+              <p className={`text-sm font-semibold ${
+                isCorrectAnswer ? "text-teal-700 dark:text-teal-300" : "text-red-700 dark:text-red-300"
+              }`}>
+                {isCorrectAnswer
+                  ? "Correcto! +10 puntos"
+                  : `Incorrecto - La correcta era la opcion ${quiz.currentQuestion.solucion_letra?.toUpperCase()}`
+                }
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Sticky "Next" button */}
+      {shouldShowNext && (
+        <div className="flex-shrink-0 border-t bg-card/95 backdrop-blur-sm">
+          <div className="max-w-2xl mx-auto px-4 py-3">
+            <Button
+              onClick={handleNext}
+              className="w-full h-12 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-xl"
+              disabled={quiz.isAnswering}
+            >
+              {quiz.isFinished ? (
+                "Ver Resultados"
+              ) : (
+                <>Siguiente Pregunta <ArrowRight className="ml-2 h-4 w-4" /></>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <ExitConfirmationDialog
+        isOpen={isExitDialogOpen}
+        onClose={handleExitClose}
+        onConfirm={handleExitConfirm}
+        currentQuestion={quiz.currentIndex}
+        totalQuestions={quiz.questions.length}
+        score={quiz.score}
+      />
+    </div>
   );
 }
