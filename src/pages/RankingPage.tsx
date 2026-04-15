@@ -1,221 +1,288 @@
 import { useAuth } from "@/hooks/useAuth";
-import { useRankingData } from "@/hooks/useRankingData";
-import { 
-  RankingHeader, 
-  RankingTable, 
-  UserRankCard, 
-  RankingSkeleton 
-} from "@/components/ranking";
-import { Trophy, Star, Sparkles, Target } from "lucide-react";
-import { useEffect } from "react";
+import { useRankingData, type RankingUser } from "@/hooks/useRankingData";
+import { RefreshCw, Trophy, Target, Star, Users, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
+// ── Level system (same thresholds as /stats) ────────────────────────────────
+const LEVEL_THRESHOLDS = [0, 100, 300, 600, 1000, 1500, 2500, 4000];
+const LEVEL_TITLES     = ['Principiante','Aprendiz','Estudiante','Conocedor','Avanzado','Experto','Maestro','Leyenda'];
+const LEVEL_COLORS     = [
+  'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400',
+  'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400',
+  'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400',
+  'bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-400',
+  'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400',
+  'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400',
+  'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400',
+  'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400',
+];
+
+function getLevel(points: number) {
+  let idx = 0;
+  for (let i = 0; i < LEVEL_THRESHOLDS.length; i++) {
+    if (points >= LEVEL_THRESHOLDS[i]) idx = i;
+  }
+  return { level: idx + 1, title: LEVEL_TITLES[idx], color: LEVEL_COLORS[idx] };
+}
+
+function medal(pos: number) {
+  if (pos === 1) return '🥇';
+  if (pos === 2) return '🥈';
+  if (pos === 3) return '🥉';
+  return null;
+}
+
+function accColor(pct: number) {
+  if (pct >= 80) return { text: 'text-teal-600 dark:text-teal-400', bar: 'bg-teal-500' };
+  if (pct >= 60) return { text: 'text-amber-600 dark:text-amber-400', bar: 'bg-amber-500' };
+  return { text: 'text-red-600 dark:text-red-400', bar: 'bg-red-500' };
+}
+
+function posStyle(pos: number) {
+  if (pos === 1) return { border: 'border-l-amber-400',  num: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300' };
+  if (pos === 2) return { border: 'border-l-gray-400',   num: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400' };
+  if (pos === 3) return { border: 'border-l-orange-400', num: 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400' };
+  if (pos <= 10) return { border: 'border-l-blue-400',   num: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400' };
+  return         { border: 'border-l-gray-200 dark:border-l-gray-700', num: 'bg-muted text-muted-foreground' };
+}
+
+// ── Podium card (top 3) ──────────────────────────────────────────────────────
+function PodiumCard({ user, isCurrentUser }: { user: RankingUser; isCurrentUser: boolean }) {
+  const pos = user.position ?? 0;
+  const lv  = getLevel(user.puntos);
+  const ac  = accColor(Math.round(user.accuracy));
+  const ps  = posStyle(pos);
+
+  return (
+    <div className={`rounded-xl border border-l-4 ${ps.border} bg-card p-3 flex flex-col gap-2 ${isCurrentUser ? 'ring-2 ring-teal-400/40' : ''}`}>
+      <div className="flex items-start gap-1.5">
+        <span className="text-lg leading-none flex-shrink-0">{medal(pos)}</span>
+        <div className="flex-1 min-w-0">
+          <p className={`text-xs font-bold truncate leading-tight ${isCurrentUser ? 'text-teal-600 dark:text-teal-400' : ''}`}>
+            {user.username || user.email}
+            {isCurrentUser && <span className="ml-1 text-[9px] font-normal text-teal-500">← Tú</span>}
+          </p>
+          <span className={`inline-block text-[9px] font-medium px-1 py-0.5 rounded-full mt-0.5 ${lv.color}`}>{lv.title}</span>
+        </div>
+      </div>
+      <div className="flex items-baseline gap-1">
+        <span className="text-xl font-black tabular-nums">{user.puntos.toLocaleString()}</span>
+        <span className="text-[10px] text-muted-foreground">pts</span>
+      </div>
+      <div>
+        <div className="flex justify-between mb-0.5">
+          <span className="text-[9px] text-muted-foreground">Precisión</span>
+          <span className={`text-[9px] font-bold ${ac.text}`}>{Math.round(user.accuracy)}%</span>
+        </div>
+        <div className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div className={`h-full rounded-full ${ac.bar}`} style={{ width: `${Math.round(user.accuracy)}%` }} />
+        </div>
+      </div>
+      <p className="text-[9px] text-muted-foreground">{user.total_sessions} tests completados</p>
+    </div>
+  );
+}
+
+// ── Ranking row (position 4+) ────────────────────────────────────────────────
+function RankRow({ user, isCurrentUser }: { user: RankingUser; isCurrentUser: boolean }) {
+  const pos = user.position ?? 0;
+  const lv  = getLevel(user.puntos);
+  const ac  = accColor(Math.round(user.accuracy));
+  const ps  = posStyle(pos);
+  const m   = medal(pos);
+
+  return (
+    <div className={`rounded-xl border border-l-4 ${ps.border} bg-card px-3 py-2.5 flex items-center gap-3 ${isCurrentUser ? 'ring-1 ring-teal-400/40' : ''}`}>
+      {/* Rank number / medal */}
+      <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${ps.num}`}>
+        {m
+          ? <span className="text-sm leading-none">{m}</span>
+          : <span className="text-xs font-bold">{pos}</span>
+        }
+      </div>
+
+      {/* Name + level + tests */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <p className={`text-sm font-semibold truncate ${isCurrentUser ? 'text-teal-600 dark:text-teal-400' : ''}`}>
+            {user.username || user.email}
+          </p>
+          {isCurrentUser && <span className="text-[10px] text-teal-500 font-medium flex-shrink-0">← Tú</span>}
+        </div>
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${lv.color}`}>{lv.title}</span>
+          <span className="text-[10px] text-muted-foreground">{user.total_sessions} tests</span>
+        </div>
+      </div>
+
+      {/* Accuracy bar — hidden on very small screens */}
+      <div className="hidden sm:flex flex-col items-end w-20 gap-0.5 flex-shrink-0">
+        <span className={`text-[10px] font-bold ${ac.text}`}>{Math.round(user.accuracy)}%</span>
+        <div className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div className={`h-full rounded-full ${ac.bar}`} style={{ width: `${Math.round(user.accuracy)}%` }} />
+        </div>
+        <span className="text-[10px] text-muted-foreground">precisión</span>
+      </div>
+
+      {/* Points */}
+      <div className="text-right flex-shrink-0">
+        <p className="text-sm font-black tabular-nums">{user.puntos.toLocaleString()}</p>
+        <p className="text-[10px] text-muted-foreground">pts</p>
+      </div>
+    </div>
+  );
+}
+
+// ── Main page ────────────────────────────────────────────────────────────────
 export default function RankingPage() {
   const { user } = useAuth();
   const { data, loading, error, refresh } = useRankingData(50);
 
-  // SOLUCIÓN 1: Carga inicial automática
-  useEffect(() => {
-    if (!data && !loading && !error) {
-      refresh();
-    }
-  }, []);
+  const rankings   = data?.rankings ?? [];
+  const userPos    = data?.userPosition ?? null;
+  const totalUsers = data?.totalUsers ?? 0;
+  const me         = rankings.find(r => r.id === user?.id) ?? null;
+  const topThree   = rankings.slice(0, 3);
+  const rest       = rankings.slice(3);
 
-  if (loading) {
-    return <RankingSkeleton />;
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen p-4 bg-gradient-to-br from-red-50 via-white to-red-50 dark:from-red-950/20 dark:via-gray-900 dark:to-red-950/20">
-        <div className="max-w-4xl mx-auto text-center py-8">
-          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-red-200 dark:border-red-800 rounded-2xl p-8 shadow-2xl shadow-red-500/10">
-            <div className="mb-6">
-              <div className="w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-900/50 rounded-full flex items-center justify-center">
-                <Trophy className="w-8 h-8 text-red-500" />
-              </div>
-            </div>
-            <p className="text-red-600 dark:text-red-400 mb-6 text-lg font-medium">Error al cargar el ranking: {error}</p>
-            <button 
-              onClick={refresh}
-              className="min-h-[44px] md:min-h-[48px] px-6 py-4 md:px-8 md:py-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-medium shadow-lg shadow-red-500/25 hover:shadow-xl hover:shadow-red-500/30 transition-all duration-200 hover:scale-105"
-            >
-              <span className="flex items-center gap-2">
-                <Star className="w-4 h-4" />
-                Reintentar
-              </span>
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!data) {
-    return <RankingSkeleton />;
-  }
-
-  const { rankings, userPosition } = data;
-  const currentUser = rankings.find(r => r.id === user?.id) || null;
-  const topThree = rankings.slice(0, 3);
-  const restOfRankings = rankings.slice(3);
+  const avgPoints   = rankings.length > 0 ? Math.round(rankings.reduce((s, r) => s + r.puntos, 0) / rankings.length) : 0;
+  const avgAccuracy = rankings.length > 0 ? Math.round(rankings.reduce((s, r) => s + r.accuracy, 0) / rankings.length) : 0;
 
   return (
-    <div className="min-h-screen p-3 md:p-4 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
-      <div className="max-w-sm md:max-w-7xl mx-auto space-y-3 md:space-y-8">
-        
-        {/* SOLUCIÓN 3: Enhanced Header más compacto en móvil */}
-        <div className="relative overflow-hidden bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl md:rounded-3xl shadow-2xl shadow-blue-500/10 dark:shadow-blue-500/5">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-indigo-600/5 dark:from-blue-400/5 dark:via-purple-400/5 dark:to-indigo-400/5"></div>
-          <div className="absolute top-0 right-0 w-20 md:w-32 h-20 md:h-32 bg-gradient-to-bl from-yellow-400/20 to-transparent rounded-full -translate-y-16 translate-x-16"></div>
-          <div className="absolute bottom-0 left-0 w-16 md:w-24 h-16 md:h-24 bg-gradient-to-tr from-blue-400/20 to-transparent rounded-full translate-y-12 -translate-x-12"></div>
-          <div className="relative">
-            <RankingHeader 
-              userPosition={userPosition}
-              currentUser={currentUser}
-              onRefresh={refresh}
-              isRefreshing={loading}
-            />
-          </div>
+    <div className="max-w-2xl mx-auto px-4 pb-24 space-y-4">
+
+      {/* Header */}
+      <div className="flex items-center justify-between pt-2">
+        <div>
+          <h1 className="text-xl font-bold">Ranking Global</h1>
+          <p className="text-xs text-muted-foreground">
+            {loading ? 'Cargando...' : `${totalUsers} estudiantes clasificados`}
+          </p>
         </div>
+        <Button variant="outline" size="sm" onClick={refresh} disabled={loading} className="h-8 gap-1.5">
+          <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+          <span className="hidden sm:inline text-xs">Actualizar</span>
+        </Button>
+      </div>
 
-        {/* Visual Podium Section for Top 3 */}
-        {topThree.length > 0 && (
-          <div className="space-y-4">
-            {/* Podium Title */}
-            <div className="text-center">
-              <div className="inline-flex items-center gap-3 bg-gradient-to-r from-yellow-400 to-yellow-600 dark:from-yellow-500 dark:to-yellow-700 text-white px-6 py-3 rounded-full shadow-lg shadow-yellow-500/25">
-                <Trophy className="w-5 h-5" />
-                <span className="font-bold text-lg">🏆 Podio de Honor</span>
-                <Sparkles className="w-5 h-5" />
+      {/* Loading skeleton */}
+      {loading && (
+        <div className="space-y-2 animate-pulse">
+          <div className="grid grid-cols-4 gap-2">
+            {[...Array(4)].map((_, i) => <div key={i} className="h-16 rounded-xl border bg-muted" />)}
+          </div>
+          <div className="h-20 rounded-xl border bg-muted" />
+          <div className="grid grid-cols-3 gap-2">
+            {[...Array(3)].map((_, i) => <div key={i} className="h-32 rounded-xl border bg-muted" />)}
+          </div>
+          {[...Array(6)].map((_, i) => <div key={i} className="h-14 rounded-xl border border-l-4 border-l-gray-200 bg-card" />)}
+        </div>
+      )}
+
+      {/* Error */}
+      {error && !loading && (
+        <div className="rounded-xl border border-l-4 border-l-red-400 bg-card px-4 py-3 flex items-center gap-3">
+          <Trophy className="h-4 w-4 text-red-500 flex-shrink-0" />
+          <p className="text-xs text-muted-foreground flex-1">Error al cargar el ranking</p>
+          <Button size="sm" variant="outline" onClick={refresh} className="h-8 text-xs">Reintentar</Button>
+        </div>
+      )}
+
+      {!loading && !error && rankings.length > 0 && (
+        <>
+          {/* KPI strip */}
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { label: 'Clasificados', value: totalUsers,                    icon: Users,     bg: 'bg-blue-100 dark:bg-blue-900/40',    color: 'text-blue-600 dark:text-blue-400'    },
+              { label: 'Tu posición',  value: userPos ? `#${userPos}` : '–', icon: Trophy,    bg: 'bg-amber-100 dark:bg-amber-900/40',  color: 'text-amber-600 dark:text-amber-400'  },
+              { label: 'Media pts',    value: avgPoints.toLocaleString(),     icon: Star,      bg: 'bg-purple-100 dark:bg-purple-900/40',color: 'text-purple-600 dark:text-purple-400'},
+              { label: 'Media acc.',   value: `${avgAccuracy}%`,             icon: Target,    bg: 'bg-teal-100 dark:bg-teal-900/40',   color: 'text-teal-600 dark:text-teal-400'    },
+            ].map((k, i) => (
+              <div key={i} className="flex flex-col items-center text-center px-1 py-2 rounded-xl border bg-card">
+                <div className={`w-7 h-7 rounded-full ${k.bg} flex items-center justify-center mb-1`}>
+                  <k.icon className={`h-3.5 w-3.5 ${k.color}`} />
+                </div>
+                <span className={`text-base font-bold leading-none tabular-nums ${k.color}`}>{k.value}</span>
+                <span className="text-[10px] text-muted-foreground mt-0.5">{k.label}</span>
               </div>
-            </div>
+            ))}
+          </div>
 
-            {/* Mobile Podium (Stacked) - más compacto */}
-            <div className="md:hidden space-y-2">
-              {topThree.map((player, index) => (
-                <div key={player.id} className="relative">
-                  {/* Podium Platform for Mobile - más delgada */}
-                  <div className={`absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-full h-3 rounded-b-lg ${
-                    index === 0 ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 shadow-lg shadow-yellow-500/30' :
-                    index === 1 ? 'bg-gradient-to-r from-gray-300 to-gray-500 shadow-lg shadow-gray-400/30' :
-                    'bg-gradient-to-r from-orange-400 to-orange-600 shadow-lg shadow-orange-500/30'
-                  }`}></div>
-                  
-                  {/* Enhanced Card with Podium Effects */}
-                  <div className="relative transform hover:scale-[1.02] transition-all duration-300">
-                    <UserRankCard 
-                      user={player}
-                      isCurrentUser={player.id === user?.id}
-                    />
-                    
-                    {/* Floating Elements */}
-                    {index === 0 && (
-                      <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center shadow-lg animate-pulse">
-                        <Sparkles className="w-4 h-4 text-white" />
-                      </div>
-                    )}
+          {/* My position banner */}
+          {me && userPos && (
+            <div className={`rounded-xl border border-l-4 ${posStyle(userPos).border} bg-card px-4 py-3`}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Tu posición</p>
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm ${posStyle(userPos).num}`}>
+                  {medal(userPos) || <span className="font-black text-base">#{userPos}</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold truncate">{me.username || me.email}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${getLevel(me.puntos).color}`}>{getLevel(me.puntos).title}</span>
+                    <span className="text-[10px] text-muted-foreground">{me.total_sessions} tests</span>
+                    <span className={`text-[10px] font-semibold ${accColor(Math.round(me.accuracy)).text}`}>{Math.round(me.accuracy)}% precisión</span>
                   </div>
                 </div>
+                <div className="text-right flex-shrink-0">
+                  <p className="text-lg font-black tabular-nums">{me.puntos.toLocaleString()}</p>
+                  <p className="text-[10px] text-muted-foreground">puntos</p>
+                </div>
+              </div>
+              {/* Gap to leader / leader message */}
+              <div className="mt-2 pt-2 border-t flex items-center gap-1.5">
+                <TrendingUp className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                {userPos === 1 ? (
+                  <p className="text-[11px] font-medium text-teal-600 dark:text-teal-400">¡Eres el líder del ranking! 🏆</p>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">
+                    Te faltan{' '}
+                    <span className="font-semibold text-foreground">
+                      {(rankings[0].puntos - me.puntos).toLocaleString()} pts
+                    </span>{' '}
+                    para liderar · estás en el top {Math.round((userPos / totalUsers) * 100)}%
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Podium */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-0.5">
+              🏆 Podio
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {topThree.map(u => (
+                <PodiumCard key={u.id} user={u} isCurrentUser={u.id === user?.id} />
               ))}
             </div>
+          </div>
 
-            {/* Desktop Podium (Side by Side with Heights) */}
-            <div className="hidden md:block">
-              <div className="flex items-end justify-center gap-6 max-w-4xl mx-auto">
-                {/* 2nd Place */}
-                {topThree[1] && (
-                  <div className="flex-1 max-w-sm">
-                    <div className="relative mb-4">
-                      <div className="h-16 bg-gradient-to-t from-gray-400 to-gray-300 rounded-t-xl shadow-xl shadow-gray-400/40 flex items-end justify-center pb-2">
-                        <span className="text-white font-bold text-lg">2°</span>
-                      </div>
-                      <div className="transform -translate-y-2 hover:scale-[1.02] transition-all duration-300">
-                        <UserRankCard 
-                          user={topThree[1]}
-                          isCurrentUser={topThree[1].id === user?.id}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 1st Place (Highest) */}
-                {topThree[0] && (
-                  <div className="flex-1 max-w-sm">
-                    <div className="relative mb-4">
-                      <div className="h-24 bg-gradient-to-t from-yellow-600 to-yellow-400 rounded-t-xl shadow-2xl shadow-yellow-500/50 flex items-end justify-center pb-3 relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
-                        <span className="text-white font-bold text-xl relative z-10">1°</span>
-                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-white/30 rounded-full animate-bounce"></div>
-                      </div>
-                      <div className="transform -translate-y-2 hover:scale-[1.05] transition-all duration-300">
-                        <UserRankCard 
-                          user={topThree[0]}
-                          isCurrentUser={topThree[0].id === user?.id}
-                        />
-                        {/* SOLUCIÓN 2: Winner Celebration mejorada */}
-<div className="absolute -top-6 -right-3 z-10">
-  <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center shadow-xl shadow-yellow-500/40 animate-pulse">
-    <Star className="w-5 h-5 text-white fill-white" />
-  </div>
-</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 3rd Place */}
-                {topThree[2] && (
-                  <div className="flex-1 max-w-sm">
-                    <div className="relative mb-4">
-                      <div className="h-12 bg-gradient-to-t from-orange-600 to-orange-400 rounded-t-xl shadow-lg shadow-orange-500/40 flex items-end justify-center pb-2">
-                        <span className="text-white font-bold">3°</span>
-                      </div>
-                      <div className="transform -translate-y-2 hover:scale-[1.02] transition-all duration-300">
-                        <UserRankCard 
-                          user={topThree[2]}
-                          isCurrentUser={topThree[2].id === user?.id}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
+          {/* Full ranking */}
+          {rest.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-0.5">
+                Clasificación completa
+              </p>
+              <div className="space-y-1.5">
+                {rest.map(u => (
+                  <RankRow key={u.id} user={u} isCurrentUser={u.id === user?.id} />
+                ))}
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </>
+      )}
 
-        {/* Enhanced Ranking Table */}
-        {restOfRankings.length > 0 && (
-          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl shadow-gray-500/10 overflow-hidden">
-            <RankingTable 
-              users={restOfRankings}
-              currentUserId={user?.id}
-              title="Tabla de Clasificación"
-            />
-          </div>
-        )}
-
-        {/* Enhanced Empty State */}
-        {rankings.length === 0 && (
-          <div className="text-center py-16">
-            <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-3xl p-12 shadow-2xl shadow-gray-500/10 max-w-2xl mx-auto">
-              <div className="mb-8">
-                <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/50 dark:to-indigo-900/50 rounded-full flex items-center justify-center">
-                  <Target className="w-12 h-12 text-blue-500 dark:text-blue-400" />
-                </div>
-              </div>
-              <h3 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">¡El ranking está vacío!</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6 text-lg">No hay usuarios en el ranking aún.</p>
-              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white min-h-[44px] md:min-h-[48px] px-6 py-4 md:px-8 md:py-4 rounded-xl font-medium shadow-lg shadow-blue-500/25">
-                <Star className="w-5 h-5" />
-                <span>¡Sé el primero en completar un test!</span>
-                <Sparkles className="w-5 h-5" />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Empty state */}
+      {!loading && !error && rankings.length === 0 && (
+        <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
+          <Trophy className="h-8 w-8 mx-auto mb-3 opacity-30" />
+          <p className="text-sm font-medium">El ranking está vacío</p>
+          <p className="text-xs mt-1">¡Completa un test para aparecer aquí!</p>
+        </div>
+      )}
     </div>
   );
 }
