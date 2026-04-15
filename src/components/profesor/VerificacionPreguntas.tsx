@@ -86,7 +86,8 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
         .eq('academia_id', academiaId)
         .order('nombre')
         .then(({ data }) => setTemas(data || []));
-      setTemaId('__all__');
+      // No reseteamos temaId aquí: si el cambio vino de un chip ya tiene el tema correcto.
+      // El reset lo hace el onValueChange del Select de academia.
     } else {
       setTemas([]);
       setTemaId('__all__');
@@ -315,7 +316,7 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-3">
-            <Select value={academiaId} onValueChange={v => { setAcademiaId(v); setPage(0); }}>
+            <Select value={academiaId} onValueChange={v => { setAcademiaId(v); setTemaId('__all__'); setPage(0); }}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Todas las academias" />
               </SelectTrigger>
@@ -329,19 +330,27 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
               </SelectContent>
             </Select>
 
-            {temas.length > 0 && (
-              <Select value={temaId} onValueChange={v => { setTemaId(v); setPage(0); }}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Todos los temas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Todos</SelectItem>
-                  {temas.map(t => (
-                    <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+            <Select
+              value={temaId}
+              onValueChange={v => { setTemaId(v); setPage(0); }}
+              disabled={temas.length === 0}
+            >
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder={temas.length === 0 ? 'Selecciona una academia' : 'Todos los temas'} />
+              </SelectTrigger>
+              <SelectContent className="w-[var(--radix-select-trigger-width)]">
+                <SelectItem value="__all__">Todos los temas</SelectItem>
+                {temas.map(t => (
+                  <SelectItem
+                    key={t.id}
+                    value={t.id}
+                    className="[&>span:last-child]:flex [&>span:last-child]:w-full [&>span:last-child]:min-w-0 [&>span:last-child]:overflow-hidden [&>span:last-child]:items-center"
+                  >
+                    <span className="truncate">{t.nombre}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             <Select value={estado} onValueChange={v => { setEstado(v); setPage(0); }}>
               <SelectTrigger className="w-full sm:w-[160px]">
