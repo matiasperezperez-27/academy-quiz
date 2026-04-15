@@ -99,7 +99,7 @@ export default function StatsPage() {
 
           <div className="rounded-xl border bg-card p-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Actividad mensual</p>
-            <div className="h-56">
+            <div className="h-66">
               <MonthlyActivityChart data={stats?.monthlyActivity || []} />
             </div>
           </div>
