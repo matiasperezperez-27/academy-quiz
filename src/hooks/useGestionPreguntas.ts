@@ -13,6 +13,10 @@ export interface PreguntaForm {
   opcion_c?: string;
   opcion_d?: string;
   solucion_letra: string;
+  explicacion_a?: string | null;
+  explicacion_b?: string | null;
+  explicacion_c?: string | null;
+  explicacion_d?: string | null;
 }
 
 export interface PreguntaListItem {
@@ -73,8 +77,27 @@ export function useGestionPreguntas(profesorId: string) {
         p_solucion_letra: form.solucion_letra,
       });
       if (error) throw error;
+      const questionId = data as string;
+
+      // Guardar explicaciones si las hay (requiere RPC update_explicaciones_pregunta)
+      const hasExplanations = form.explicacion_a || form.explicacion_b || form.explicacion_c || form.explicacion_d;
+      if (hasExplanations && questionId) {
+        const { error: expError } = await supabase.rpc('update_explicaciones_pregunta' as any, {
+          p_profesor_id: profesorId,
+          p_pregunta_id: questionId,
+          p_explicacion_a: form.explicacion_a || null,
+          p_explicacion_b: form.explicacion_b || null,
+          p_explicacion_c: form.explicacion_c || null,
+          p_explicacion_d: form.explicacion_d || null,
+        });
+        if (expError) {
+          console.warn('Could not save explanations:', expError);
+          toast.warning('Pregunta guardada. Las explicaciones no se guardaron — ejecuta la migración SQL en el panel de Supabase.');
+        }
+      }
+
       toast.success(form.id ? 'Pregunta actualizada' : 'Pregunta creada');
-      return data as string;
+      return questionId;
     } catch (err) {
       console.error('useGestionPreguntas.guardar:', err);
       toast.error('Error al guardar la pregunta');

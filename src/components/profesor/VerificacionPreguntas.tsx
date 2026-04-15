@@ -2,15 +2,12 @@ import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle, XCircle, ChevronLeft, ChevronRight, Pencil, GraduationCap } from 'lucide-react';
 import { useVerificacion, type PreguntaParaVerificar } from '@/hooks/useVerificacion';
 import { useGestionPreguntas, type PreguntaForm } from '@/hooks/useGestionPreguntas';
+import PreguntaFormDialog from '@/components/profesor/PreguntaFormDialog';
 import { supabase } from '@/integrations/supabase/client';
 import type { ProfesorAcademia } from '@/hooks/useProfesorData';
 
@@ -122,6 +119,10 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
       opcion_c: p.opcion_c || '',
       opcion_d: p.opcion_d || '',
       solucion_letra: p.solucion_letra,
+      explicacion_a: p.explicacion_a || null,
+      explicacion_b: p.explicacion_b || null,
+      explicacion_c: p.explicacion_c || null,
+      explicacion_d: p.explicacion_d || null,
     });
   };
 
@@ -418,82 +419,17 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
         </div>
       )}
 
-      {/* Dialog de edición */}
-      <Dialog open={!!editando} onOpenChange={open => { if (!open) { setEditando(null); setForm(null); } }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Editar Pregunta</DialogTitle>
-          </DialogHeader>
-          {form && (
-            <div className="space-y-4 pt-2">
-              <div className="space-y-2">
-                <Label>Parte (opcional)</Label>
-                <Input
-                  value={form.parte || ''}
-                  onChange={e => setForm(f => f && ({ ...f, parte: e.target.value }))}
-                  placeholder="ej. Parte 1, Bloque A..."
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Pregunta</Label>
-                <Textarea
-                  value={form.pregunta_texto}
-                  onChange={e => setForm(f => f && ({ ...f, pregunta_texto: e.target.value }))}
-                  className="h-24"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {(['opcion_a', 'opcion_b', 'opcion_c', 'opcion_d'] as const).map((key, i) => (
-                  <div key={key} className="space-y-1">
-                    <Label>Opción {SOLUCIONES[i]}{i >= 2 ? ' (opcional)' : ''}</Label>
-                    <Input
-                      value={(form as any)[key] || ''}
-                      onChange={e => setForm(f => f && ({ ...f, [key]: e.target.value }))}
-                      placeholder={`Opción ${SOLUCIONES[i]}`}
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-2">
-                <Label>Respuesta correcta</Label>
-                <Select
-                  value={form.solucion_letra}
-                  onValueChange={v => setForm(f => f && ({ ...f, solucion_letra: v }))}
-                >
-                  <SelectTrigger className="w-36">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SOLUCIONES.map(s => (
-                      <SelectItem key={s} value={s}>Opción {s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <p className="text-xs text-muted-foreground bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded p-2">
-                Al guardar la edición, la pregunta volverá a estado <strong>pendiente</strong> para ser reverificada.
-              </p>
-
-              <div className="flex gap-2 pt-1">
-                <Button variant="outline" className="flex-1" onClick={() => { setEditando(null); setForm(null); }}>
-                  Cancelar
-                </Button>
-                <Button
-                  className="flex-1 bg-teal-600 hover:bg-teal-700"
-                  disabled={saving || !form.pregunta_texto || !form.opcion_a || !form.opcion_b}
-                  onClick={handleGuardar}
-                >
-                  {saving ? 'Guardando...' : 'Guardar cambios'}
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {form && (
+        <PreguntaFormDialog
+          open={!!editando}
+          onClose={() => { setEditando(null); setForm(null); }}
+          form={form}
+          setForm={setForm as React.Dispatch<React.SetStateAction<PreguntaForm>>}
+          saving={saving}
+          onSave={handleGuardar}
+          isEditing
+        />
+      )}
     </div>
   );
 }

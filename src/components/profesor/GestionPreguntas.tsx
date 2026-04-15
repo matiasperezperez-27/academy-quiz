@@ -1,14 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Pencil, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { useGestionPreguntas, type PreguntaForm } from '@/hooks/useGestionPreguntas';
+import PreguntaFormDialog from '@/components/profesor/PreguntaFormDialog';
 import { supabase } from '@/integrations/supabase/client';
 import type { ProfesorAcademia } from '@/hooks/useProfesorData';
 
@@ -17,8 +14,6 @@ interface Props {
   academias: ProfesorAcademia[];
   onRefresh: () => void;
 }
-
-const SOLUCIONES = ['A', 'B', 'C', 'D'] as const;
 
 const FORM_EMPTY: PreguntaForm = {
   academia_id: '',
@@ -30,6 +25,10 @@ const FORM_EMPTY: PreguntaForm = {
   opcion_c: '',
   opcion_d: '',
   solucion_letra: 'A',
+  explicacion_a: null,
+  explicacion_b: null,
+  explicacion_c: null,
+  explicacion_d: null,
 };
 
 export default function GestionPreguntas({ profesorId, academias, onRefresh }: Props) {
@@ -72,19 +71,30 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
   };
 
   const handleEditar = async (p: typeof preguntas[0]) => {
-    const { data: tema } = await supabase.from('temas').select('id, nombre').eq('academia_id', p.academia_id).order('nombre');
-    setFormTemas(tema || []);
+    const [temaRes, pregRes] = await Promise.all([
+      supabase.from('temas').select('id, nombre').eq('academia_id', p.academia_id).order('nombre'),
+      supabase.from('preguntas')
+        .select('opcion_a, opcion_b, opcion_c, opcion_d, explicacion_a, explicacion_b, explicacion_c, explicacion_d')
+        .eq('id', p.id)
+        .single(),
+    ]);
+    setFormTemas(temaRes.data || []);
+    const full = pregRes.data;
     setForm({
       id: p.id,
       academia_id: p.academia_id,
       tema_id: p.tema_id,
       parte: p.parte || '',
       pregunta_texto: p.pregunta_texto,
-      opcion_a: '',
-      opcion_b: '',
-      opcion_c: '',
-      opcion_d: '',
+      opcion_a: full?.opcion_a || '',
+      opcion_b: full?.opcion_b || '',
+      opcion_c: full?.opcion_c || '',
+      opcion_d: full?.opcion_d || '',
       solucion_letra: p.solucion_letra,
+      explicacion_a: full?.explicacion_a || null,
+      explicacion_b: full?.explicacion_b || null,
+      explicacion_c: full?.explicacion_c || null,
+      explicacion_d: full?.explicacion_d || null,
     });
     setDialogOpen(true);
   };
@@ -200,112 +210,18 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
         </div>
       )}
 
-      {/* Dialog formulario */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{form.id ? 'Editar Pregunta' : 'Nueva Pregunta'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Academia</Label>
-                <Select value={form.academia_id} onValueChange={handleAcademiaForm}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {academias.map(a => (
-                      <SelectItem key={a.academia_id} value={a.academia_id}>
-                        {a.academia_nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Tema</Label>
-                <Select
-                  value={form.tema_id}
-                  onValueChange={v => setForm(prev => ({ ...prev, tema_id: v }))}
-                  disabled={!form.academia_id}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {formTemas.map(t => (
-                      <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Parte (opcional)</Label>
-              <Input
-                value={form.parte || ''}
-                onChange={e => setForm(prev => ({ ...prev, parte: e.target.value }))}
-                placeholder="ej. Parte 1, Bloque A..."
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Pregunta</Label>
-              <Textarea
-                value={form.pregunta_texto}
-                onChange={e => setForm(prev => ({ ...prev, pregunta_texto: e.target.value }))}
-                placeholder="Texto de la pregunta..."
-                className="h-20"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {(['opcion_a', 'opcion_b', 'opcion_c', 'opcion_d'] as const).map((key, i) => (
-                <div key={key} className="space-y-1">
-                  <Label>Opción {SOLUCIONES[i]}{i >= 2 ? ' (opcional)' : ''}</Label>
-                  <Input
-                    value={(form as any)[key] || ''}
-                    onChange={e => setForm(prev => ({ ...prev, [key]: e.target.value }))}
-                    placeholder={`Opción ${SOLUCIONES[i]}`}
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Respuesta correcta</Label>
-              <Select
-                value={form.solucion_letra}
-                onValueChange={v => setForm(prev => ({ ...prev, solucion_letra: v }))}
-              >
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SOLUCIONES.map(s => (
-                    <SelectItem key={s} value={s}>Opción {s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              <Button variant="outline" className="flex-1" onClick={() => setDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button
-                className="flex-1 bg-teal-600 hover:bg-teal-700"
-                disabled={saving || !form.academia_id || !form.tema_id || !form.pregunta_texto || !form.opcion_a || !form.opcion_b}
-                onClick={handleGuardar}
-              >
-                {saving ? 'Guardando...' : form.id ? 'Actualizar' : 'Crear'}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <PreguntaFormDialog
+        open={dialogOpen}
+        onClose={() => { setDialogOpen(false); setForm(FORM_EMPTY); }}
+        form={form}
+        setForm={setForm}
+        saving={saving}
+        onSave={handleGuardar}
+        isEditing={!!form.id}
+        academias={academias}
+        temas={formTemas}
+        onAcademiaChange={handleAcademiaForm}
+      />
     </div>
   );
 }
