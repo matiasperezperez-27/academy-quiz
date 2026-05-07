@@ -9,6 +9,7 @@ import { useVerificacion, type PreguntaParaVerificar } from '@/hooks/useVerifica
 import { useGestionPreguntas, type PreguntaForm } from '@/hooks/useGestionPreguntas';
 import PreguntaFormDialog from '@/components/profesor/PreguntaFormDialog';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import type { ProfesorAcademia } from '@/hooks/useProfesorData';
 
 interface FilterCounts {
@@ -67,6 +68,7 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
   // Edit dialog state
   const [editando, setEditando] = useState<PreguntaParaVerificar | null>(null);
   const [form, setForm] = useState<PreguntaForm | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
 
   const recargar = useCallback(() => {
     cargar({
@@ -191,6 +193,40 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
       setEditando(null);
       setForm(null);
       recargar();
+    }
+  };
+
+  const handleRewriteAI = async () => {
+    if (!form || !editando) return;
+    setAiBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('rewrite-question', {
+        body: {
+          pregunta_texto: form.pregunta_texto,
+          opcion_a: form.opcion_a,
+          opcion_b: form.opcion_b,
+          opcion_c: form.opcion_c || null,
+          opcion_d: form.opcion_d || null,
+          solucion_letra: form.solucion_letra,
+          parte: form.parte || null,
+        },
+      });
+      if (error) throw error;
+      setForm(prev => prev ? {
+        ...prev,
+        pregunta_texto: data.pregunta_texto ?? prev.pregunta_texto,
+        opcion_a: data.opcion_a ?? prev.opcion_a,
+        opcion_b: data.opcion_b ?? prev.opcion_b,
+        opcion_c: data.opcion_c ?? prev.opcion_c,
+        opcion_d: data.opcion_d ?? prev.opcion_d,
+        solucion_letra: data.solucion_letra ?? prev.solucion_letra,
+        modificada_por_ia: true,
+      } : prev);
+      toast.success('Pregunta reescrita con IA');
+    } catch (err: any) {
+      toast.error(err.message || 'Error al reescribir con IA');
+    } finally {
+      setAiBusy(false);
     }
   };
 
@@ -452,6 +488,20 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
                         <Badge variant="outline" className="text-xs">{p.academia_nombre}</Badge>
                         <Badge variant="outline" className="text-xs">{p.tema_nombre}</Badge>
                         {p.parte && <Badge variant="outline" className="text-xs">{p.parte}</Badge>}
+                        {p.pregunta_origen_id ? (
+                          <Badge variant="outline" className="text-xs text-teal-600 border-teal-300 dark:text-teal-400 dark:border-teal-700">
+                            📚 {p.academia_origen_nombre ?? 'Banco'}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs text-gray-500 border-gray-300">
+                            ✏️ Original
+                          </Badge>
+                        )}
+                        {p.modificada_por_ia && (
+                          <Badge variant="outline" className="text-xs text-purple-600 border-purple-300 dark:text-purple-400 dark:border-purple-700">
+                            🤖 IA
+                          </Badge>
+                        )}
                       </div>
                       <CardTitle className="text-base font-medium leading-snug">
                         {p.pregunta_texto}
@@ -554,6 +604,8 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
           saving={saving}
           onSave={handleGuardar}
           isEditing
+          onRewriteAI={editando?.pregunta_origen_id ? handleRewriteAI : undefined}
+          aiBusy={aiBusy}
         />
       )}
     </div>

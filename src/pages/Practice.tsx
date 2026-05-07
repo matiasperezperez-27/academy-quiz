@@ -62,6 +62,7 @@ export default function Practice() {
             .from("academias")
             .select("id, nombre")
             .in("id", [...acadMap.keys()])
+            .eq("es_biblioteca" as any, false)
             .order("nombre");
 
           setAcademias((acadData || []).map((a: any) => ({

@@ -17,6 +17,8 @@ export interface PreguntaForm {
   explicacion_b?: string | null;
   explicacion_c?: string | null;
   explicacion_d?: string | null;
+  pregunta_origen_id?: string | null;
+  modificada_por_ia?: boolean;
 }
 
 export interface PreguntaListItem {
@@ -75,6 +77,8 @@ export function useGestionPreguntas(profesorId: string) {
         p_opcion_c: form.opcion_c || null,
         p_opcion_d: form.opcion_d || null,
         p_solucion_letra: form.solucion_letra,
+        p_pregunta_origen_id: form.pregunta_origen_id || null,
+        p_modificada_por_ia: form.modificada_por_ia ?? null,
       });
       if (error) throw error;
       const questionId = data as string;

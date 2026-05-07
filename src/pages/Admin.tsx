@@ -9,6 +9,7 @@ import AdminStats from '@/components/admin/AdminStats';
 import UsersList from '@/components/admin/UsersList';
 import ResetProgress from '@/components/admin/ResetProgress';
 import ProfesorManager from '@/components/admin/ProfesorManager';
+import AcademiaManager from '@/components/admin/AcademiaManager';
 import { Shield, ArrowLeft } from 'lucide-react';
 
 function setSEO(title: string, description: string) {
@@ -146,6 +147,12 @@ export default function Admin() {
             </Card>
           </section>
         </div>
+
+        {/* Crear academia para profesor */}
+        <section>
+          <h2 className="text-xl font-semibold mb-4">Academias de Profesores</h2>
+          <AcademiaManager />
+        </section>
 
         {/* Gestión de Profesores */}
         <section>

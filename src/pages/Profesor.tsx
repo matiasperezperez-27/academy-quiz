@@ -13,6 +13,7 @@ import GestionPreguntas from '@/components/profesor/GestionPreguntas';
 import GestionTemas from '@/components/profesor/GestionTemas';
 import CrearExamen from '@/components/profesor/CrearExamen';
 import EstadisticasEstudiantes from '@/components/profesor/EstadisticasEstudiantes';
+import BancoPreguntas from '@/components/profesor/BancoPreguntas';
 import { GraduationCap } from 'lucide-react';
 
 function setSEO(title: string, description: string) {
@@ -29,7 +30,7 @@ export default function Profesor() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const VALID_TABS = ['dashboard', 'verificar', 'preguntas', 'temas', 'examenes', 'alumnos'];
+  const VALID_TABS = ['dashboard', 'verificar', 'banco', 'preguntas', 'temas', 'examenes', 'alumnos'];
   const tabParam = searchParams.get('tab') ?? '';
   const defaultTab = VALID_TABS.includes(tabParam) ? tabParam : 'dashboard';
   const { stats, academias, loading: dataLoading, refresh } = useProfesorData(user?.id);
@@ -92,9 +93,10 @@ export default function Profesor() {
 
         {/* Tabs */}
         <Tabs defaultValue={defaultTab}>
-          <TabsList className="w-full grid grid-cols-3 sm:grid-cols-6 h-auto">
+          <TabsList className="w-full grid grid-cols-4 sm:grid-cols-7 h-auto">
             <TabsTrigger value="dashboard" className="text-xs sm:text-sm">Inicio</TabsTrigger>
             <TabsTrigger value="verificar" className="text-xs sm:text-sm">Verificar</TabsTrigger>
+            <TabsTrigger value="banco" className="text-xs sm:text-sm">Banco</TabsTrigger>
             <TabsTrigger value="preguntas" className="text-xs sm:text-sm">Preguntas</TabsTrigger>
             <TabsTrigger value="temas" className="text-xs sm:text-sm">Temas</TabsTrigger>
             <TabsTrigger value="examenes" className="text-xs sm:text-sm">Exámenes</TabsTrigger>
@@ -108,6 +110,10 @@ export default function Profesor() {
 
           <TabsContent value="verificar" className="mt-6">
             <VerificacionPreguntas profesorId={user!.id} academias={academias} />
+          </TabsContent>
+
+          <TabsContent value="banco" className="mt-6">
+            <BancoPreguntas profesorId={user!.id} academias={academias} />
           </TabsContent>
 
           <TabsContent value="preguntas" className="mt-6">

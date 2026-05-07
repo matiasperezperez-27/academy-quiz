@@ -49,7 +49,7 @@ export default function TestSetup() {
     (async () => {
       try {
         setLoadingAcademias(true);
-        const { data, error } = await supabase.from("academias").select("id, nombre").order("nombre");
+        const { data, error } = await supabase.from("academias").select("id, nombre").eq("es_biblioteca" as any, false).order("nombre");
         if (error) throw error;
         setAcademias(data ?? []);
       } catch {

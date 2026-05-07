@@ -24,6 +24,9 @@ export interface PreguntaParaVerificar {
   explicacion_b: string | null;
   explicacion_c: string | null;
   explicacion_d: string | null;
+  pregunta_origen_id: string | null;
+  modificada_por_ia: boolean;
+  academia_origen_nombre: string | null;
 }
 
 export interface VerificacionFiltros {

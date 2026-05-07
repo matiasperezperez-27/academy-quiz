@@ -20,6 +20,9 @@ interface Props {
   academias?: ProfesorAcademia[];
   temas?: { id: string; nombre: string }[];
   onAcademiaChange?: (id: string) => void;
+  // IA rewrite (opcional: solo cuando hay pregunta clonada)
+  onRewriteAI?: () => Promise<void>;
+  aiBusy?: boolean;
 }
 
 const OPCIONES = [
@@ -43,6 +46,7 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 export default function PreguntaFormDialog({
   open, onClose, form, setForm, saving, onSave, isEditing,
   academias, temas, onAcademiaChange,
+  onRewriteAI, aiBusy,
 }: Props) {
   const patch = (updates: Partial<PreguntaForm>) =>
     setForm(prev => ({ ...prev, ...updates }));
@@ -65,6 +69,32 @@ export default function PreguntaFormDialog({
         </DialogHeader>
 
         <div className="space-y-6 pt-1">
+
+          {/* ── Reescribir con IA (solo cuando la pregunta viene del banco) ── */}
+          {onRewriteAI && (
+            <div className="rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20 p-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-purple-700 dark:text-purple-400">Reescribir con IA</p>
+                <p className="text-xs text-purple-600 dark:text-purple-500">
+                  Genera una nueva redacción manteniendo el significado y la respuesta correcta.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={aiBusy || saving}
+                onClick={onRewriteAI}
+                className="flex-shrink-0 border-purple-300 text-purple-700 hover:bg-purple-100 dark:text-purple-400 dark:border-purple-700 dark:hover:bg-purple-900/40"
+              >
+                {aiBusy ? (
+                  <><span className="animate-spin inline-block mr-1.5">⚙️</span>Reescribiendo...</>
+                ) : (
+                  <>🤖 Reescribir</>
+                )}
+              </Button>
+            </div>
+          )}
 
           {/* ── Ubicación (solo GestionPreguntas) ── */}
           {academias && (
