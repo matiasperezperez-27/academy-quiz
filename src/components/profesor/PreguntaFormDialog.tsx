@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -67,13 +67,13 @@ export default function PreguntaFormDialog({
   useEffect(() => { if (!open) setShowOriginal(false); }, [open]);
 
   const optionRefs = useRef<(HTMLTextAreaElement | null)[]>([null, null, null, null]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     optionRefs.current.forEach(el => {
       if (!el) return;
-      el.style.height = 'auto';
+      el.style.height = '0';
       el.style.height = el.scrollHeight + 'px';
     });
-  }, [form.opcion_a, form.opcion_b, form.opcion_c, form.opcion_d]);
+  }, [open, form.opcion_a, form.opcion_b, form.opcion_c, form.opcion_d]);
 
   const canSave = Boolean(
     form.pregunta_texto?.trim() &&
@@ -256,13 +256,18 @@ export default function PreguntaFormDialog({
                     >
                       {isCorrecta ? <CheckCircle2 className="h-4 w-4" /> : letra}
                     </button>
-                    <Textarea
+                    <textarea
                       ref={el => { optionRefs.current[i] = el; }}
                       value={(form as any)[fieldKey] || ''}
-                      onChange={e => patch({ [fieldKey]: e.target.value })}
+                      onChange={e => {
+                        patch({ [fieldKey]: e.target.value });
+                        e.currentTarget.style.height = '0';
+                        e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
+                      }}
                       placeholder={isOpcional ? `Opción ${letra} (opcional)` : `Opción ${letra} *`}
                       rows={1}
-                      className="flex-1 min-h-0 resize-none overflow-hidden border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-1 py-1.5 text-sm leading-snug"
+                      style={{ height: '34px' }}
+                      className="flex-1 resize-none overflow-hidden border-0 bg-transparent outline-none focus:ring-0 px-1 py-1.5 text-sm leading-snug placeholder:text-muted-foreground"
                     />
                   </div>
                 );
