@@ -20,6 +20,15 @@ interface FilterCounts {
   total: number;
 }
 
+interface OriginalPregunta {
+  pregunta_texto: string;
+  opcion_a: string;
+  opcion_b: string;
+  opcion_c?: string | null;
+  opcion_d?: string | null;
+  solucion_letra: string;
+}
+
 interface TemaStats {
   id: string;
   nombre: string;
@@ -85,6 +94,9 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
   const [bancoTemaStatsMap, setBancoTemaStatsMap] = useState<Record<string, BancoTemaStats[]>>({});
   const [loadingTemas, setLoadingTemas] = useState<string | null>(null);
 
+  const [originals, setOriginals] = useState<Record<string, OriginalPregunta>>({});
+  const [showOriginals, setShowOriginals] = useState<Set<string>>(new Set());
+
   const [editando, setEditando] = useState<PreguntaParaVerificar | null>(null);
   const [form, setForm] = useState<PreguntaForm | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
@@ -96,6 +108,35 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propias.length]);
+
+  // Batch-fetch originals for all cloned questions in the current page
+  useEffect(() => {
+    const ids = preguntas.map(p => p.pregunta_origen_id).filter(Boolean) as string[];
+    if (ids.length === 0) return;
+    const missing = ids.filter(id => !originals[id]);
+    if (missing.length === 0) return;
+    supabase
+      .from('preguntas')
+      .select('id, pregunta_texto, opcion_a, opcion_b, opcion_c, opcion_d, solucion_letra')
+      .in('id', missing)
+      .then(({ data }) => {
+        if (!data) return;
+        setOriginals(prev => {
+          const next = { ...prev };
+          data.forEach((q: any) => { next[q.id] = q as OriginalPregunta; });
+          return next;
+        });
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preguntas]);
+
+  const toggleOriginal = (preguntaId: string) => {
+    setShowOriginals(prev => {
+      const next = new Set(prev);
+      if (next.has(preguntaId)) next.delete(preguntaId); else next.add(preguntaId);
+      return next;
+    });
+  };
 
   const recargar = useCallback(() => {
     cargar({
@@ -654,6 +695,45 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
                     })}
                   </div>
 
+                  {/* Original del banco */}
+                  {p.pregunta_origen_id && (
+                    <div className="border-t pt-2.5">
+                      <button
+                        className="flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors mb-2"
+                        onClick={() => toggleOriginal(p.id)}
+                      >
+                        <Library className="h-3.5 w-3.5" />
+                        Original del banco
+                        {showOriginals.has(p.id)
+                          ? <ChevronUp className="h-3 w-3" />
+                          : <ChevronDown className="h-3 w-3" />}
+                      </button>
+                      {showOriginals.has(p.id) && (() => {
+                        const orig = originals[p.pregunta_origen_id!];
+                        if (!orig) return <p className="text-xs text-muted-foreground italic">Cargando...</p>;
+                        return (
+                          <div className="rounded-lg bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3 space-y-2">
+                            <p className="text-xs font-medium leading-snug text-foreground">{orig.pregunta_texto}</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                              {([['A', orig.opcion_a], ['B', orig.opcion_b], ['C', orig.opcion_c], ['D', orig.opcion_d]] as [string, string | null | undefined][])
+                                .filter(([, v]) => v)
+                                .map(([letra, texto]) => {
+                                  const esCorrecta = orig.solucion_letra === letra;
+                                  return (
+                                    <div key={letra} className={`flex gap-1.5 items-start text-xs px-2 py-1 rounded border ${esCorrecta ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-white/50 dark:bg-white/5 border-transparent'}`}>
+                                      <span className={`font-bold flex-shrink-0 ${esCorrecta ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>{letra}.</span>
+                                      <span className="break-words flex-1">{texto}</span>
+                                      {esCorrecta && <span className="flex-shrink-0 text-green-500 font-bold">✓</span>}
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
                   {estado === 'pendiente' && (
                     <div className="flex gap-2 pt-2 border-t">
                       <Button
@@ -709,6 +789,7 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
           isEditing
           onRewriteAI={editando?.pregunta_origen_id ? handleRewriteAI : undefined}
           aiBusy={aiBusy}
+          originalPregunta={editando?.pregunta_origen_id ? originals[editando.pregunta_origen_id] : undefined}
         />
       )}
     </div>

@@ -1,12 +1,22 @@
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Library, ChevronDown, ChevronUp } from 'lucide-react';
 import type { PreguntaForm } from '@/hooks/useGestionPreguntas';
 import type { ProfesorAcademia } from '@/hooks/useProfesorData';
+
+interface OriginalPregunta {
+  pregunta_texto: string;
+  opcion_a: string;
+  opcion_b: string;
+  opcion_c?: string | null;
+  opcion_d?: string | null;
+  solucion_letra: string;
+}
 
 interface Props {
   open: boolean;
@@ -23,6 +33,8 @@ interface Props {
   // IA rewrite (opcional: solo cuando hay pregunta clonada)
   onRewriteAI?: () => Promise<void>;
   aiBusy?: boolean;
+  // Pregunta original del banco (para comparación)
+  originalPregunta?: OriginalPregunta;
 }
 
 const OPCIONES = [
@@ -46,10 +58,13 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 export default function PreguntaFormDialog({
   open, onClose, form, setForm, saving, onSave, isEditing,
   academias, temas, onAcademiaChange,
-  onRewriteAI, aiBusy,
+  onRewriteAI, aiBusy, originalPregunta,
 }: Props) {
   const patch = (updates: Partial<PreguntaForm>) =>
     setForm(prev => ({ ...prev, ...updates }));
+
+  const [showOriginal, setShowOriginal] = useState(false);
+  useEffect(() => { if (!open) setShowOriginal(false); }, [open]);
 
   const canSave = Boolean(
     form.pregunta_texto?.trim() &&
@@ -93,6 +108,49 @@ export default function PreguntaFormDialog({
                   <>🤖 Reescribir</>
                 )}
               </Button>
+            </div>
+          )}
+
+          {/* ── Original del banco (referencia para comparar) ── */}
+          {originalPregunta && (
+            <div className="rounded-lg border border-blue-200 dark:border-blue-800 overflow-hidden">
+              <button
+                type="button"
+                className="w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-950/60 transition-colors text-left"
+                onClick={() => setShowOriginal(v => !v)}
+              >
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400">
+                  <Library className="h-3.5 w-3.5" />
+                  Original del banco
+                </span>
+                {showOriginal
+                  ? <ChevronUp className="h-3.5 w-3.5 text-blue-500" />
+                  : <ChevronDown className="h-3.5 w-3.5 text-blue-500" />}
+              </button>
+              {showOriginal && (
+                <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 space-y-2.5">
+                  <p className="text-sm font-medium leading-snug text-foreground">{originalPregunta.pregunta_texto}</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    {([
+                      ['A', originalPregunta.opcion_a],
+                      ['B', originalPregunta.opcion_b],
+                      ['C', originalPregunta.opcion_c],
+                      ['D', originalPregunta.opcion_d],
+                    ] as [string, string | null | undefined][])
+                      .filter(([, v]) => v)
+                      .map(([letra, texto]) => {
+                        const esCorrecta = originalPregunta.solucion_letra === letra;
+                        return (
+                          <div key={letra} className={`flex gap-1.5 items-start text-xs px-2 py-1.5 rounded border ${esCorrecta ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-white/60 dark:bg-white/5 border-transparent'}`}>
+                            <span className={`font-bold flex-shrink-0 ${esCorrecta ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>{letra}.</span>
+                            <span className="break-words flex-1">{texto}</span>
+                            {esCorrecta && <span className="flex-shrink-0 text-green-500 font-bold text-[11px]">✓</span>}
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -249,7 +307,7 @@ export default function PreguntaFormDialog({
           {/* ── Aviso + Acciones ── */}
           {isEditing && (
             <p className="text-xs text-muted-foreground bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-              Al guardar cambios en el enunciado u opciones, la pregunta volverá a estado <strong>pendiente</strong> para ser reverificada.
+              Los cambios manuales conservan el estado actual. Solo las reescrituras con IA devuelven la pregunta a <strong>pendiente</strong>.
             </p>
           )}
 
