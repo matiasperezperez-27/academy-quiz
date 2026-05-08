@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -67,12 +67,16 @@ export default function PreguntaFormDialog({
   useEffect(() => { if (!open) setShowOriginal(false); }, [open]);
 
   const optionRefs = useRef<(HTMLTextAreaElement | null)[]>([null, null, null, null]);
-  useLayoutEffect(() => {
-    optionRefs.current.forEach(el => {
-      if (!el) return;
-      el.style.height = '0';
-      el.style.height = el.scrollHeight + 'px';
+  useEffect(() => {
+    if (!open) return;
+    const id = requestAnimationFrame(() => {
+      optionRefs.current.forEach(el => {
+        if (!el) return;
+        el.style.height = 'auto';
+        el.style.height = el.scrollHeight + 'px';
+      });
     });
+    return () => cancelAnimationFrame(id);
   }, [open, form.opcion_a, form.opcion_b, form.opcion_c, form.opcion_d]);
 
   const canSave = Boolean(
