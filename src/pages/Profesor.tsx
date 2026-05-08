@@ -105,7 +105,7 @@ export default function Profesor() {
 
           <TabsContent value="dashboard" className="space-y-6 mt-6">
             <ProfesorStats stats={stats} loading={dataLoading} />
-            <ProfesorAcademias academias={academias} loading={dataLoading} />
+            <ProfesorAcademias profesorId={user!.id} academias={academias} loading={dataLoading} />
           </TabsContent>
 
           <TabsContent value="verificar" className="mt-6">

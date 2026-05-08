@@ -38,13 +38,6 @@ interface TemaStats {
   total: number;
 }
 
-interface BancoTemaStats {
-  tema_id: string;
-  tema_nombre: string;
-  total: number;
-  importadas: number;
-  verificadas: number;
-}
 
 function getProgressColor(pct: number) {
   if (pct >= 70) return { border: 'border-teal-400', bar: 'bg-teal-500', text: 'text-teal-600 dark:text-teal-400', bg: 'bg-teal-50 dark:bg-teal-900/20' };
@@ -60,12 +53,6 @@ function temaIcon(pct: number) {
   return '⭕';
 }
 
-function bancoTemaIcon(importadas: number, verificadas: number) {
-  if (importadas === 0) return '⭕';
-  if (verificadas === importadas) return '✅';
-  if (verificadas > 0) return '🔄';
-  return '🔵';
-}
 
 interface Props {
   profesorId: string;
@@ -77,7 +64,6 @@ const SOLUCIONES = ['A', 'B', 'C', 'D'] as const;
 
 export default function VerificacionPreguntas({ profesorId, academias }: Props) {
   const propias = academias.filter(a => !a.es_biblioteca);
-  const banco = academias.filter(a => a.es_biblioteca);
 
   const { preguntas, loading, cargar, verificar } = useVerificacion(profesorId);
   const { saving, guardar } = useGestionPreguntas(profesorId);
@@ -91,7 +77,6 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
   const [filterCounts, setFilterCounts] = useState<FilterCounts | null>(null);
   const [expandedAcademia, setExpandedAcademia] = useState<string | null>(null);
   const [temaStatsMap, setTemaStatsMap] = useState<Record<string, TemaStats[]>>({});
-  const [bancoTemaStatsMap, setBancoTemaStatsMap] = useState<Record<string, BancoTemaStats[]>>({});
   const [loadingTemas, setLoadingTemas] = useState<string | null>(null);
 
   const [originals, setOriginals] = useState<Record<string, OriginalPregunta>>({});
@@ -232,20 +217,6 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
     }
   }, [temaStatsMap]);
 
-  // Lazy load temas para academia banco (import stats)
-  const loadBancoTemaStats = useCallback(async (acaId: string) => {
-    if (bancoTemaStatsMap[acaId]) return;
-    setLoadingTemas(acaId);
-    try {
-      const { data } = await supabase.rpc('get_banco_tema_import_stats' as any, {
-        p_profesor_id: profesorId,
-        p_banco_academia_id: acaId,
-      });
-      setBancoTemaStatsMap(prev => ({ ...prev, [acaId]: (data || []) as BancoTemaStats[] }));
-    } finally {
-      setLoadingTemas(null);
-    }
-  }, [bancoTemaStatsMap, profesorId]);
 
   const abrirEdicion = (p: PreguntaParaVerificar) => {
     setEditando(p);
@@ -423,92 +394,6 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
         </div>
       )}
 
-      {/* Dashboard: Progreso del banco */}
-      {banco.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">Progreso del banco</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {banco.map(a => {
-              const importPct = a.total_preguntas > 0 ? Math.round((a.importadas / a.total_preguntas) * 100) : 0;
-              const isExpanded = expandedAcademia === a.academia_id;
-              const bancoTemas = bancoTemaStatsMap[a.academia_id];
-              return (
-                <Card key={a.academia_id} className="border-l-4 border-l-blue-400 transition-all duration-200 hover:shadow-md">
-                  <CardContent className="p-4 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Library className="h-4 w-4 flex-shrink-0 text-blue-500" />
-                          <span className="font-semibold text-sm truncate">{a.academia_nombre}</span>
-                        </div>
-                        <span className="text-sm font-bold flex-shrink-0 text-blue-600 dark:text-blue-400">{importPct}%</span>
-                      </div>
-                      <button
-                        className={`flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors border ${isExpanded ? 'bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300' : 'bg-muted border-border text-muted-foreground hover:bg-accent hover:text-foreground'}`}
-                        onClick={() => {
-                          if (!isExpanded) loadBancoTemaStats(a.academia_id);
-                          setExpandedAcademia(isExpanded ? null : a.academia_id);
-                        }}
-                        title={isExpanded ? 'Ocultar temas' : 'Ver progreso por tema'}
-                      >
-                        Temas
-                        {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                      </button>
-                    </div>
-                    <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full bg-blue-500 transition-all duration-500" style={{ width: `${importPct}%` }} />
-                    </div>
-                    <div className="flex gap-3 text-xs flex-wrap">
-                      <span className="text-blue-600 dark:text-blue-400 font-medium">🔵 {a.importadas.toLocaleString()} import.</span>
-                      <span className="text-teal-600 dark:text-teal-400 font-medium">✅ {a.verificadas_importadas.toLocaleString()} verif.</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{a.total_preguntas.toLocaleString()} preguntas · {a.total_temas} temas</p>
-
-                    {isExpanded && (
-                      <div className="pt-2 border-t mt-1">
-                        {loadingTemas === a.academia_id ? (
-                          <div className="grid grid-cols-2 gap-1.5">
-                            {[...Array(4)].map((_, i) => <div key={i} className="animate-pulse h-14 bg-gray-200 dark:bg-gray-700 rounded-lg" />)}
-                          </div>
-                        ) : bancoTemas && bancoTemas.length > 0 ? (
-                          <div className="max-h-72 overflow-y-auto pr-0.5">
-                            <div className="grid grid-cols-2 gap-1.5">
-                              {bancoTemas.map(t => {
-                                const tPct = t.total > 0 ? Math.round((t.importadas / t.total) * 100) : 0;
-                                const icon = bancoTemaIcon(t.importadas, t.verificadas);
-                                return (
-                                  <div
-                                    key={t.tema_id}
-                                    className="text-left p-2 rounded-lg border bg-background border-muted"
-                                  >
-                                    <div className="flex items-center gap-1 mb-1">
-                                      <span className="text-xs leading-none flex-shrink-0">{icon}</span>
-                                      <span className="text-xs font-medium truncate flex-1 min-w-0">{t.tema_nombre}</span>
-                                      <span className="text-xs font-bold flex-shrink-0 ml-0.5 text-blue-600 dark:text-blue-400">{tPct}%</span>
-                                    </div>
-                                    <div className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                      <div className="h-full rounded-full bg-blue-500" style={{ width: `${tPct}%` }} />
-                                    </div>
-                                    <p className="text-[10px] text-muted-foreground mt-1 truncate">
-                                      {t.importadas}/{t.total} import. · {t.verificadas} verif.
-                                    </p>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-xs text-muted-foreground text-center py-2">Sin temas</p>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Filtros: solo academias propias */}
       <Card>
