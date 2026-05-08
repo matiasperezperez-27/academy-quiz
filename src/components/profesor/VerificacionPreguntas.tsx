@@ -10,6 +10,7 @@ import { useGestionPreguntas, type PreguntaForm } from '@/hooks/useGestionPregun
 import PreguntaFormDialog from '@/components/profesor/PreguntaFormDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { shuffleOptions } from '@/lib/shuffleOptions';
 import type { ProfesorAcademia } from '@/hooks/useProfesorData';
 
 interface FilterCounts {
@@ -209,20 +210,26 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
           opcion_d: form.opcion_d || null,
           solucion_letra: form.solucion_letra,
           parte: form.parte || null,
+          explicacion_a: form.explicacion_a || null,
+          explicacion_b: form.explicacion_b || null,
+          explicacion_c: form.explicacion_c || null,
+          explicacion_d: form.explicacion_d || null,
         },
       });
       if (error) throw error;
-      setForm(prev => prev ? {
-        ...prev,
-        pregunta_texto: data.pregunta_texto ?? prev.pregunta_texto,
-        opcion_a: data.opcion_a ?? prev.opcion_a,
-        opcion_b: data.opcion_b ?? prev.opcion_b,
-        opcion_c: data.opcion_c ?? prev.opcion_c,
-        opcion_d: data.opcion_d ?? prev.opcion_d,
-        solucion_letra: data.solucion_letra ?? prev.solucion_letra,
+      // Explicaciones no se tocan — la IA solo reescribe enunciado y opciones largas
+      const rewritten: PreguntaForm = {
+        ...form,
+        pregunta_texto: data.pregunta_texto || form.pregunta_texto,
+        opcion_a: data.opcion_a || form.opcion_a,
+        opcion_b: data.opcion_b || form.opcion_b,
+        opcion_c: form.opcion_c ? (data.opcion_c || form.opcion_c) : '',
+        opcion_d: form.opcion_d ? (data.opcion_d || form.opcion_d) : '',
+        solucion_letra: data.solucion_letra || form.solucion_letra,
         modificada_por_ia: true,
-      } : prev);
-      toast.success('Pregunta reescrita con IA');
+      };
+      setForm(shuffleOptions(rewritten));
+      toast.success('Pregunta reescrita con IA y opciones barajadas');
     } catch (err: any) {
       toast.error(err.message || 'Error al reescribir con IA');
     } finally {

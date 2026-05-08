@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { useBancoPreguntas, type PreguntaBanco } from '@/hooks/useBancoPreguntas';
 import { useGestionPreguntas, type PreguntaForm } from '@/hooks/useGestionPreguntas';
 import PreguntaFormDialog from '@/components/profesor/PreguntaFormDialog';
+import { shuffleOptions } from '@/lib/shuffleOptions';
 import type { ProfesorAcademia } from '@/hooks/useProfesorData';
 
 interface Props {
@@ -104,18 +105,28 @@ export default function BancoPreguntas({ profesorId, academias }: Props) {
     const newId = await clonar(pregunta.id, destAcademiaId, destTemaId);
     if (!newId) return;
 
-    // Abrir dialog con la pregunta clonada para revisión/edición
+    // Fetch the full cloned row to get explanations
+    const { data: clonedQ } = await supabase
+      .from('preguntas')
+      .select('id, academia_id, tema_id, parte, pregunta_texto, opcion_a, opcion_b, opcion_c, opcion_d, solucion_letra, explicacion_a, explicacion_b, explicacion_c, explicacion_d, pregunta_origen_id, modificada_por_ia')
+      .eq('id', newId)
+      .single();
+
     setForm({
       id: newId,
       academia_id: destAcademiaId,
       tema_id: destTemaId,
-      parte: pregunta.parte || '',
-      pregunta_texto: pregunta.pregunta_texto,
-      opcion_a: pregunta.opcion_a,
-      opcion_b: pregunta.opcion_b,
-      opcion_c: pregunta.opcion_c || '',
-      opcion_d: pregunta.opcion_d || '',
-      solucion_letra: pregunta.solucion_letra,
+      parte: (clonedQ?.parte) || '',
+      pregunta_texto: clonedQ?.pregunta_texto ?? pregunta.pregunta_texto,
+      opcion_a: clonedQ?.opcion_a ?? pregunta.opcion_a,
+      opcion_b: clonedQ?.opcion_b ?? pregunta.opcion_b,
+      opcion_c: clonedQ?.opcion_c ?? pregunta.opcion_c ?? '',
+      opcion_d: clonedQ?.opcion_d ?? pregunta.opcion_d ?? '',
+      solucion_letra: clonedQ?.solucion_letra ?? pregunta.solucion_letra,
+      explicacion_a: clonedQ?.explicacion_a ?? null,
+      explicacion_b: clonedQ?.explicacion_b ?? null,
+      explicacion_c: clonedQ?.explicacion_c ?? null,
+      explicacion_d: clonedQ?.explicacion_d ?? null,
       pregunta_origen_id: pregunta.id,
       modificada_por_ia: false,
     });
@@ -136,20 +147,26 @@ export default function BancoPreguntas({ profesorId, academias }: Props) {
           solucion_letra: form.solucion_letra,
           parte: form.parte || null,
           tema_nombre: destTemas.find(t => t.id === form.tema_id)?.nombre,
+          explicacion_a: form.explicacion_a || null,
+          explicacion_b: form.explicacion_b || null,
+          explicacion_c: form.explicacion_c || null,
+          explicacion_d: form.explicacion_d || null,
         },
       });
       if (error) throw error;
-      setForm(prev => prev ? {
-        ...prev,
-        pregunta_texto: data.pregunta_texto ?? prev.pregunta_texto,
-        opcion_a: data.opcion_a ?? prev.opcion_a,
-        opcion_b: data.opcion_b ?? prev.opcion_b,
-        opcion_c: data.opcion_c ?? prev.opcion_c,
-        opcion_d: data.opcion_d ?? prev.opcion_d,
-        solucion_letra: data.solucion_letra ?? prev.solucion_letra,
+      // Explicaciones no se tocan — la IA solo reescribe enunciado y opciones largas
+      const rewritten: PreguntaForm = {
+        ...form,
+        pregunta_texto: data.pregunta_texto || form.pregunta_texto,
+        opcion_a: data.opcion_a || form.opcion_a,
+        opcion_b: data.opcion_b || form.opcion_b,
+        opcion_c: form.opcion_c ? (data.opcion_c || form.opcion_c) : '',
+        opcion_d: form.opcion_d ? (data.opcion_d || form.opcion_d) : '',
+        solucion_letra: data.solucion_letra || form.solucion_letra,
         modificada_por_ia: true,
-      } : prev);
-      toast.success('Pregunta reescrita con IA');
+      };
+      setForm(shuffleOptions(rewritten));
+      toast.success('Pregunta reescrita con IA y opciones barajadas');
     } catch (err: any) {
       toast.error(err.message || 'Error al reescribir con IA');
     } finally {

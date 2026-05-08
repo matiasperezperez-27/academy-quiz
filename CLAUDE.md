@@ -35,6 +35,11 @@ All routes except `/auth` and `/admin` are wrapped in `<ProtectedRoute>`. The `/
 
 Core hierarchy: `academias` → `temas` → `preguntas`
 
+**Academia types:**
+- `es_biblioteca BOOLEAN` — `true` for the 3 legacy academias (JCLM, LICEO, LINCE), which serve as a read-only question bank. `false` for professor-owned academias (e.g. Academia Yeray).
+- `propietario_id UUID` — points to the professor who owns the academia.
+- Biblioteca academias are hidden from students in `/test-setup` and `/practice` (filtered with `.eq('es_biblioteca', false)`). Professors see them only in the Banco tab.
+
 User data tables:
 - `profiles` — puntos, username, role (`user` | `admin` | `profesor`)
 - `user_sessions` — quiz sessions (mode: `test` | `practice`), has `academia_id` and `tema_id`
@@ -47,6 +52,10 @@ Profesor-specific tables:
 - `profesor_academias` — maps professors to academias they can manage (`profesor_id`, `academia_id`, `assigned_at`, `assigned_by`)
 - `examenes` — exams created by professors (`nombre`, `academia_id`, `creado_por`, `duracion_minutos`, `activo`)
 - `examen_preguntas` — junction table linking exams to questions (`examen_id`, `pregunta_id`, `orden`)
+
+**Bank/clone fields added to `preguntas`:**
+- `pregunta_origen_id UUID` — points to the original question when this row is a clone from the banco. NULL = created from scratch.
+- `modificada_por_ia BOOLEAN` — true if the question text/options were rewritten by the AI rewrite function at least once.
 
 Verification fields added to `preguntas`:
 - `verificada` (boolean, default false) — approved by a professor
@@ -105,8 +114,13 @@ Role checks use RPCs (`is_user_admin`, `is_user_profesor`) via `useAdmin` and `u
 | `verificar_pregunta(p_profesor_id, p_pregunta_id, p_accion, p_notas)` | Approve or reject a question. `p_accion`: `'verificar'` \| `'rechazar'` |
 | `upsert_pregunta(p_profesor_id, p_pregunta_id?, ...)` | Create or edit a question. Editing resets verification fields. |
 | `crear_tema(p_profesor_id, p_academia_id, p_nombre)` | Create a new tema scoped to an assigned academia |
+| `renombrar_tema(p_profesor_id, p_tema_id, p_nuevo_nombre)` | Rename a tema (validates profesor_academias ownership) |
+| `eliminar_tema(p_profesor_id, p_tema_id)` | Delete a tema and all its preguntas (cascade, validates ownership) |
 | `get_profesor_student_stats(p_profesor_id, p_academia_id?)` | Per-student accuracy, sessions, puntos for the professor's academias |
 | `get_profesor_topic_stats(p_profesor_id, p_academia_id?)` | Per-topic avg accuracy and student count |
+| `crear_academia_propietario(p_admin_id, p_nombre, p_propietario_id)` | Admin-only: creates a non-biblioteca academia and assigns it to a professor |
+| `clonar_pregunta(p_profesor_id, p_pregunta_origen_id, p_destino_academia_id, p_destino_tema_id)` | Clone a banco question into the professor's own academia. Sets `pregunta_origen_id`, copies all fields including explanations. Returns new UUID. |
+| `get_preguntas_banco(p_profesor_id, p_academia_id?, p_tema_id?, p_solo_no_importadas?, p_limit, p_offset)` | Paginated list of biblioteca questions with `ya_importada` flag per row. |
 
 ### Smart question selection priority
 
@@ -158,22 +172,36 @@ Note: the quiz RPCs do NOT filter by `verificada`. All questions are available t
 
 ### Profesor panel (`/profesor`)
 
-Six-tab dashboard at `src/pages/Profesor.tsx`. Access requires `is_user_profesor` = true (role `profesor` or `admin`) + entries in `profesor_academias`.
+Seven-tab dashboard at `src/pages/Profesor.tsx`. Access requires `is_user_profesor` = true (role `profesor` or `admin`) + entries in `profesor_academias`.
 
 | Tab | Component | Purpose |
 |-----|-----------|---------|
 | Inicio | `ProfesorStats` + `ProfesorAcademias` | KPI cards + academia list with verification progress bars |
-| Verificar | `VerificacionPreguntas` | Review pending/verified/rejected questions with inline edit dialog + approve/reject |
+| Verificar | `VerificacionPreguntas` | Review pending/verified/rejected questions with inline edit + approve/reject. Shows origin badges (📚 banco, 🤖 IA). |
+| Banco | `BancoPreguntas` | Browse biblioteca questions, import (clone) into own academia, AI rewrite button. |
 | Preguntas | `GestionPreguntas` | CRUD questions via Dialog form |
-| Temas | `GestionTemas` | Create new temas per academia |
+| Temas | `GestionTemas` | Create / rename / delete temas per academia. Delete warns that all preguntas in the tema will also be deleted. |
 | Exámenes | `CrearExamen` + `ExamenForm` | 3-step stepper: basic info → select verified questions → review & create |
 | Alumnos | `EstadisticasEstudiantes` | Per-student and per-topic accuracy tables |
 
-Admin panel (`/admin`) includes a **Gestión de Profesores** section (`ProfesorManager`) to assign/remove the `profesor` role and manage `profesor_academias` assignments.
+Admin panel (`/admin`) includes a **Gestión de Profesores** section (`ProfesorManager`) to assign/remove the `profesor` role and manage `profesor_academias` assignments, plus an **Academias de Profesores** section (`AcademiaManager`) to create new non-biblioteca academias and assign them to a professor.
 
 **Select empty-value convention**: Radix UI prohibits `value=""` in `<SelectItem>`. Use `"__all__"` as the sentinel for "all/none selected" and convert to `undefined` before passing to RPCs/queries.
 
 **Verification edit flow**: `VerificacionPreguntas` includes a pencil icon per question that opens `PreguntaFormDialog` pre-filled with all editable fields (parte, pregunta_texto, opciones A-D, solucion_letra, explicaciones A-D). Saving calls `upsert_pregunta` which resets `verificada/rechazada` to false — the question returns to pending and must be re-verified. Academia and tema are not editable from this view.
+
+**Banco import flow** (`BancoPreguntas`):
+1. Professor selects source (biblioteca academia + tema) and destination (own academia + tema).
+2. Click "Importar" → `clonar_pregunta` RPC creates a copy in the professor's academia with `pregunta_origen_id` set. Explanations are copied too.
+3. `PreguntaFormDialog` opens pre-filled by fetching the full cloned row (including explanations).
+4. Optional: click "🤖 Reescribir con IA" → calls `rewrite-question` edge function (OpenRouter, model configurable via `OPENROUTER_MODEL` secret, default `deepseek/deepseek-chat`).
+
+**AI rewrite logic** (`supabase/functions/rewrite-question/`):
+- Always rewrites `pregunta_texto`.
+- Options **≤50 chars**: tagged `[MANTENER EXACTA]` — server also hard-restores them regardless of AI output.
+- Options **>50 chars**: tagged `[REESCRIBIR]`. If the option's explanation is also >50 chars, it's passed as a reference hint so the AI understands the semantic meaning.
+- Explanations are passed as context only — never returned, never modified. Client keeps originals.
+- After AI response, client applies `shuffleOptions()` (`src/lib/shuffleOptions.ts`): Fisher-Yates shuffle of active options tracked by `origIdx` (not object reference), `solucion_letra` updated to match the correct option's new position. Explanations follow their options during shuffle.
 
 **Verification dashboard**: `VerificacionPreguntas` shows a mini-dashboard at the top with one card per academia. Each card displays color-coded verification progress (teal ≥70%, amber 30-70%, red <30%) with a "Temas" toggle button. Clicking the toggle expands a 2-column grid of tema chips (max-h-72, scrollable) showing gamified icons (🏆100%, ✅≥70%, 🔄30-70%, 🔴<30%, ⭕0%), a mini progress bar, and pending/verified counts. Tema stats are loaded lazily on first expand using parallel `{ count: 'exact', head: true }` queries and cached in component state. Clicking a tema chip sets the filter to that academia+tema. A context bar below the filters shows live counts for the current filter scope.
 
@@ -202,6 +230,7 @@ The app is designed to be used as a **mobile web app** (installable via browser,
   - Progress bars: `h-1.5` thin bars, teal ≥80%, amber 50-79%, blue/red otherwise
 - Color thresholds (consistent across all pages): teal ≥70-80%, amber 30-70%, red <30%
 - Profesor panel uses **teal** color scheme (`text-teal-500`, `bg-teal-600`) to distinguish from the orange admin panel.
-- New RPC calls use `supabase.rpc('name' as any, { ... })` to bypass strict TypeScript types until `types.ts` is regenerated.
+- New RPC calls use `supabase.rpc('name' as any, { ... })` to bypass strict TypeScript types until `types.ts` is regenerated. After schema changes, regenerate with `mcp__supabase__generate_typescript_types` and write to `src/integrations/supabase/types.ts`.
+- Edge functions are deployed with `npx supabase functions deploy <name> --project-ref pakyheklnfpwibyahmcg`. Docker is not required (upload-only mode).
 
 **Radix Select with truncated items**: To make `SelectItem` children use flex layout (for truncating long names + pinning a count to the right), add `className="[&>span:last-child]:flex [&>span:last-child]:w-full [&>span:last-child]:min-w-0 [&>span:last-child]:overflow-hidden [&>span:last-child]:items-center [&>span:last-child]:gap-2"` to `SelectItem`, and `className="w-[var(--radix-select-trigger-width)]"` to `SelectContent`. This targets the `SelectPrimitive.ItemText` span (which is the last child) without modifying the shadcn component.

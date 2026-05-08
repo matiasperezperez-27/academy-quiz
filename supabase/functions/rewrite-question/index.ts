@@ -6,6 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const SHORT = 50;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -33,7 +35,11 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Acceso denegado: se requiere rol de profesor' }), { status: 403, headers: corsHeaders });
     }
 
-    const { pregunta_texto, opcion_a, opcion_b, opcion_c, opcion_d, solucion_letra, parte, tema_nombre } = await req.json();
+    const {
+      pregunta_texto, opcion_a, opcion_b, opcion_c, opcion_d,
+      solucion_letra, parte, tema_nombre,
+      explicacion_a, explicacion_b, explicacion_c, explicacion_d,
+    } = await req.json();
 
     if (!pregunta_texto || !opcion_a || !opcion_b || !solucion_letra) {
       return new Response(JSON.stringify({ error: 'Faltan campos obligatorios' }), { status: 400, headers: corsHeaders });
@@ -44,30 +50,50 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Servicio de IA no configurado' }), { status: 500, headers: corsHeaders });
     }
 
-    const model = Deno.env.get('OPENROUTER_MODEL') ?? 'anthropic/claude-3.5-sonnet';
+    const model = Deno.env.get('OPENROUTER_MODEL') ?? 'deepseek/deepseek-chat';
 
-    const opcionesTexto = [
-      `A) ${opcion_a}`,
-      `B) ${opcion_b}`,
-      opcion_c ? `C) ${opcion_c}` : null,
-      opcion_d ? `D) ${opcion_d}` : null,
-    ].filter(Boolean).join('\n');
+    // Tag each option: short ones must be kept exactly, long ones get rewritten
+    const opciones = [
+      { letra: 'A', texto: opcion_a },
+      { letra: 'B', texto: opcion_b },
+      opcion_c ? { letra: 'C', texto: opcion_c } : null,
+      opcion_d ? { letra: 'D', texto: opcion_d } : null,
+    ].filter(Boolean) as { letra: string; texto: string }[];
 
-    const prompt = `Eres un experto en redacción de preguntas de examen. Tu tarea es reescribir la siguiente pregunta de opción múltiple manteniendo EXACTAMENTE el mismo significado, dificultad, materia y respuesta correcta, pero con redacción completamente diferente para evitar similitud textual con el original.
+    const explicaciones: Record<string, string | null> = {
+      A: explicacion_a || null,
+      B: explicacion_b || null,
+      C: explicacion_c || null,
+      D: explicacion_d || null,
+    };
 
-REGLAS ESTRICTAS:
-1. La letra de la respuesta correcta DEBE ser "${solucion_letra}" en la versión reescrita.
-2. Cada opción debe mantener el mismo significado conceptual aunque con palabras distintas.
-3. Devuelve ÚNICAMENTE JSON válido, sin texto adicional ni bloques de código.
-${parte ? `Bloque del examen: ${parte}` : ''}${tema_nombre ? `\nTema: ${tema_nombre}` : ''}
+    const opcionesTexto = opciones
+      .map(o => {
+        if (o.texto.length <= SHORT) {
+          return `${o.letra}) ${o.texto}  [MANTENER EXACTA]`;
+        }
+        const exp = explicaciones[o.letra];
+        const expLine = exp && exp.length > SHORT ? `\n   → Explicación de referencia: ${exp}` : '';
+        return `${o.letra}) ${o.texto}  [REESCRIBIR]${expLine}`;
+      })
+      .join('\n');
 
-PREGUNTA ORIGINAL:
+    const prompt = `Eres un experto en redacción de preguntas de examen. Transforma la siguiente pregunta siguiendo estas reglas al pie de la letra.
+
+REGLAS:
+1. Reescribe el enunciado de la pregunta con redacción completamente diferente, manteniendo el mismo significado y dificultad.
+2. La respuesta correcta es la letra "${solucion_letra}" y debe seguir siéndolo.
+3. Opciones marcadas [MANTENER EXACTA]: cópialas tal cual, sin cambiar ni una letra.
+4. Opciones marcadas [REESCRIBIR]: reescríbelas con otras palabras. Si tienen una "Explicación de referencia", úsala como guía del significado exacto que debe mantener la opción reescrita.
+5. NO devuelvas las explicaciones en la respuesta. Solo devuelve el enunciado y las opciones.
+6. Devuelve ÚNICAMENTE JSON válido, sin texto adicional ni bloques de código.
+${parte ? `Bloque: ${parte}` : ''}${tema_nombre ? `\nTema: ${tema_nombre}` : ''}
+
+ENUNCIADO ORIGINAL:
 ${pregunta_texto}
 
 OPCIONES:
 ${opcionesTexto}
-
-Respuesta correcta: ${solucion_letra}
 
 Formato de respuesta (JSON estricto):
 {
@@ -91,7 +117,7 @@ Formato de respuesta (JSON estricto):
         model,
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
-        max_tokens: 1200,
+        max_tokens: 1800,
       }),
     });
 
@@ -102,7 +128,12 @@ Formato de respuesta (JSON estricto):
       );
     }
     if (!response.ok) {
-      return new Response(JSON.stringify({ error: 'Error en el servicio de IA' }), { status: 502, headers: corsHeaders });
+      const errBody = await response.text();
+      console.error('OpenRouter error', response.status, errBody);
+      return new Response(
+        JSON.stringify({ error: `Error OpenRouter ${response.status}: ${errBody}` }),
+        { status: 502, headers: corsHeaders },
+      );
     }
 
     const aiResponse = await response.json();
@@ -113,10 +144,8 @@ Formato de respuesta (JSON estricto):
 
     let rewritten: Record<string, unknown>;
     try {
-      // Try direct JSON parse first
       rewritten = JSON.parse(content.trim());
     } catch {
-      // Try extracting from markdown code block
       const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (jsonMatch) {
         rewritten = JSON.parse(jsonMatch[1].trim());
@@ -128,10 +157,16 @@ Formato de respuesta (JSON estricto):
       }
     }
 
-    // Safety: ensure solucion_letra is never changed
+    // Safety: solucion_letra nunca cambia
     rewritten.solucion_letra = solucion_letra;
 
-    // Validate required fields
+    // Safety: short options are never changed regardless of what the AI returned
+    for (const o of opciones) {
+      if (o.texto.length <= SHORT) {
+        rewritten[`opcion_${o.letra.toLowerCase()}`] = o.texto;
+      }
+    }
+
     if (!rewritten.pregunta_texto || !rewritten.opcion_a || !rewritten.opcion_b) {
       return new Response(
         JSON.stringify({ error: 'Respuesta incompleta del servicio de IA' }),

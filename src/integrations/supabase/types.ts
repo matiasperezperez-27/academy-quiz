@@ -17,20 +17,34 @@ export type Database = {
       academias: {
         Row: {
           created_at: string
+          es_biblioteca: boolean
           id: string
           nombre: string
+          propietario_id: string | null
         }
         Insert: {
           created_at?: string
+          es_biblioteca?: boolean
           id?: string
           nombre: string
+          propietario_id?: string | null
         }
         Update: {
           created_at?: string
+          es_biblioteca?: boolean
           id?: string
           nombre?: string
+          propietario_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "academias_propietario_id_fkey"
+            columns: ["propietario_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       examen_preguntas: {
         Row: {
@@ -179,11 +193,13 @@ export type Database = {
           explicacion_d: string | null
           explicacion_modelo: string | null
           id: string
+          modificada_por_ia: boolean
           opcion_a: string
           opcion_b: string
           opcion_c: string | null
           opcion_d: string | null
           parte: string | null
+          pregunta_origen_id: string | null
           pregunta_texto: string
           rechazada: boolean
           solucion_letra: string
@@ -204,11 +220,13 @@ export type Database = {
           explicacion_d?: string | null
           explicacion_modelo?: string | null
           id?: string
+          modificada_por_ia?: boolean
           opcion_a: string
           opcion_b: string
           opcion_c?: string | null
           opcion_d?: string | null
           parte?: string | null
+          pregunta_origen_id?: string | null
           pregunta_texto: string
           rechazada?: boolean
           solucion_letra: string
@@ -229,11 +247,13 @@ export type Database = {
           explicacion_d?: string | null
           explicacion_modelo?: string | null
           id?: string
+          modificada_por_ia?: boolean
           opcion_a?: string
           opcion_b?: string
           opcion_c?: string | null
           opcion_d?: string | null
           parte?: string | null
+          pregunta_origen_id?: string | null
           pregunta_texto?: string
           rechazada?: boolean
           solucion_letra?: string
@@ -256,6 +276,13 @@ export type Database = {
             columns: ["creada_por"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preguntas_pregunta_origen_id_fkey"
+            columns: ["pregunta_origen_id"]
+            isOneToOne: false
+            referencedRelation: "preguntas"
             referencedColumns: ["id"]
           },
           {
@@ -674,10 +701,27 @@ export type Database = {
         Args: { action_type: string; limit_per_hour?: number; user_id: string }
         Returns: boolean
       }
+      clonar_pregunta: {
+        Args: {
+          p_destino_academia_id: string
+          p_destino_tema_id: string
+          p_pregunta_origen_id: string
+          p_profesor_id: string
+        }
+        Returns: string
+      }
       complete_quiz_session: { Args: { p_session_id: string }; Returns: Json }
+      crear_academia_propietario: {
+        Args: { p_admin_id: string; p_nombre: string; p_propietario_id: string }
+        Returns: string
+      }
       crear_tema: {
         Args: { p_academia_id: string; p_nombre: string; p_profesor_id: string }
         Returns: string
+      }
+      eliminar_tema: {
+        Args: { p_profesor_id: string; p_tema_id: string }
+        Returns: boolean
       }
       fix_user_stats: { Args: { p_user_id: string }; Returns: string }
       get_admin_stats: {
@@ -687,6 +731,32 @@ export type Database = {
           total_questions_answered: number
           total_sessions: number
           total_users: number
+        }[]
+      }
+      get_preguntas_banco: {
+        Args: {
+          p_academia_id?: string
+          p_limit?: number
+          p_offset?: number
+          p_profesor_id: string
+          p_solo_no_importadas?: boolean
+          p_tema_id?: string
+        }
+        Returns: {
+          academia_id: string
+          academia_nombre: string
+          id: string
+          opcion_a: string
+          opcion_b: string
+          opcion_c: string
+          opcion_d: string
+          parte: string
+          pregunta_texto: string
+          solucion_letra: string
+          tema_id: string
+          tema_nombre: string
+          total_count: number
+          ya_importada: boolean
         }[]
       }
       get_preguntas_para_verificar: {
@@ -701,12 +771,19 @@ export type Database = {
         Returns: {
           academia_id: string
           academia_nombre: string
+          academia_origen_nombre: string
+          explicacion_a: string
+          explicacion_b: string
+          explicacion_c: string
+          explicacion_d: string
           id: string
+          modificada_por_ia: boolean
           opcion_a: string
           opcion_b: string
           opcion_c: string
           opcion_d: string
           parte: string
+          pregunta_origen_id: string
           pregunta_texto: string
           rechazada: boolean
           solucion_letra: string
@@ -882,6 +959,14 @@ export type Database = {
         Returns: boolean
       }
       refresh_user_stats: { Args: never; Returns: undefined }
+      renombrar_tema: {
+        Args: {
+          p_nuevo_nombre: string
+          p_profesor_id: string
+          p_tema_id: string
+        }
+        Returns: boolean
+      }
       reset_user_progress: {
         Args: { p_tema_id?: string; p_user_id: string }
         Returns: undefined
@@ -905,12 +990,14 @@ export type Database = {
       upsert_pregunta: {
         Args: {
           p_academia_id?: string
+          p_modificada_por_ia?: boolean
           p_opcion_a?: string
           p_opcion_b?: string
           p_opcion_c?: string
           p_opcion_d?: string
           p_parte?: string
           p_pregunta_id?: string
+          p_pregunta_origen_id?: string
           p_pregunta_texto?: string
           p_profesor_id: string
           p_solucion_letra?: string
