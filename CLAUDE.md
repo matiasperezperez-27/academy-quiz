@@ -191,6 +191,11 @@ Admin panel (`/admin`) includes a **Gestión de Profesores** section (`ProfesorM
 
 **Verification edit flow**: `VerificacionPreguntas` includes a pencil icon per question that opens `PreguntaFormDialog` pre-filled with all editable fields (parte, pregunta_texto, opciones A-D, solucion_letra, explicaciones A-D). Saving calls `upsert_pregunta` — verification resets to pending only if the save includes `p_modificada_por_ia = true` (i.e. AI rewrites). Plain manual edits (text, tema, etc.) preserve the current verification status. Academia is not editable from this view.
 
+**Original banco comparison** (`VerificacionPreguntas` + `PreguntaFormDialog`):
+- When the question list loads, all `pregunta_origen_id` values on the current page are batch-fetched in one query (fields: `pregunta_texto`, `opcion_a/b/c/d`, `solucion_letra`). Results are stored in an `originals: Record<string, OriginalPregunta>` map.
+- Each cloned question card shows a "📚 Original del banco" toggle (blue) between the options grid and the verify/reject buttons. Clicking it expands a compact blue panel with the original text + options (correct answer highlighted green). Toggle state is a `Set<string>` so multiple cards can be open simultaneously.
+- `PreguntaFormDialog` accepts an optional `originalPregunta` prop. When present, a collapsible "Original del banco" header appears above the form fields (collapsed by default, resets on dialog close), giving Yeray a reference while editing.
+
 **Banco import flow** (`BancoPreguntas`):
 
 *Single import:*
@@ -250,5 +255,7 @@ The app is designed to be used as a **mobile web app** (installable via browser,
 - Profesor panel uses **teal** color scheme (`text-teal-500`, `bg-teal-600`) to distinguish from the orange admin panel.
 - New RPC calls use `supabase.rpc('name' as any, { ... })` to bypass strict TypeScript types until `types.ts` is regenerated. After schema changes, regenerate with `mcp__supabase__generate_typescript_types` and write to `src/integrations/supabase/types.ts`.
 - Edge functions are deployed with `npx supabase functions deploy <name> --project-ref pakyheklnfpwibyahmcg`. Docker is not required (upload-only mode).
+
+**Auto-resizing textareas**: shadcn `<Textarea>` has `min-h-[80px]` baked into its base class, which prevents the `scrollHeight` collapse trick from working. For textareas that must start at 1 line and grow to content (e.g. option fields in `PreguntaFormDialog`), use a plain `<textarea>` HTML element with `style={{ height: '34px' }}` as the initial inline style + `resize-none overflow-hidden`. Resize logic: (1) `useLayoutEffect` depending on `[open, ...values]` — fires before paint and handles initial load + AI-rewrite updates; (2) inline resize in `onChange` for immediate user feedback. Both use `el.style.height = '0'; el.style.height = el.scrollHeight + 'px'` (setting to `'0'` first forces a real collapse before measuring).
 
 **Radix Select with truncated items**: To make `SelectItem` children use flex layout (for truncating long names + pinning a count to the right), add `className="[&>span:last-child]:flex [&>span:last-child]:w-full [&>span:last-child]:min-w-0 [&>span:last-child]:overflow-hidden [&>span:last-child]:items-center [&>span:last-child]:gap-2"` to `SelectItem`, and `className="w-[var(--radix-select-trigger-width)]"` to `SelectContent`. This targets the `SelectPrimitive.ItemText` span (which is the last child) without modifying the shadcn component.
