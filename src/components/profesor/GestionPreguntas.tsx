@@ -282,18 +282,20 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
         </div>
       )}
 
-      <PreguntaFormDialog
-        open={dialogOpen}
-        onClose={() => { setDialogOpen(false); setForm(FORM_EMPTY); }}
-        form={form}
-        setForm={setForm}
-        saving={saving}
-        onSave={handleGuardar}
-        isEditing={!!form.id}
-        academias={academias}
-        temas={formTemas}
-        onAcademiaChange={handleAcademiaForm}
-      />
+      {dialogOpen && (
+        <PreguntaFormDialog
+          open={dialogOpen}
+          onClose={() => { setDialogOpen(false); setForm(FORM_EMPTY); }}
+          form={form}
+          setForm={setForm}
+          saving={saving}
+          onSave={handleGuardar}
+          isEditing={!!form.id}
+          academias={academias}
+          temas={formTemas}
+          onAcademiaChange={handleAcademiaForm}
+        />
+      )}
 
       {/* Diálogo de confirmación de borrado */}
       <Dialog open={!!deleteItem} onOpenChange={open => { if (!open) setDeleteItem(null); }}>
