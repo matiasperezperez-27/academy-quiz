@@ -266,7 +266,6 @@ export default function PreguntaFormDialog({
                       }}
                       placeholder={isOpcional ? `Opción ${letra} (opcional)` : `Opción ${letra} *`}
                       rows={1}
-                      style={{ height: '34px' }}
                       className="flex-1 resize-none overflow-hidden border-0 bg-transparent outline-none focus:ring-0 px-1 py-1.5 text-sm leading-snug placeholder:text-muted-foreground"
                     />
                   </div>
