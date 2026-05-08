@@ -109,10 +109,11 @@ Role checks use RPCs (`is_user_admin`, `is_user_profesor`) via `useAdmin` and `u
 |---|---|
 | `is_user_profesor(p_user_id)` | Role check — true for `profesor` and `admin` |
 | `get_profesor_stats(p_profesor_id)` | Dashboard totals: academias, temas, preguntas, verificadas, pendientes, estudiantes |
-| `get_profesor_academias(p_profesor_id)` | Assigned academias with verification progress counters |
-| `get_preguntas_para_verificar(p_profesor_id, p_academia_id, p_tema_id, p_estado, p_limit, p_offset)` | Paginated questions for review. `p_estado`: `'pendiente'` \| `'verificada'` \| `'rechazada'`. Returns `total_count` via window function. |
-| `verificar_pregunta(p_profesor_id, p_pregunta_id, p_accion, p_notas)` | Approve or reject a question. `p_accion`: `'verificar'` \| `'rechazar'` |
-| `upsert_pregunta(p_profesor_id, p_pregunta_id?, ...)` | Create or edit a question. Editing resets verification fields. |
+| `get_profesor_academias(p_profesor_id)` | Assigned academias with verification progress counters. Returns `es_biblioteca`, `importadas` (clones in own academia), `verificadas_importadas`. |
+| `get_preguntas_para_verificar(p_profesor_id, p_academia_id, p_tema_id, p_estado, p_limit, p_offset)` | Paginated questions for review. `p_estado`: `'pendiente'` \| `'verificada'` \| `'rechazada'`. Returns `total_count` via window function. Filters `es_biblioteca = false` — banco questions never appear here. |
+| `verificar_pregunta(p_profesor_id, p_pregunta_id, p_accion, p_notas)` | Approve or reject a question. `p_accion`: `'verificar'` \| `'rechazar'`. Rejecting a cloned question **deletes it** (the banco original is never touched — can be re-imported). |
+| `upsert_pregunta(p_profesor_id, p_pregunta_id?, ...)` | Create or edit a question. Verification resets to pending **only** when `p_modificada_por_ia = true`. Manual edits (e.g. tema change) keep current verification status. |
+| `get_banco_tema_import_stats(p_profesor_id, p_banco_academia_id)` | Per-tema import progress for a biblioteca academia from the professor's view. Returns `tema_id, tema_nombre, total, importadas, verificadas`. |
 | `crear_tema(p_profesor_id, p_academia_id, p_nombre)` | Create a new tema scoped to an assigned academia |
 | `renombrar_tema(p_profesor_id, p_tema_id, p_nuevo_nombre)` | Rename a tema (validates profesor_academias ownership) |
 | `eliminar_tema(p_profesor_id, p_tema_id)` | Delete a tema and all its preguntas (cascade, validates ownership) |
@@ -188,13 +189,25 @@ Admin panel (`/admin`) includes a **Gestión de Profesores** section (`ProfesorM
 
 **Select empty-value convention**: Radix UI prohibits `value=""` in `<SelectItem>`. Use `"__all__"` as the sentinel for "all/none selected" and convert to `undefined` before passing to RPCs/queries.
 
-**Verification edit flow**: `VerificacionPreguntas` includes a pencil icon per question that opens `PreguntaFormDialog` pre-filled with all editable fields (parte, pregunta_texto, opciones A-D, solucion_letra, explicaciones A-D). Saving calls `upsert_pregunta` which resets `verificada/rechazada` to false — the question returns to pending and must be re-verified. Academia and tema are not editable from this view.
+**Verification edit flow**: `VerificacionPreguntas` includes a pencil icon per question that opens `PreguntaFormDialog` pre-filled with all editable fields (parte, pregunta_texto, opciones A-D, solucion_letra, explicaciones A-D). Saving calls `upsert_pregunta` — verification resets to pending only if the save includes `p_modificada_por_ia = true` (i.e. AI rewrites). Plain manual edits (text, tema, etc.) preserve the current verification status. Academia is not editable from this view.
 
 **Banco import flow** (`BancoPreguntas`):
-1. Professor selects source (biblioteca academia + tema) and destination (own academia + tema).
+
+*Single import:*
+1. Professor selects source (biblioteca academia + tema chip) and destination (own academia + tema).
 2. Click "Importar" → `clonar_pregunta` RPC creates a copy in the professor's academia with `pregunta_origen_id` set. Explanations are copied too.
 3. `PreguntaFormDialog` opens pre-filled by fetching the full cloned row (including explanations).
-4. Optional: click "🤖 Reescribir con IA" → calls `rewrite-question` edge function (OpenRouter, model configurable via `OPENROUTER_MODEL` secret, default `deepseek/deepseek-chat`).
+4. Optional: click "🤖 Reescribir con IA" → calls `rewrite-question` edge function, then saves with `p_modificada_por_ia = true` (resets to pending).
+
+*Batch import (up to 20 questions):*
+1. Click "Selección múltiple" toggle in the filter header.
+2. Click question cards (or their checkbox) to select up to `MAX_BATCH = 20`.
+3. Floating bar at `bottom-20` shows count + two actions: **"Sin IA"** (plain clone) and **"Importar con IA"** (AI rewrite each).
+4. Progress dialog (non-dismissable while processing): sequential processing with 600ms delay between AI requests; AI failure falls back to plain clone without aborting the batch.
+5. Completion summary: ✅ saved count, ❌ error count, 🤖/📋 legend.
+6. Tema chip stats refresh after the batch completes (`bancoTemasKey` increments).
+
+**Source tema selector (Banco)**: Instead of a `<Select>` dropdown, temas are shown as a chip grid loaded via `get_banco_tema_import_stats`. Each chip shows an icon (⭕ 0 imported, 🔵 some imported, 🔄 all imported but none verified, ✅ some verified) + counts. Clicking a chip filters the question list to that tema.
 
 **AI rewrite logic** (`supabase/functions/rewrite-question/`):
 - Always rewrites `pregunta_texto`.
@@ -203,7 +216,12 @@ Admin panel (`/admin`) includes a **Gestión de Profesores** section (`ProfesorM
 - Explanations are passed as context only — never returned, never modified. Client keeps originals.
 - After AI response, client applies `shuffleOptions()` (`src/lib/shuffleOptions.ts`): Fisher-Yates shuffle of active options tracked by `origIdx` (not object reference), `solucion_letra` updated to match the correct option's new position. Explanations follow their options during shuffle.
 
-**Verification dashboard**: `VerificacionPreguntas` shows a mini-dashboard at the top with one card per academia. Each card displays color-coded verification progress (teal ≥70%, amber 30-70%, red <30%) with a "Temas" toggle button. Clicking the toggle expands a 2-column grid of tema chips (max-h-72, scrollable) showing gamified icons (🏆100%, ✅≥70%, 🔄30-70%, 🔴<30%, ⭕0%), a mini progress bar, and pending/verified counts. Tema stats are loaded lazily on first expand using parallel `{ count: 'exact', head: true }` queries and cached in component state. Clicking a tema chip sets the filter to that academia+tema. A context bar below the filters shows live counts for the current filter scope.
+**Verification dashboard**: `VerificacionPreguntas` shows a mini-dashboard split into two sections:
+- **"Tu academia"**: one card per propia academia (es_biblioteca = false) with color-coded verification progress (teal ≥70%, amber 30-70%, red <30%) and a "Temas" toggle. Tema chips are clickable to set the filter. Stats loaded lazily, cached in component state.
+- **"Progreso del banco"**: one card per biblioteca academia (JCLM, LICEO, LINCE) showing import progress (importadas / total) and verified count. Tema chips here are informational only (not clickable for filter). Stats loaded via `get_banco_tema_import_stats`.
+- Filter selects only show propias academias. Context bar below shows live counts for the current scope.
+
+**GestionPreguntas / GestionTemas**: Both components filter `academias` to `propias` (es_biblioteca = false) before rendering. If the professor has only one propia academia, the selector is replaced with a static label and the academia is auto-selected on mount.
 
 ### Mobile-first design
 

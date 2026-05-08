@@ -682,7 +682,7 @@ export default function BancoPreguntas({ profesorId, academias }: Props) {
       {/* Dialog de progreso batch */}
       <Dialog open={batchProcessing || batchDone} onOpenChange={() => {}}>
         <DialogContent
-          className="max-w-sm"
+          className="max-w-lg"
           onPointerDownOutside={e => { if (batchProcessing) e.preventDefault(); }}
           onEscapeKeyDown={e => { if (batchProcessing) e.preventDefault(); }}
         >
@@ -708,7 +708,7 @@ export default function BancoPreguntas({ profesorId, academias }: Props) {
             </div>
 
             {/* Lista de items con estado */}
-            <div className="max-h-52 overflow-y-auto space-y-1.5 pr-0.5">
+            <div className="max-h-64 overflow-y-auto space-y-2 pr-0.5">
               {batchItems.map(item => (
                 <div key={item.id} className="flex items-center gap-2 text-xs">
                   {item.status === 'processing' && <Loader2 className="h-3.5 w-3.5 flex-shrink-0 animate-spin text-blue-500" />}
@@ -716,7 +716,7 @@ export default function BancoPreguntas({ profesorId, academias }: Props) {
                   {item.status === 'done_no_ai' && <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />}
                   {item.status === 'error' && <XCircle className="h-3.5 w-3.5 flex-shrink-0 text-red-500" />}
                   {item.status === 'pending' && <div className="h-3.5 w-3.5 flex-shrink-0 rounded-full bg-gray-200 dark:bg-gray-700" />}
-                  <span className="truncate flex-1 text-muted-foreground">{item.texto.slice(0, 70)}{item.texto.length > 70 ? '…' : ''}</span>
+                  <span className="flex-1 text-muted-foreground leading-snug">{item.texto}</span>
                   {item.status === 'done' && <span className="flex-shrink-0 text-teal-500 font-medium">🤖</span>}
                   {item.status === 'done_no_ai' && <span className="flex-shrink-0 text-gray-400">📋</span>}
                 </div>
