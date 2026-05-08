@@ -5,11 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import {
   ChevronLeft, ChevronRight, Download, BookOpen, Loader2,
-  CheckSquare2, Square, CheckCircle2, XCircle, Sparkles,
+  CheckSquare2, Square, CheckCircle2, XCircle, Sparkles, Trash2, AlertTriangle,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -78,6 +78,10 @@ export default function BancoPreguntas({ profesorId, academias }: Props) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<PreguntaForm | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
+
+  // Delete banco
+  const [deleteItem, setDeleteItem] = useState<{ id: string; texto: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Batch mode
   const [batchMode, setBatchMode] = useState(false);
@@ -376,6 +380,26 @@ export default function BancoPreguntas({ profesorId, academias }: Props) {
     setBancoTemasKey(k => k + 1);
   };
 
+  const handleEliminarBanco = async () => {
+    if (!deleteItem) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase.rpc('eliminar_pregunta_banco' as any, {
+        p_profesor_id: profesorId,
+        p_pregunta_id: deleteItem.id,
+      });
+      if (error) throw error;
+      toast.success('Pregunta eliminada del banco');
+      setDeleteItem(null);
+      recargar();
+      setBancoTemasKey(k => k + 1);
+    } catch (err: any) {
+      toast.error(err.message || 'Error al eliminar la pregunta');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const closeBatchDialog = () => {
     setBatchItems([]);
     setBatchDone(false);
@@ -603,17 +627,26 @@ export default function BancoPreguntas({ profesorId, academias }: Props) {
                       <CardTitle className="text-sm font-medium leading-snug line-clamp-3">{p.pregunta_texto}</CardTitle>
                     </div>
                     {!batchMode && (
-                      <Button
-                        size="sm"
-                        variant={p.ya_importada ? 'outline' : 'default'}
-                        className={`flex-shrink-0 gap-1.5 ${p.ya_importada ? 'text-muted-foreground' : 'bg-teal-600 hover:bg-teal-700'}`}
-                        disabled={isImporting || !destAcademiaId || !destTemaId}
-                        onClick={() => handleImportar(p)}
-                        title={!destTemaId ? 'Selecciona el tema destino arriba' : undefined}
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                        {isImporting ? 'Cargando...' : p.ya_importada ? 'Re-importar' : 'Importar'}
-                      </Button>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <Button
+                          size="sm"
+                          variant={p.ya_importada ? 'outline' : 'default'}
+                          className={`gap-1.5 ${p.ya_importada ? 'text-muted-foreground' : 'bg-teal-600 hover:bg-teal-700'}`}
+                          disabled={isImporting || !destAcademiaId || !destTemaId}
+                          onClick={() => handleImportar(p)}
+                          title={!destTemaId ? 'Selecciona el tema destino arriba' : undefined}
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          {isImporting ? 'Cargando...' : p.ya_importada ? 'Re-importar' : 'Importar'}
+                        </Button>
+                        <button
+                          onClick={() => setDeleteItem({ id: p.id, texto: p.pregunta_texto })}
+                          className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-600 transition-colors"
+                          title="Eliminar del banco"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </CardHeader>
@@ -740,6 +773,37 @@ export default function BancoPreguntas({ profesorId, academias }: Props) {
                 </Button>
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo confirmación borrado banco */}
+      <Dialog open={!!deleteItem} onOpenChange={open => { if (!open) setDeleteItem(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-500" />
+              Eliminar del banco
+            </DialogTitle>
+            <DialogDescription className="text-sm line-clamp-2">
+              "{deleteItem?.texto}"
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            <div className="rounded-lg border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-900/20 p-3 flex gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-red-700 dark:text-red-400">
+                Esta acción no se puede deshacer. Las copias ya importadas en tu academia no se verán afectadas.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setDeleteItem(null)}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" className="flex-1" disabled={deleting} onClick={handleEliminarBanco}>
+                {deleting ? 'Eliminando...' : 'Eliminar'}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
