@@ -122,6 +122,7 @@ Role checks use RPCs (`is_user_admin`, `is_user_profesor`) via `useAdmin` and `u
 | `crear_academia_propietario(p_admin_id, p_nombre, p_propietario_id)` | Admin-only: creates a non-biblioteca academia and assigns it to a professor |
 | `clonar_pregunta(p_profesor_id, p_pregunta_origen_id, p_destino_academia_id, p_destino_tema_id)` | Clone a banco question into the professor's own academia. Sets `pregunta_origen_id`, copies all fields including explanations. Returns new UUID. |
 | `get_preguntas_banco(p_profesor_id, p_academia_id?, p_tema_id?, p_solo_no_importadas?, p_limit, p_offset)` | Paginated list of biblioteca questions with `ya_importada` flag per row. |
+| `eliminar_pregunta_banco(p_profesor_id, p_pregunta_id)` | Permanently delete a banco question (es_biblioteca = true only). Cascades: deletes `user_answers`, `preguntas_falladas`, `user_pregunta_status`, `examen_preguntas` rows first, then the question. Clones in own academia keep their data with `pregunta_origen_id → NULL`. |
 
 ### Smart question selection priority
 
@@ -211,6 +212,11 @@ Admin panel (`/admin`) includes a **Gestión de Profesores** section (`ProfesorM
 4. Progress dialog (non-dismissable while processing): sequential processing with 600ms delay between AI requests; AI failure falls back to plain clone without aborting the batch.
 5. Completion summary: ✅ saved count, ❌ error count, 🤖/📋 legend.
 6. Tema chip stats refresh after the batch completes (`bancoTemasKey` increments).
+
+*Delete from banco:*
+- Each question card has a trash icon (next to "Importar") that opens a confirmation dialog.
+- Calls `eliminar_pregunta_banco` RPC which validates `es_biblioteca = true`, clears dependent rows, then deletes. Clones already in own academia are unaffected (`pregunta_origen_id → NULL`).
+- List and tema chip stats refresh after deletion.
 
 **Source tema selector (Banco)**: Instead of a `<Select>` dropdown, temas are shown as a chip grid loaded via `get_banco_tema_import_stats`. Each chip shows an icon (⭕ 0 imported, 🔵 some imported, 🔄 all imported but none verified, ✅ some verified) + counts. Clicking a chip filters the question list to that tema.
 
