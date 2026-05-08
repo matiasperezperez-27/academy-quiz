@@ -95,8 +95,8 @@ export default function Profesor() {
         <Tabs defaultValue={defaultTab}>
           <TabsList className="w-full grid grid-cols-4 sm:grid-cols-7 h-auto">
             <TabsTrigger value="dashboard" className="text-xs sm:text-sm">Inicio</TabsTrigger>
-            <TabsTrigger value="verificar" className="text-xs sm:text-sm">Verificar</TabsTrigger>
             <TabsTrigger value="banco" className="text-xs sm:text-sm">Banco</TabsTrigger>
+            <TabsTrigger value="verificar" className="text-xs sm:text-sm">Verificar</TabsTrigger>
             <TabsTrigger value="preguntas" className="text-xs sm:text-sm">Preguntas</TabsTrigger>
             <TabsTrigger value="temas" className="text-xs sm:text-sm">Temas</TabsTrigger>
             <TabsTrigger value="examenes" className="text-xs sm:text-sm">Exámenes</TabsTrigger>
