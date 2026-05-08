@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -65,6 +64,15 @@ export default function PreguntaFormDialog({
 
   const [showOriginal, setShowOriginal] = useState(false);
   useEffect(() => { if (!open) setShowOriginal(false); }, [open]);
+
+  const optionRefs = useRef<(HTMLTextAreaElement | null)[]>([null, null, null, null]);
+  useEffect(() => {
+    optionRefs.current.forEach(el => {
+      if (!el) return;
+      el.style.height = 'auto';
+      el.style.height = el.scrollHeight + 'px';
+    });
+  }, [form.opcion_a, form.opcion_b, form.opcion_c, form.opcion_d]);
 
   const canSave = Boolean(
     form.pregunta_texto?.trim() &&
@@ -229,7 +237,7 @@ export default function PreguntaFormDialog({
                 return (
                   <div
                     key={letra}
-                    className={`flex items-center gap-2 pl-1 pr-3 py-1.5 rounded-lg border transition-all duration-150 ${
+                    className={`flex items-start gap-2 pl-1 pr-3 py-1.5 rounded-lg border transition-all duration-150 ${
                       isCorrecta
                         ? 'bg-green-50 border-green-300 dark:bg-green-900/20 dark:border-green-700'
                         : 'bg-background border-input hover:border-muted-foreground/40'
@@ -238,7 +246,7 @@ export default function PreguntaFormDialog({
                     <button
                       type="button"
                       onClick={() => patch({ solucion_letra: letra })}
-                      className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${
+                      className={`flex-shrink-0 mt-1 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${
                         isCorrecta
                           ? 'bg-green-500 border-green-500 text-white shadow-sm shadow-green-200 dark:shadow-green-900/40'
                           : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-teal-400 hover:text-teal-600'
@@ -247,11 +255,13 @@ export default function PreguntaFormDialog({
                     >
                       {isCorrecta ? <CheckCircle2 className="h-4 w-4" /> : letra}
                     </button>
-                    <Input
+                    <Textarea
+                      ref={el => { optionRefs.current[i] = el; }}
                       value={(form as any)[fieldKey] || ''}
                       onChange={e => patch({ [fieldKey]: e.target.value })}
                       placeholder={isOpcional ? `Opción ${letra} (opcional)` : `Opción ${letra} *`}
-                      className="flex-1 h-8 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-1 text-sm"
+                      rows={1}
+                      className="flex-1 min-h-0 resize-none overflow-hidden border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-1 py-1.5 text-sm leading-snug"
                     />
                   </div>
                 );
