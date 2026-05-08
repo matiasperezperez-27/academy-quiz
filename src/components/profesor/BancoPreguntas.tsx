@@ -485,7 +485,17 @@ export default function BancoPreguntas({ profesorId, academias }: Props) {
                     ? 'bg-blue-100 dark:bg-blue-900/40 border-blue-400 text-blue-700 dark:text-blue-300'
                     : 'bg-muted border-border text-muted-foreground hover:bg-accent hover:text-foreground'
                 }`}
-                onClick={() => batchMode ? exitBatchMode() : setBatchMode(true)}
+                onClick={() => {
+                  if (batchMode) {
+                    exitBatchMode();
+                    return;
+                  }
+                  if (!destAcademiaId || !destTemaId) {
+                    toast.error('Selecciona el tema destino antes de importar');
+                    return;
+                  }
+                  setBatchMode(true);
+                }}
               >
                 {batchMode ? <CheckSquare2 className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
                 {batchMode ? 'Cancelar selección' : 'Selección múltiple'}
