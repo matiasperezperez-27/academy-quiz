@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Pencil, CheckCircle, Clock, XCircle, HelpCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Plus, Pencil, Trash2, CheckCircle, Clock, XCircle, HelpCircle, AlertTriangle } from 'lucide-react';
 import { useGestionPreguntas, type PreguntaForm } from '@/hooks/useGestionPreguntas';
 import PreguntaFormDialog from '@/components/profesor/PreguntaFormDialog';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import type { ProfesorAcademia } from '@/hooks/useProfesorData';
 
 interface Props {
@@ -57,6 +59,8 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<PreguntaForm>(FORM_EMPTY);
   const [formTemas, setFormTemas] = useState<{ id: string; nombre: string }[]>([]);
+  const [deleteItem, setDeleteItem] = useState<{ id: string; texto: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (academiaId) {
@@ -120,6 +124,26 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
       setForm(FORM_EMPTY);
       if (academiaId) cargar(academiaId, temaId === '__all__' ? undefined : temaId);
       onRefresh();
+    }
+  };
+
+  const handleEliminar = async () => {
+    if (!deleteItem) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase.rpc('eliminar_pregunta' as any, {
+        p_profesor_id: profesorId,
+        p_pregunta_id: deleteItem.id,
+      });
+      if (error) throw error;
+      toast.success('Pregunta eliminada');
+      setDeleteItem(null);
+      if (academiaId) cargar(academiaId, temaId === '__all__' ? undefined : temaId);
+      onRefresh();
+    } catch (err: any) {
+      toast.error(err.message || 'Error al eliminar la pregunta');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -239,6 +263,13 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>
+                <button
+                  onClick={() => setDeleteItem({ id: p.id, texto: p.pregunta_texto })}
+                  className="flex-shrink-0 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-600 transition-colors"
+                  title="Eliminar pregunta"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
               </div>
             );
           })}
@@ -257,6 +288,37 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
         temas={formTemas}
         onAcademiaChange={handleAcademiaForm}
       />
+
+      {/* Diálogo de confirmación de borrado */}
+      <Dialog open={!!deleteItem} onOpenChange={open => { if (!open) setDeleteItem(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-500" />
+              Eliminar pregunta
+            </DialogTitle>
+            <DialogDescription className="text-sm line-clamp-2">
+              "{deleteItem?.texto}"
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            <div className="rounded-lg border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-900/20 p-3 flex gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-red-700 dark:text-red-400">
+                Esta acción no se puede deshacer. Si la pregunta fue importada del banco, podrás volver a importarla.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setDeleteItem(null)}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" className="flex-1" disabled={deleting} onClick={handleEliminar}>
+                {deleting ? 'Eliminando...' : 'Eliminar'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
