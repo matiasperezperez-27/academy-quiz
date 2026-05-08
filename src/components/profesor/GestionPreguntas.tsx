@@ -44,8 +44,14 @@ function getStatus(v: boolean, r: boolean): StatusKey {
 }
 
 export default function GestionPreguntas({ profesorId, academias, onRefresh }: Props) {
+  const propias = academias.filter(a => !a.es_biblioteca);
   const { preguntas, loading, saving, cargar, guardar } = useGestionPreguntas(profesorId);
   const [academiaId, setAcademiaId] = useState('');
+
+  useEffect(() => {
+    if (propias.length === 1 && !academiaId) setAcademiaId(propias[0].academia_id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propias.length]);
   const [temaId, setTemaId] = useState('__all__');
   const [temas, setTemas] = useState<{ id: string; nombre: string }[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -101,7 +107,7 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
   };
 
   const handleNueva = () => {
-    setForm({ ...FORM_EMPTY, academia_id: academiaId, tema_id: temaId });
+    setForm({ ...FORM_EMPTY, academia_id: academiaId, tema_id: temaId === '__all__' ? '' : temaId });
     if (academiaId) setFormTemas(temas);
     setDialogOpen(true);
   };
@@ -112,7 +118,7 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
     if (id) {
       setDialogOpen(false);
       setForm(FORM_EMPTY);
-      if (academiaId) cargar(academiaId, temaId || undefined);
+      if (academiaId) cargar(academiaId, temaId === '__all__' ? undefined : temaId);
       onRefresh();
     }
   };
@@ -124,16 +130,22 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
 
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-2">
-        <Select value={academiaId} onValueChange={setAcademiaId}>
-          <SelectTrigger className="flex-1">
-            <SelectValue placeholder="Selecciona academia" />
-          </SelectTrigger>
-          <SelectContent>
-            {academias.map(a => (
-              <SelectItem key={a.academia_id} value={a.academia_id}>{a.academia_nombre}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {propias.length > 1 ? (
+          <Select value={academiaId} onValueChange={setAcademiaId}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Selecciona academia" />
+            </SelectTrigger>
+            <SelectContent>
+              {propias.map(a => (
+                <SelectItem key={a.academia_id} value={a.academia_id}>{a.academia_nombre}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <div className="flex-1 h-10 flex items-center px-3 rounded-md border bg-muted/50 text-sm font-medium text-muted-foreground">
+            {propias[0]?.academia_nombre ?? 'Sin academia'}
+          </div>
+        )}
 
         {temas.length > 0 && (
           <Select value={temaId} onValueChange={setTemaId}>

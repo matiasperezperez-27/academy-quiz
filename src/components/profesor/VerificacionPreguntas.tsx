@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle, XCircle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Pencil, GraduationCap, Trophy, Filter } from 'lucide-react';
+import { CheckCircle, XCircle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Pencil, GraduationCap, Library } from 'lucide-react';
 import { useVerificacion, type PreguntaParaVerificar } from '@/hooks/useVerificacion';
 import { useGestionPreguntas, type PreguntaForm } from '@/hooks/useGestionPreguntas';
 import PreguntaFormDialog from '@/components/profesor/PreguntaFormDialog';
@@ -29,6 +29,14 @@ interface TemaStats {
   total: number;
 }
 
+interface BancoTemaStats {
+  tema_id: string;
+  tema_nombre: string;
+  total: number;
+  importadas: number;
+  verificadas: number;
+}
+
 function getProgressColor(pct: number) {
   if (pct >= 70) return { border: 'border-teal-400', bar: 'bg-teal-500', text: 'text-teal-600 dark:text-teal-400', bg: 'bg-teal-50 dark:bg-teal-900/20' };
   if (pct >= 30) return { border: 'border-amber-400', bar: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20' };
@@ -43,6 +51,13 @@ function temaIcon(pct: number) {
   return '⭕';
 }
 
+function bancoTemaIcon(importadas: number, verificadas: number) {
+  if (importadas === 0) return '⭕';
+  if (verificadas === importadas) return '✅';
+  if (verificadas > 0) return '🔄';
+  return '🔵';
+}
+
 interface Props {
   profesorId: string;
   academias: ProfesorAcademia[];
@@ -52,6 +67,9 @@ const PAGE_SIZE = 10;
 const SOLUCIONES = ['A', 'B', 'C', 'D'] as const;
 
 export default function VerificacionPreguntas({ profesorId, academias }: Props) {
+  const propias = academias.filter(a => !a.es_biblioteca);
+  const banco = academias.filter(a => a.es_biblioteca);
+
   const { preguntas, loading, cargar, verificar } = useVerificacion(profesorId);
   const { saving, guardar } = useGestionPreguntas(profesorId);
 
@@ -64,12 +82,20 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
   const [filterCounts, setFilterCounts] = useState<FilterCounts | null>(null);
   const [expandedAcademia, setExpandedAcademia] = useState<string | null>(null);
   const [temaStatsMap, setTemaStatsMap] = useState<Record<string, TemaStats[]>>({});
+  const [bancoTemaStatsMap, setBancoTemaStatsMap] = useState<Record<string, BancoTemaStats[]>>({});
   const [loadingTemas, setLoadingTemas] = useState<string | null>(null);
 
-  // Edit dialog state
   const [editando, setEditando] = useState<PreguntaParaVerificar | null>(null);
   const [form, setForm] = useState<PreguntaForm | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
+
+  // Auto-select primera academia propia al cargar
+  useEffect(() => {
+    if (propias.length > 0 && academiaId === '__all__') {
+      setAcademiaId(propias[0].academia_id);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propias.length]);
 
   const recargar = useCallback(() => {
     cargar({
@@ -89,8 +115,6 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
         .eq('academia_id', academiaId)
         .order('nombre')
         .then(({ data }) => setTemas(data || []));
-      // No reseteamos temaId aquí: si el cambio vino de un chip ya tiene el tema correcto.
-      // El reset lo hace el onValueChange del Select de academia.
     } else {
       setTemas([]);
       setTemaId('__all__');
@@ -101,11 +125,11 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
     recargar();
   }, [recargar]);
 
-  // Carga conteos pendiente/verificada/rechazada para el filtro activo
+  // filterCounts: solo preguntas de academias propias
   useEffect(() => {
-    if (!academias.length) return;
+    if (!propias.length) return;
+    const ids = propias.map(a => a.academia_id);
     const load = async () => {
-      const ids = academias.map(a => a.academia_id);
       const base = () => {
         let q = supabase.from('preguntas').select('*', { count: 'exact', head: true });
         if (academiaId !== '__all__') q = q.eq('academia_id', academiaId);
@@ -124,7 +148,7 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
       setFilterCounts({ pendientes, verificadas, rechazadas, total: pendientes + verificadas + rechazadas });
     };
     load();
-  }, [academiaId, temaId, academias]);
+  }, [academiaId, temaId, propias.length]);
 
   const handleAccion = async (preguntaId: string, accion: 'verificar' | 'rechazar') => {
     setProcesando(preguntaId);
@@ -133,8 +157,9 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
     setProcesando(null);
   };
 
+  // Lazy load temas para academia propia
   const loadTemaStats = useCallback(async (acaId: string) => {
-    if (temaStatsMap[acaId]) return; // already loaded
+    if (temaStatsMap[acaId]) return;
     setLoadingTemas(acaId);
     try {
       const { data: temaList } = await supabase.from('temas').select('id, nombre').eq('academia_id', acaId).order('nombre');
@@ -153,7 +178,6 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
           return { id: t.id, nombre: t.nombre, pendientes, verificadas, rechazadas, total: pendientes + verificadas + rechazadas } as TemaStats;
         })
       );
-      // Sort: incomplete first (by % ascending), complete at bottom
       results.sort((a, b) => {
         const pctA = a.total > 0 ? a.verificadas / a.total : 0;
         const pctB = b.total > 0 ? b.verificadas / b.total : 0;
@@ -166,6 +190,21 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
       setLoadingTemas(null);
     }
   }, [temaStatsMap]);
+
+  // Lazy load temas para academia banco (import stats)
+  const loadBancoTemaStats = useCallback(async (acaId: string) => {
+    if (bancoTemaStatsMap[acaId]) return;
+    setLoadingTemas(acaId);
+    try {
+      const { data } = await supabase.rpc('get_banco_tema_import_stats' as any, {
+        p_profesor_id: profesorId,
+        p_banco_academia_id: acaId,
+      });
+      setBancoTemaStatsMap(prev => ({ ...prev, [acaId]: (data || []) as BancoTemaStats[] }));
+    } finally {
+      setLoadingTemas(null);
+    }
+  }, [bancoTemaStatsMap, profesorId]);
 
   const abrirEdicion = (p: PreguntaParaVerificar) => {
     setEditando(p);
@@ -217,7 +256,6 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
         },
       });
       if (error) throw error;
-      // Explicaciones no se tocan — la IA solo reescribe enunciado y opciones largas
       const rewritten: PreguntaForm = {
         ...form,
         pregunta_texto: data.pregunta_texto || form.pregunta_texto,
@@ -243,119 +281,195 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
     rechazada: 'rechazadas',
   };
 
-  const selectedAcademiaName = academias.find(a => a.academia_id === academiaId)?.academia_nombre;
+  const selectedAcademiaName = propias.find(a => a.academia_id === academiaId)?.academia_nombre;
   const selectedTemaName = temas.find(t => t.id === temaId)?.nombre;
 
   return (
     <div className="space-y-4">
 
-      {/* Mini-dashboard por academia */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {academias.map(a => {
-          const pct = a.total_preguntas > 0 ? Math.round((a.preguntas_verificadas / a.total_preguntas) * 100) : 0;
-          const rechazadas = Math.max(0, a.total_preguntas - a.preguntas_verificadas - a.preguntas_pendientes);
-          const colors = getProgressColor(pct);
-          const isActive = academiaId === a.academia_id;
-          const isExpanded = expandedAcademia === a.academia_id;
-          const temaStats = temaStatsMap[a.academia_id];
-          return (
-            <Card
-              key={a.academia_id}
-              className={`border-l-4 transition-all duration-200 hover:shadow-md ${colors.border} ${isActive ? `${colors.bg} ring-2 ring-offset-1 ${colors.border.replace('border', 'ring')}` : ''}`}
-            >
-              <CardContent className="p-4 space-y-2">
-                {/* Header row: filter click + expand toggle */}
-                <div className="flex items-center gap-2">
-                  <button
-                    className="flex-1 flex items-center justify-between gap-2 text-left"
-                    onClick={() => { setAcademiaId(isActive ? '__all__' : a.academia_id); setTemaId('__all__'); setPage(0); }}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <GraduationCap className={`h-4 w-4 flex-shrink-0 ${colors.text}`} />
-                      <span className="font-semibold text-sm truncate">{a.academia_nombre}</span>
-                    </div>
-                    <span className={`text-sm font-bold flex-shrink-0 ${colors.text}`}>{pct}%</span>
-                  </button>
-                  <button
-                    className={`flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors border ${isExpanded ? 'bg-teal-100 dark:bg-teal-900/40 border-teal-300 dark:border-teal-700 text-teal-700 dark:text-teal-300' : 'bg-muted border-border text-muted-foreground hover:bg-accent hover:text-foreground'}`}
-                    onClick={() => {
-                      if (!isExpanded) loadTemaStats(a.academia_id);
-                      setExpandedAcademia(isExpanded ? null : a.academia_id);
-                    }}
-                    title={isExpanded ? 'Ocultar temas' : 'Ver progreso por tema'}
-                  >
-                    Temas
-                    {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                  </button>
-                </div>
-
-                <Progress value={pct} className="h-2" />
-                <div className="flex gap-3 text-xs flex-wrap">
-                  <span className="text-amber-600 dark:text-amber-400 font-medium">
-                    🟡 {a.preguntas_pendientes.toLocaleString()} pend.
-                  </span>
-                  <span className="text-teal-600 dark:text-teal-400 font-medium">
-                    ✅ {a.preguntas_verificadas.toLocaleString()} verif.
-                  </span>
-                  {rechazadas > 0 && (
-                    <span className="text-red-600 dark:text-red-400 font-medium">
-                      ❌ {rechazadas.toLocaleString()} rech.
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">{a.total_preguntas.toLocaleString()} preguntas · {a.total_temas} temas</p>
-
-                {/* Expandable tema grid */}
-                {isExpanded && (
-                  <div className="pt-2 border-t mt-1">
-                    {loadingTemas === a.academia_id ? (
-                      <div className="grid grid-cols-2 gap-1.5">
-                        {[...Array(6)].map((_, i) => (
-                          <div key={i} className="animate-pulse h-14 bg-gray-200 dark:bg-gray-700 rounded-lg" />
-                        ))}
-                      </div>
-                    ) : temaStats && temaStats.length > 0 ? (
-                      <div className="max-h-72 overflow-y-auto pr-0.5">
-                        <div className="grid grid-cols-2 gap-1.5">
-                          {temaStats.map(t => {
-                            const tPct = t.total > 0 ? Math.round((t.verificadas / t.total) * 100) : 0;
-                            const tColors = getProgressColor(tPct);
-                            const icon = temaIcon(tPct);
-                            const isComplete = tPct === 100;
-                            return (
-                              <button
-                                key={t.id}
-                                className={`text-left p-2 rounded-lg border transition-all hover:shadow-sm active:scale-95 ${isComplete ? 'bg-teal-50/60 dark:bg-teal-900/10 border-teal-200 dark:border-teal-800 opacity-60' : 'bg-background border-muted hover:border-muted-foreground/40'}`}
-                                onClick={() => { setAcademiaId(a.academia_id); setTemaId(t.id); setPage(0); }}
-                              >
-                                <div className="flex items-center gap-1 mb-1">
-                                  <span className="text-xs leading-none flex-shrink-0">{icon}</span>
-                                  <span className={`text-xs font-medium truncate flex-1 min-w-0 ${isComplete ? 'line-through text-muted-foreground' : ''}`}>{t.nombre}</span>
-                                  <span className={`text-xs font-bold flex-shrink-0 ml-0.5 ${tColors.text}`}>{tPct}%</span>
-                                </div>
-                                <div className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                  <div className={`h-full rounded-full ${tColors.bar}`} style={{ width: `${tPct}%` }} />
-                                </div>
-                                <p className="text-[10px] text-muted-foreground mt-1 truncate">
-                                  {t.pendientes} pend. · {t.verificadas} verif.
-                                </p>
-                              </button>
-                            );
-                          })}
+      {/* Dashboard: Tu academia */}
+      {propias.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">Tu academia</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {propias.map(a => {
+              const pct = a.total_preguntas > 0 ? Math.round((a.preguntas_verificadas / a.total_preguntas) * 100) : 0;
+              const rechazadas = Math.max(0, a.total_preguntas - a.preguntas_verificadas - a.preguntas_pendientes);
+              const colors = getProgressColor(pct);
+              const isActive = academiaId === a.academia_id;
+              const isExpanded = expandedAcademia === a.academia_id;
+              const temaStats = temaStatsMap[a.academia_id];
+              return (
+                <Card
+                  key={a.academia_id}
+                  className={`border-l-4 transition-all duration-200 hover:shadow-md ${colors.border} ${isActive ? `${colors.bg} ring-2 ring-offset-1 ${colors.border.replace('border', 'ring')}` : ''}`}
+                >
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        className="flex-1 flex items-center justify-between gap-2 text-left"
+                        onClick={() => { setAcademiaId(isActive ? '__all__' : a.academia_id); setTemaId('__all__'); setPage(0); }}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <GraduationCap className={`h-4 w-4 flex-shrink-0 ${colors.text}`} />
+                          <span className="font-semibold text-sm truncate">{a.academia_nombre}</span>
                         </div>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground text-center py-2">Sin temas</p>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                        <span className={`text-sm font-bold flex-shrink-0 ${colors.text}`}>{pct}%</span>
+                      </button>
+                      <button
+                        className={`flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors border ${isExpanded ? 'bg-teal-100 dark:bg-teal-900/40 border-teal-300 dark:border-teal-700 text-teal-700 dark:text-teal-300' : 'bg-muted border-border text-muted-foreground hover:bg-accent hover:text-foreground'}`}
+                        onClick={() => {
+                          if (!isExpanded) loadTemaStats(a.academia_id);
+                          setExpandedAcademia(isExpanded ? null : a.academia_id);
+                        }}
+                        title={isExpanded ? 'Ocultar temas' : 'Ver progreso por tema'}
+                      >
+                        Temas
+                        {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                    <Progress value={pct} className="h-2" />
+                    <div className="flex gap-3 text-xs flex-wrap">
+                      <span className="text-amber-600 dark:text-amber-400 font-medium">🟡 {a.preguntas_pendientes.toLocaleString()} pend.</span>
+                      <span className="text-teal-600 dark:text-teal-400 font-medium">✅ {a.preguntas_verificadas.toLocaleString()} verif.</span>
+                      {rechazadas > 0 && <span className="text-red-600 dark:text-red-400 font-medium">❌ {rechazadas.toLocaleString()} rech.</span>}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{a.total_preguntas.toLocaleString()} preguntas · {a.total_temas} temas</p>
 
-      {/* Filtros */}
+                    {isExpanded && (
+                      <div className="pt-2 border-t mt-1">
+                        {loadingTemas === a.academia_id ? (
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {[...Array(4)].map((_, i) => <div key={i} className="animate-pulse h-14 bg-gray-200 dark:bg-gray-700 rounded-lg" />)}
+                          </div>
+                        ) : temaStats && temaStats.length > 0 ? (
+                          <div className="max-h-72 overflow-y-auto pr-0.5">
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {temaStats.map(t => {
+                                const tPct = t.total > 0 ? Math.round((t.verificadas / t.total) * 100) : 0;
+                                const tColors = getProgressColor(tPct);
+                                const isComplete = tPct === 100;
+                                return (
+                                  <button
+                                    key={t.id}
+                                    className={`text-left p-2 rounded-lg border transition-all hover:shadow-sm active:scale-95 ${isComplete ? 'bg-teal-50/60 dark:bg-teal-900/10 border-teal-200 dark:border-teal-800 opacity-60' : 'bg-background border-muted hover:border-muted-foreground/40'}`}
+                                    onClick={() => { setAcademiaId(a.academia_id); setTemaId(t.id); setPage(0); }}
+                                  >
+                                    <div className="flex items-center gap-1 mb-1">
+                                      <span className="text-xs leading-none flex-shrink-0">{temaIcon(tPct)}</span>
+                                      <span className={`text-xs font-medium truncate flex-1 min-w-0 ${isComplete ? 'line-through text-muted-foreground' : ''}`}>{t.nombre}</span>
+                                      <span className={`text-xs font-bold flex-shrink-0 ml-0.5 ${tColors.text}`}>{tPct}%</span>
+                                    </div>
+                                    <div className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                      <div className={`h-full rounded-full ${tColors.bar}`} style={{ width: `${tPct}%` }} />
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground mt-1 truncate">{t.pendientes} pend. · {t.verificadas} verif.</p>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground text-center py-2">Sin temas</p>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Dashboard: Progreso del banco */}
+      {banco.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">Progreso del banco</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {banco.map(a => {
+              const importPct = a.total_preguntas > 0 ? Math.round((a.importadas / a.total_preguntas) * 100) : 0;
+              const isExpanded = expandedAcademia === a.academia_id;
+              const bancoTemas = bancoTemaStatsMap[a.academia_id];
+              return (
+                <Card key={a.academia_id} className="border-l-4 border-l-blue-400 transition-all duration-200 hover:shadow-md">
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Library className="h-4 w-4 flex-shrink-0 text-blue-500" />
+                          <span className="font-semibold text-sm truncate">{a.academia_nombre}</span>
+                        </div>
+                        <span className="text-sm font-bold flex-shrink-0 text-blue-600 dark:text-blue-400">{importPct}%</span>
+                      </div>
+                      <button
+                        className={`flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors border ${isExpanded ? 'bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300' : 'bg-muted border-border text-muted-foreground hover:bg-accent hover:text-foreground'}`}
+                        onClick={() => {
+                          if (!isExpanded) loadBancoTemaStats(a.academia_id);
+                          setExpandedAcademia(isExpanded ? null : a.academia_id);
+                        }}
+                        title={isExpanded ? 'Ocultar temas' : 'Ver progreso por tema'}
+                      >
+                        Temas
+                        {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                    <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full bg-blue-500 transition-all duration-500" style={{ width: `${importPct}%` }} />
+                    </div>
+                    <div className="flex gap-3 text-xs flex-wrap">
+                      <span className="text-blue-600 dark:text-blue-400 font-medium">🔵 {a.importadas.toLocaleString()} import.</span>
+                      <span className="text-teal-600 dark:text-teal-400 font-medium">✅ {a.verificadas_importadas.toLocaleString()} verif.</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{a.total_preguntas.toLocaleString()} preguntas · {a.total_temas} temas</p>
+
+                    {isExpanded && (
+                      <div className="pt-2 border-t mt-1">
+                        {loadingTemas === a.academia_id ? (
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {[...Array(4)].map((_, i) => <div key={i} className="animate-pulse h-14 bg-gray-200 dark:bg-gray-700 rounded-lg" />)}
+                          </div>
+                        ) : bancoTemas && bancoTemas.length > 0 ? (
+                          <div className="max-h-72 overflow-y-auto pr-0.5">
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {bancoTemas.map(t => {
+                                const tPct = t.total > 0 ? Math.round((t.importadas / t.total) * 100) : 0;
+                                const icon = bancoTemaIcon(t.importadas, t.verificadas);
+                                return (
+                                  <div
+                                    key={t.tema_id}
+                                    className="text-left p-2 rounded-lg border bg-background border-muted"
+                                  >
+                                    <div className="flex items-center gap-1 mb-1">
+                                      <span className="text-xs leading-none flex-shrink-0">{icon}</span>
+                                      <span className="text-xs font-medium truncate flex-1 min-w-0">{t.tema_nombre}</span>
+                                      <span className="text-xs font-bold flex-shrink-0 ml-0.5 text-blue-600 dark:text-blue-400">{tPct}%</span>
+                                    </div>
+                                    <div className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                      <div className="h-full rounded-full bg-blue-500" style={{ width: `${tPct}%` }} />
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground mt-1 truncate">
+                                      {t.importadas}/{t.total} import. · {t.verificadas} verif.
+                                    </p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground text-center py-2">Sin temas</p>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Filtros: solo academias propias */}
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-3">
@@ -364,11 +478,9 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
                 <SelectValue placeholder="Todas las academias" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">Todas</SelectItem>
-                {academias.map(a => (
-                  <SelectItem key={a.academia_id} value={a.academia_id}>
-                    {a.academia_nombre}
-                  </SelectItem>
+                {propias.length > 1 && <SelectItem value="__all__">Todas</SelectItem>}
+                {propias.map(a => (
+                  <SelectItem key={a.academia_id} value={a.academia_id}>{a.academia_nombre}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -409,15 +521,13 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
         </CardContent>
       </Card>
 
-      {/* Barra de contexto: counts del filtro activo */}
+      {/* Barra de contexto */}
       {filterCounts && (
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 rounded-xl border bg-muted/40">
           <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
               {selectedAcademiaName
-                ? selectedTemaName
-                  ? `${selectedAcademiaName} · ${selectedTemaName}`
-                  : selectedAcademiaName
+                ? selectedTemaName ? `${selectedAcademiaName} · ${selectedTemaName}` : selectedAcademiaName
                 : 'Todas las academias'}
             </p>
             <div className="flex flex-wrap gap-3 text-sm">
@@ -481,10 +591,7 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
         <div className="space-y-4">
           {preguntas.map(p => {
             const opciones: Array<[string, string | null]> = [
-              ['A', p.opcion_a],
-              ['B', p.opcion_b],
-              ['C', p.opcion_c],
-              ['D', p.opcion_d],
+              ['A', p.opcion_a], ['B', p.opcion_b], ['C', p.opcion_c], ['D', p.opcion_d],
             ];
             return (
               <Card key={p.id} className="border-l-4 border-l-amber-400">
@@ -500,19 +607,13 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
                             📚 {p.academia_origen_nombre ?? 'Banco'}
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-xs text-gray-500 border-gray-300">
-                            ✏️ Original
-                          </Badge>
+                          <Badge variant="outline" className="text-xs text-gray-500 border-gray-300">✏️ Original</Badge>
                         )}
                         {p.modificada_por_ia && (
-                          <Badge variant="outline" className="text-xs text-purple-600 border-purple-300 dark:text-purple-400 dark:border-purple-700">
-                            🤖 IA
-                          </Badge>
+                          <Badge variant="outline" className="text-xs text-purple-600 border-purple-300 dark:text-purple-400 dark:border-purple-700">🤖 IA</Badge>
                         )}
                       </div>
-                      <CardTitle className="text-base font-medium leading-snug">
-                        {p.pregunta_texto}
-                      </CardTitle>
+                      <CardTitle className="text-base font-medium leading-snug">{p.pregunta_texto}</CardTitle>
                     </div>
                     <Button
                       variant="ghost"
@@ -539,9 +640,7 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
                               : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700'
                           }`}
                         >
-                          <span className={`font-bold flex-shrink-0 ${esCorrecta ? 'text-green-600' : 'text-muted-foreground'}`}>
-                            {letra}.
-                          </span>
+                          <span className={`font-bold flex-shrink-0 ${esCorrecta ? 'text-green-600' : 'text-muted-foreground'}`}>{letra}.</span>
                           <div className="flex-1 min-w-0">
                             <span className="break-words">{texto}</span>
                             {explicacion && (
@@ -580,16 +679,13 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
                   )}
 
                   {estado !== 'pendiente' && p.verificacion_notas && (
-                    <p className="text-xs text-muted-foreground italic border-t pt-2">
-                      Nota: {p.verificacion_notas}
-                    </p>
+                    <p className="text-xs text-muted-foreground italic border-t pt-2">Nota: {p.verificacion_notas}</p>
                   )}
                 </CardContent>
               </Card>
             );
           })}
 
-          {/* Paginación */}
           <div className="flex justify-center items-center gap-3">
             <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
               <ChevronLeft className="h-4 w-4" />

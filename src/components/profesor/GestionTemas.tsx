@@ -115,23 +115,35 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
     }
   };
 
-  const selectedAcademia = academias.find(a => a.academia_id === academiaId);
+  const propias = academias.filter(a => !a.es_biblioteca);
+  const selectedAcademia = propias.find(a => a.academia_id === academiaId);
+
+  useEffect(() => {
+    if (propias.length === 1 && !academiaId) setAcademiaId(propias[0].academia_id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propias.length]);
 
   return (
     <div className="space-y-4">
 
       {/* Toolbar */}
       <div className="flex gap-2">
-        <Select value={academiaId} onValueChange={setAcademiaId}>
-          <SelectTrigger className="flex-1">
-            <SelectValue placeholder="Selecciona academia" />
-          </SelectTrigger>
-          <SelectContent>
-            {academias.map(a => (
-              <SelectItem key={a.academia_id} value={a.academia_id}>{a.academia_nombre}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {propias.length > 1 ? (
+          <Select value={academiaId} onValueChange={setAcademiaId}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Selecciona academia" />
+            </SelectTrigger>
+            <SelectContent>
+              {propias.map(a => (
+                <SelectItem key={a.academia_id} value={a.academia_id}>{a.academia_nombre}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <div className="flex-1 h-10 flex items-center px-3 rounded-md border bg-muted/50 text-sm font-medium text-muted-foreground">
+            {propias[0]?.academia_nombre ?? 'Sin academia'}
+          </div>
+        )}
         <Button
           onClick={() => setDialogOpen(true)}
           disabled={!academiaId}

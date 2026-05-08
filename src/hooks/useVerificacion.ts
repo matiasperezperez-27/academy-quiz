@@ -89,7 +89,7 @@ export function useVerificacion(profesorId: string) {
         p_notas: notas || null,
       });
       if (error) throw error;
-      toast.success(accion === 'verificar' ? 'Pregunta verificada' : 'Pregunta rechazada');
+      toast.success(accion === 'verificar' ? 'Pregunta verificada' : 'Pregunta eliminada — puedes reimportarla del banco');
       return true;
     } catch (err) {
       console.error('useVerificacion.verificar:', err);

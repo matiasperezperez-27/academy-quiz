@@ -13,10 +13,13 @@ export interface ProfesorStats {
 export interface ProfesorAcademia {
   academia_id: string;
   academia_nombre: string;
+  es_biblioteca: boolean;
   total_temas: number;
   total_preguntas: number;
   preguntas_verificadas: number;
   preguntas_pendientes: number;
+  importadas: number;
+  verificadas_importadas: number;
   assigned_at: string;
 }
 
