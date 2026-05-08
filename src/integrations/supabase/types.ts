@@ -719,6 +719,14 @@ export type Database = {
         Args: { p_academia_id: string; p_nombre: string; p_profesor_id: string }
         Returns: string
       }
+      eliminar_pregunta: {
+        Args: { p_pregunta_id: string; p_profesor_id: string }
+        Returns: undefined
+      }
+      eliminar_pregunta_banco: {
+        Args: { p_pregunta_id: string; p_profesor_id: string }
+        Returns: undefined
+      }
       eliminar_tema: {
         Args: { p_profesor_id: string; p_tema_id: string }
         Returns: boolean
@@ -731,6 +739,16 @@ export type Database = {
           total_questions_answered: number
           total_sessions: number
           total_users: number
+        }[]
+      }
+      get_banco_tema_import_stats: {
+        Args: { p_banco_academia_id: string; p_profesor_id: string }
+        Returns: {
+          importadas: number
+          tema_id: string
+          tema_nombre: string
+          total: number
+          verificadas: number
         }[]
       }
       get_preguntas_banco: {
@@ -801,10 +819,13 @@ export type Database = {
           academia_id: string
           academia_nombre: string
           assigned_at: string
+          es_biblioteca: boolean
+          importadas: number
           preguntas_pendientes: number
           preguntas_verificadas: number
           total_preguntas: number
           total_temas: number
+          verificadas_importadas: number
         }[]
       }
       get_profesor_stats: {
@@ -986,6 +1007,17 @@ export type Database = {
           result: string
           step: string
         }[]
+      }
+      update_explicaciones_pregunta: {
+        Args: {
+          p_explicacion_a?: string
+          p_explicacion_b?: string
+          p_explicacion_c?: string
+          p_explicacion_d?: string
+          p_pregunta_id: string
+          p_profesor_id: string
+        }
+        Returns: boolean
       }
       upsert_pregunta: {
         Args: {
