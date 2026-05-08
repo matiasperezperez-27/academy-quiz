@@ -245,8 +245,14 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
                 <Icon className={`h-3.5 w-3.5 flex-shrink-0 ${cfg.text}`} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{p.pregunta_texto}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     <span className={`text-[11px] font-medium ${cfg.text}`}>{cfg.label}</span>
+                    {(() => {
+                      const temaNombre = temas.find(t => t.id === p.tema_id)?.nombre;
+                      return temaNombre ? (
+                        <span className="text-[11px] text-muted-foreground border rounded px-1 truncate max-w-[120px]">{temaNombre}</span>
+                      ) : null;
+                    })()}
                     {p.parte && (
                       <span className="text-[11px] text-muted-foreground border rounded px-1">{p.parte}</span>
                     )}
