@@ -339,16 +339,16 @@ export default function BancoPreguntas({ profesorId, academias }: Props) {
         });
         if (saveErr) throw saveErr;
 
-        // 4. Guardar explicaciones
-        const hasExp = bancoQ.explicacion_a || bancoQ.explicacion_b || bancoQ.explicacion_c || bancoQ.explicacion_d;
+        // 4. Guardar explicaciones (usar finalForm, no bancoQ — el shuffle reposiciona explicaciones)
+        const hasExp = finalForm.explicacion_a || finalForm.explicacion_b || finalForm.explicacion_c || finalForm.explicacion_d;
         if (newId && hasExp) {
           await supabase.rpc('update_explicaciones_pregunta' as any, {
             p_profesor_id: profesorId,
             p_pregunta_id: newId as string,
-            p_explicacion_a: bancoQ.explicacion_a || null,
-            p_explicacion_b: bancoQ.explicacion_b || null,
-            p_explicacion_c: bancoQ.explicacion_c || null,
-            p_explicacion_d: bancoQ.explicacion_d || null,
+            p_explicacion_a: finalForm.explicacion_a || null,
+            p_explicacion_b: finalForm.explicacion_b || null,
+            p_explicacion_c: finalForm.explicacion_c || null,
+            p_explicacion_d: finalForm.explicacion_d || null,
           });
         }
 
