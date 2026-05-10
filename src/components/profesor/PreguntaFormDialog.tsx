@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckCircle2, Library, ChevronDown, ChevronUp } from 'lucide-react';
+import { useParteOptions } from '@/hooks/useParteOptions';
 import type { PreguntaForm } from '@/hooks/useGestionPreguntas';
 import type { ProfesorAcademia } from '@/hooks/useProfesorData';
 
@@ -65,6 +66,32 @@ export default function PreguntaFormDialog({
 
   const [showOriginal, setShowOriginal] = useState(false);
   useEffect(() => { if (!open) setShowOriginal(false); }, [open]);
+
+  // Parte dropdown — carga valores existentes de la BD
+  const academiaIds = academias
+    ? academias.filter(a => !a.es_biblioteca).map(a => a.academia_id)
+    : form.academia_id ? [form.academia_id] : [];
+  const parteOptions = useParteOptions(academiaIds);
+  // Asegura que el valor actual siempre aparezca en el listado aunque no esté en la BD aún
+  const allParteOptions = form.parte && !parteOptions.includes(form.parte)
+    ? [...parteOptions, form.parte].sort()
+    : parteOptions;
+  const [parteKey, setParteKey] = useState('__none__');
+  const [parteNew, setParteNew] = useState('');
+
+  useEffect(() => {
+    if (!open) return;
+    const val = form.parte?.trim() || '';
+    if (!val) { setParteKey('__none__'); setParteNew(''); }
+    else { setParteKey(val); setParteNew(''); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const handleParteChange = (val: string) => {
+    setParteKey(val);
+    if (val === '__none__') { patch({ parte: '' }); setParteNew(''); }
+    else if (val !== '__new__') { patch({ parte: val }); setParteNew(''); }
+  };
 
   const optionRefs = useRef<(HTMLTextAreaElement | null)[]>([null, null, null, null]);
   useEffect(() => {
@@ -209,12 +236,27 @@ export default function PreguntaFormDialog({
               <Label className="text-xs font-medium">
                 Parte <span className="text-muted-foreground font-normal">(opcional)</span>
               </Label>
-              <Input
-                value={form.parte || ''}
-                onChange={e => patch({ parte: e.target.value })}
-                placeholder="ej. Parte 1, Bloque A, EXAMEN..."
-                className="h-9"
-              />
+              <Select value={parteKey} onValueChange={handleParteChange}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Sin parte específica" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sin parte específica</SelectItem>
+                  {allParteOptions.map(p => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                  ))}
+                  <SelectItem value="__new__">+ Nueva parte...</SelectItem>
+                </SelectContent>
+              </Select>
+              {parteKey === '__new__' && (
+                <Input
+                  value={parteNew}
+                  onChange={e => { setParteNew(e.target.value); patch({ parte: e.target.value }); }}
+                  placeholder="Escribe el nombre de la nueva parte..."
+                  className="h-9"
+                  autoFocus
+                />
+              )}
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">

@@ -16,7 +16,7 @@ No test runner is configured.
 
 ## Architecture
 
-**Stack**: Vite + React 18 + TypeScript + shadcn/ui + Tailwind CSS + Supabase + TanStack Query + Recharts
+**Stack**: Vite + React 18 + TypeScript + shadcn/ui + Tailwind CSS + Supabase + TanStack Query + Recharts + xlsx (SheetJS, for browser-side Excel parsing in ImportarPreguntas)
 
 **Supabase project**: `https://pakyheklnfpwibyahmcg.supabase.co`
 Generated types are at `src/integrations/supabase/types.ts` — run `mcp__supabase__generate_typescript_types` to regenerate after schema changes.
@@ -152,6 +152,7 @@ Note: the quiz RPCs do NOT filter by `verificada`. All questions are available t
 - `src/hooks/useGestionPreguntas.ts` — wraps `upsert_pregunta` + direct `preguntas` table query. Returns `{ preguntas, loading, saving, cargar, guardar }`.
 - `src/hooks/useExamenes.ts` — direct queries on `examenes` + `examen_preguntas` tables. Returns `{ examenes, loading, saving, cargar, crear, toggleActivo }`.
 - `src/hooks/useProfesorStudentStats.ts` — fetches `get_profesor_student_stats` + `get_profesor_topic_stats`. Returns `{ studentStats, topicStats, loading, cargar }`.
+- `src/hooks/useParteOptions.ts` — loads distinct `parte` values from the `preguntas` table for the given academia IDs, merged with the 3 hardcoded presets (`Común`, `EXAMEN`, `Específica`). Used by `ImportarPreguntas` and `PreguntaFormDialog` to populate the parte dropdown dynamically. Accepts `academiaIds: string[]`; starts with presets while the DB query is in-flight.
 
 ### Quiz flow
 
@@ -174,7 +175,7 @@ Note: the quiz RPCs do NOT filter by `verificada`. All questions are available t
 
 ### Profesor panel (`/profesor`)
 
-Seven-tab dashboard at `src/pages/Profesor.tsx`. Access requires `is_user_profesor` = true (role `profesor` or `admin`) + entries in `profesor_academias`.
+Eight-tab dashboard at `src/pages/Profesor.tsx`. Access requires `is_user_profesor` = true (role `profesor` or `admin`) + entries in `profesor_academias`.
 
 | Tab | Component | Purpose |
 |-----|-----------|---------|
@@ -185,10 +186,11 @@ Seven-tab dashboard at `src/pages/Profesor.tsx`. Access requires `is_user_profes
 | Temas | `GestionTemas` | Create / rename / delete temas per academia. Delete warns that all preguntas in the tema will also be deleted. |
 | Exámenes | `CrearExamen` + `ExamenForm` | 3-step stepper: basic info → select verified questions → review & create |
 | Alumnos | `EstadisticasEstudiantes` | Per-student and per-topic accuracy tables |
+| Importar | `ImportarPreguntas` | Bulk import questions from NotebookLM-generated .xlsx files |
 
 Admin panel (`/admin`) includes a **Gestión de Profesores** section (`ProfesorManager`) to assign/remove the `profesor` role and manage `profesor_academias` assignments, plus an **Academias de Profesores** section (`AcademiaManager`) to create new non-biblioteca academias and assign them to a professor.
 
-**Select empty-value convention**: Radix UI prohibits `value=""` in `<SelectItem>`. Use `"__all__"` as the sentinel for "all/none selected" and convert to `undefined` before passing to RPCs/queries.
+**Select empty-value convention**: Radix UI prohibits `value=""` in `<SelectItem>`. Use `"__all__"` as the sentinel for "all/none selected" and convert to `undefined` before passing to RPCs/queries. Use `"__none__"` for "no selection" in optional fields (e.g. parte). Use `"__new__"` to trigger a text input for creating a new value not yet in the list (used in the parte Select in `ImportarPreguntas` and `PreguntaFormDialog`).
 
 **Verification edit flow**: `VerificacionPreguntas` includes a pencil icon per question that opens `PreguntaFormDialog` pre-filled with all editable fields (parte, pregunta_texto, opciones A-D, solucion_letra, explicaciones A-D). Saving calls `upsert_pregunta` — verification resets to pending only if the save includes `p_modificada_por_ia = true` (i.e. AI rewrites). Plain manual edits (text, tema, etc.) preserve the current verification status. Academia is not editable from this view.
 
@@ -217,6 +219,25 @@ Admin panel (`/admin`) includes a **Gestión de Profesores** section (`ProfesorM
 - Each question card has a trash icon (next to "Importar") that opens a confirmation dialog.
 - Calls `eliminar_pregunta_banco` RPC which validates `es_biblioteca = true`, clears dependent rows, then deletes. Clones already in own academia are unaffected (`pregunta_origen_id → NULL`).
 - List and tema chip stats refresh after deletion.
+
+**NotebookLM import flow** (`ImportarPreguntas`):
+
+The professor uses NotebookLM's "Personalizar tabla de datos" feature with a specific prompt (stored as `BASE_PROMPT` constant in `ImportarPreguntas.tsx`) to generate a structured .xlsx from uploaded documents. The prompt instructs NotebookLM to produce exactly 10 columns. The tab also shows the prompt and a topic-context input so the professor can copy a customized version.
+
+*File parsing:*
+- Uses `xlsx` (SheetJS) to parse the file in the browser via `FileReader` + `XLSX.read(data, { type: 'array' })`.
+- Required columns: `pregunta_texto`, `opcion_a`, `opcion_b`, `opcion_c`, `opcion_d`, `solucion_letra`, `explicacion_a`, `explicacion_b`, `explicacion_c`, `explicacion_d`.
+- Extra columns (e.g. `Fuente`, which NotebookLM always adds) are silently ignored.
+- Validation: each row is marked `valid` only if `solucion_letra` is A/B/C/D and `pregunta_texto` is non-empty. Invalid rows are shown in the preview with reduced opacity and excluded from import.
+
+*Import:*
+- Two sequential RPC calls per question: `upsert_pregunta` (returns new UUID) → `update_explicaciones_pregunta`.
+- The professor selects destination Tema (required) and Parte (optional) before importing; Academia is auto-selected if only one propia exists.
+- Progress bar tracks completion; summary shown on finish with a "Nueva importación" reset.
+
+*Parte dropdown (shared):*
+- Both `ImportarPreguntas` and `PreguntaFormDialog` use `useParteOptions` to show a dynamic Select of existing `parte` values from the DB, merged with the 3 hardcoded presets.
+- Sentinel `'__new__'` → reveals a text Input for typing a brand-new parte value, which will appear in the dropdown on next load once saved.
 
 **Source tema selector (Banco)**: Instead of a `<Select>` dropdown, temas are shown as a chip grid loaded via `get_banco_tema_import_stats`. Each chip shows an icon (⭕ 0 imported, 🔵 some imported, 🔄 all imported but none verified, ✅ some verified) + counts. Clicking a chip filters the question list to that tema.
 
