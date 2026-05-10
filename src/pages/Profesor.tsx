@@ -111,7 +111,7 @@ export default function Profesor() {
           </TabsContent>
 
           <TabsContent value="verificar" className="mt-6">
-            <VerificacionPreguntas profesorId={user!.id} academias={academias} />
+            <VerificacionPreguntas profesorId={user!.id} academias={academias} onRefresh={refresh} />
           </TabsContent>
 
           <TabsContent value="banco" className="mt-6">

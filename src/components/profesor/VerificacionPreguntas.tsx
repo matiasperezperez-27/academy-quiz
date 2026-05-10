@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -15,6 +15,13 @@ import { shuffleOptions } from '@/lib/shuffleOptions';
 import type { ProfesorAcademia } from '@/hooks/useProfesorData';
 
 interface FilterCounts {
+  pendientes: number;
+  verificadas: number;
+  rechazadas: number;
+  total: number;
+}
+
+interface LocalAcademiaStats {
   pendientes: number;
   verificadas: number;
   rechazadas: number;
@@ -39,7 +46,6 @@ interface TemaStats {
   total: number;
 }
 
-
 function getProgressColor(pct: number) {
   if (pct >= 70) return { border: 'border-teal-400', bar: 'bg-teal-500', text: 'text-teal-600 dark:text-teal-400', bg: 'bg-teal-50 dark:bg-teal-900/20' };
   if (pct >= 30) return { border: 'border-amber-400', bar: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20' };
@@ -54,19 +60,18 @@ function temaIcon(pct: number) {
   return '⭕';
 }
 
-
 interface Props {
   profesorId: string;
   academias: ProfesorAcademia[];
+  onRefresh?: () => void;
 }
 
 const PAGE_SIZE = 10;
-const SOLUCIONES = ['A', 'B', 'C', 'D'] as const;
 
-export default function VerificacionPreguntas({ profesorId, academias }: Props) {
-  const propias = academias.filter(a => !a.es_biblioteca);
+export default function VerificacionPreguntas({ profesorId, academias, onRefresh }: Props) {
+  const propias = useMemo(() => academias.filter(a => !a.es_biblioteca), [academias]);
 
-  const { preguntas, loading, cargar, verificar } = useVerificacion(profesorId);
+  const { preguntas, loading, total, cargar, verificar } = useVerificacion(profesorId);
   const { saving, guardar } = useGestionPreguntas(profesorId);
 
   const [academiaId, setAcademiaId] = useState('__all__');
@@ -83,6 +88,13 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
   const [expandedAcademia, setExpandedAcademia] = useState<string | null>(null);
   const [temaStatsMap, setTemaStatsMap] = useState<Record<string, TemaStats[]>>({});
   const [loadingTemas, setLoadingTemas] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [localStats, setLocalStats] = useState<Record<string, LocalAcademiaStats>>({});
+
+  // Multi-select
+  const [modoSeleccion, setModoSeleccion] = useState(false);
+  const [seleccionadas, setSeleccionadas] = useState<Set<string>>(new Set());
+  const [procesandoBatch, setProcesandoBatch] = useState(false);
 
   const [originals, setOriginals] = useState<Record<string, OriginalPregunta>>({});
   const [showOriginals, setShowOriginals] = useState<Set<string>>(new Set());
@@ -99,7 +111,32 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propias.length]);
 
-  // Batch-fetch originals for all cloned questions in the current page
+  // Load per-academia stats directly from preguntas table (always fresh)
+  const loadLocalStats = useCallback(async () => {
+    if (!propias.length) return;
+    const results = await Promise.all(
+      propias.map(async a => {
+        const base = () =>
+          supabase.from('preguntas').select('*', { count: 'exact', head: true }).eq('academia_id', a.academia_id);
+        const [pend, ver, rech] = await Promise.all([
+          base().eq('verificada', false).eq('rechazada', false),
+          base().eq('verificada', true),
+          base().eq('rechazada', true),
+        ]);
+        const pendientes = pend.count ?? 0;
+        const verificadas = ver.count ?? 0;
+        const rechazadas = rech.count ?? 0;
+        return [a.academia_id, { pendientes, verificadas, rechazadas, total: pendientes + verificadas + rechazadas }] as const;
+      })
+    );
+    setLocalStats(Object.fromEntries(results));
+  }, [propias]);
+
+  useEffect(() => {
+    loadLocalStats();
+  }, [loadLocalStats, refreshKey]);
+
+  // Batch-fetch originals for cloned questions on the current page
   useEffect(() => {
     const ids = preguntas.map(p => p.pregunta_origen_id).filter(Boolean) as string[];
     if (ids.length === 0) return;
@@ -156,7 +193,7 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
     recargar();
   }, [recargar]);
 
-  // filterCounts: solo preguntas de academias propias
+  // filterCounts: counts for the current filter scope
   useEffect(() => {
     if (!propias.length) return;
     const ids = propias.map(a => a.academia_id);
@@ -180,16 +217,65 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
       setFilterCounts({ pendientes, verificadas, rechazadas, total: pendientes + verificadas + rechazadas });
     };
     load();
-  }, [academiaId, temaId, parteFilter, propias.length]);
+  }, [academiaId, temaId, parteFilter, propias.length, refreshKey]);
+
+  const invalidateTemaStats = (affectedAcadIds: Set<string>) => {
+    setTemaStatsMap(prev => {
+      const next = { ...prev };
+      affectedAcadIds.forEach(id => delete next[id]);
+      return next;
+    });
+  };
+
+  const afterVerification = (affectedIds: string[]) => {
+    const affectedAcadIds = new Set(
+      preguntas.filter(p => affectedIds.includes(p.id)).map(p => p.academia_id)
+    );
+    invalidateTemaStats(affectedAcadIds);
+    setRefreshKey(k => k + 1);
+    recargar();
+    onRefresh?.();
+  };
 
   const handleAccion = async (preguntaId: string, accion: 'verificar' | 'rechazar') => {
     setProcesando(preguntaId);
     const ok = await verificar(preguntaId, accion);
-    if (ok) recargar();
+    if (ok) afterVerification([preguntaId]);
     setProcesando(null);
   };
 
-  // Lazy load temas para academia propia
+  const handleBatchAccion = async (accion: 'verificar' | 'rechazar') => {
+    const ids = Array.from(seleccionadas);
+    if (!ids.length) return;
+    setProcesandoBatch(true);
+    let ok = 0;
+    let err = 0;
+    const results = await Promise.allSettled(
+      ids.map(id =>
+        supabase.rpc('verificar_pregunta' as any, {
+          p_profesor_id: profesorId,
+          p_pregunta_id: id,
+          p_accion: accion,
+          p_notas: null,
+        })
+      )
+    );
+    results.forEach(r => {
+      if (r.status === 'fulfilled' && !(r.value as any).error) ok++;
+      else err++;
+    });
+    const label = accion === 'verificar'
+      ? `verificada${ok !== 1 ? 's' : ''}`
+      : `rechazada${ok !== 1 ? 's' : ''}`;
+    if (ok > 0) toast.success(`${ok} pregunta${ok !== 1 ? 's' : ''} ${label}`);
+    if (err > 0) toast.error(`${err} no se pudo${err !== 1 ? 'ieron' : ''} procesar`);
+    setSeleccionadas(new Set());
+    setModoSeleccion(false);
+    afterVerification(ids);
+    setProcesandoBatch(false);
+  };
+
+  // Lazy load tema stats (invalidated after verification)
   const loadTemaStats = useCallback(async (acaId: string) => {
     if (temaStatsMap[acaId]) return;
     setLoadingTemas(acaId);
@@ -222,7 +308,6 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
       setLoadingTemas(null);
     }
   }, [temaStatsMap]);
-
 
   const abrirEdicion = (p: PreguntaParaVerificar) => {
     setEditando(p);
@@ -306,6 +391,17 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
   const selectedAcademiaName = propias.find(a => a.academia_id === academiaId)?.academia_nombre;
   const selectedTemaName = temas.find(t => t.id === temaId)?.nombre;
 
+  const totalPages = total > 0 ? Math.max(1, Math.ceil(total / PAGE_SIZE)) : 1;
+  const hasNextPage = parteFilter !== '__all__'
+    ? filteredPreguntas.length === PAGE_SIZE
+    : (page + 1) * PAGE_SIZE < total;
+
+  const resetFilters = () => {
+    setModoSeleccion(false);
+    setSeleccionadas(new Set());
+    setPage(0);
+  };
+
   return (
     <div className="space-y-4">
 
@@ -315,8 +411,12 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">Tu academia</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {propias.map(a => {
-              const pct = a.total_preguntas > 0 ? Math.round((a.preguntas_verificadas / a.total_preguntas) * 100) : 0;
-              const rechazadas = Math.max(0, a.total_preguntas - a.preguntas_verificadas - a.preguntas_pendientes);
+              const s = localStats[a.academia_id];
+              const pendientes = s?.pendientes ?? a.preguntas_pendientes;
+              const verificadas = s?.verificadas ?? a.preguntas_verificadas;
+              const rechazadas = s?.rechazadas ?? Math.max(0, a.total_preguntas - a.preguntas_verificadas - a.preguntas_pendientes);
+              const acaTotal = s?.total ?? a.total_preguntas;
+              const pct = acaTotal > 0 ? Math.round((verificadas / acaTotal) * 100) : 0;
               const colors = getProgressColor(pct);
               const isActive = academiaId === a.academia_id;
               const isExpanded = expandedAcademia === a.academia_id;
@@ -330,7 +430,7 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
                     <div className="flex items-center gap-2">
                       <button
                         className="flex-1 flex items-center justify-between gap-2 text-left"
-                        onClick={() => { setAcademiaId(isActive ? '__all__' : a.academia_id); setTemaId('__all__'); setPage(0); }}
+                        onClick={() => { setAcademiaId(isActive ? '__all__' : a.academia_id); setTemaId('__all__'); resetFilters(); }}
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <GraduationCap className={`h-4 w-4 flex-shrink-0 ${colors.text}`} />
@@ -352,11 +452,11 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
                     </div>
                     <Progress value={pct} className="h-2" />
                     <div className="flex gap-3 text-xs flex-wrap">
-                      <span className="text-amber-600 dark:text-amber-400 font-medium">🟡 {a.preguntas_pendientes.toLocaleString()} pend.</span>
-                      <span className="text-teal-600 dark:text-teal-400 font-medium">✅ {a.preguntas_verificadas.toLocaleString()} verif.</span>
+                      <span className="text-amber-600 dark:text-amber-400 font-medium">🟡 {pendientes.toLocaleString()} pend.</span>
+                      <span className="text-teal-600 dark:text-teal-400 font-medium">✅ {verificadas.toLocaleString()} verif.</span>
                       {rechazadas > 0 && <span className="text-red-600 dark:text-red-400 font-medium">❌ {rechazadas.toLocaleString()} rech.</span>}
                     </div>
-                    <p className="text-xs text-muted-foreground">{a.total_preguntas.toLocaleString()} preguntas · {a.total_temas} temas</p>
+                    <p className="text-xs text-muted-foreground">{acaTotal.toLocaleString()} preguntas · {a.total_temas} temas</p>
 
                     {isExpanded && (
                       <div className="pt-2 border-t mt-1">
@@ -375,7 +475,7 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
                                   <button
                                     key={t.id}
                                     className={`text-left p-2 rounded-lg border transition-all hover:shadow-sm active:scale-95 ${isComplete ? 'bg-teal-50/60 dark:bg-teal-900/10 border-teal-200 dark:border-teal-800 opacity-60' : 'bg-background border-muted hover:border-muted-foreground/40'}`}
-                                    onClick={() => { setAcademiaId(a.academia_id); setTemaId(t.id); setPage(0); }}
+                                    onClick={() => { setAcademiaId(a.academia_id); setTemaId(t.id); resetFilters(); }}
                                   >
                                     <div className="flex items-center gap-1 mb-1">
                                       <span className="text-xs leading-none flex-shrink-0">{temaIcon(tPct)}</span>
@@ -404,12 +504,11 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
         </div>
       )}
 
-
-      {/* Filtros: solo academias propias */}
+      {/* Filtros */}
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-3">
-            <Select value={academiaId} onValueChange={v => { setAcademiaId(v); setTemaId('__all__'); setParteFilter('__all__'); setPage(0); }}>
+            <Select value={academiaId} onValueChange={v => { setAcademiaId(v); setTemaId('__all__'); setParteFilter('__all__'); resetFilters(); }}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Todas las academias" />
               </SelectTrigger>
@@ -423,7 +522,7 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
 
             <Select
               value={temaId}
-              onValueChange={v => { setTemaId(v); setPage(0); }}
+              onValueChange={v => { setTemaId(v); resetFilters(); }}
               disabled={temas.length === 0}
             >
               <SelectTrigger className="flex-1">
@@ -443,7 +542,7 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
               </SelectContent>
             </Select>
 
-            <Select value={parteFilter} onValueChange={v => { setParteFilter(v); setPage(0); }}>
+            <Select value={parteFilter} onValueChange={v => { setParteFilter(v); resetFilters(); }}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Todas las partes" />
               </SelectTrigger>
@@ -455,7 +554,7 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
               </SelectContent>
             </Select>
 
-            <Select value={estado} onValueChange={v => { setEstado(v); setPage(0); }}>
+            <Select value={estado} onValueChange={v => { setEstado(v); resetFilters(); }}>
               <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue />
               </SelectTrigger>
@@ -514,6 +613,45 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
         </div>
       )}
 
+      {/* Toolbar selección múltiple */}
+      {estado === 'pendiente' && !loading && filteredPreguntas.length > 0 && (
+        <div className="flex items-center justify-between gap-3 px-1">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground min-h-[28px]">
+            {modoSeleccion && (
+              <>
+                <button
+                  className="font-medium text-teal-600 dark:text-teal-400 hover:underline"
+                  onClick={() => setSeleccionadas(new Set(filteredPreguntas.map(p => p.id)))}
+                >
+                  Seleccionar página ({filteredPreguntas.length})
+                </button>
+                {seleccionadas.size > 0 && (
+                  <>
+                    <span>·</span>
+                    <button className="hover:underline" onClick={() => setSeleccionadas(new Set())}>
+                      Limpiar
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+          <Button
+            variant={modoSeleccion ? 'secondary' : 'outline'}
+            size="sm"
+            className={modoSeleccion ? 'border-teal-300 dark:border-teal-700 text-teal-700 dark:text-teal-300' : ''}
+            onClick={() => { setModoSeleccion(v => !v); setSeleccionadas(new Set()); }}
+          >
+            <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+            {modoSeleccion
+              ? seleccionadas.size > 0
+                ? `${seleccionadas.size} seleccionada${seleccionadas.size !== 1 ? 's' : ''}`
+                : 'Cancelar selección'
+              : 'Selección múltiple'}
+          </Button>
+        </div>
+      )}
+
       {/* Lista */}
       {loading ? (
         <div className="space-y-3">
@@ -538,14 +676,40 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
       ) : (
         <div className="space-y-4">
           {filteredPreguntas.map(p => {
+            const isSelected = seleccionadas.has(p.id);
             const opciones: Array<[string, string | null]> = [
               ['A', p.opcion_a], ['B', p.opcion_b], ['C', p.opcion_c], ['D', p.opcion_d],
             ];
             return (
-              <Card key={p.id} className="border-l-4 border-l-amber-400">
+              <Card
+                key={p.id}
+                className={`border-l-4 transition-all duration-150 ${
+                  modoSeleccion && isSelected
+                    ? 'border-l-teal-500 ring-2 ring-teal-300 dark:ring-teal-700 bg-teal-50/30 dark:bg-teal-950/20'
+                    : 'border-l-amber-400'
+                } ${modoSeleccion ? 'cursor-pointer hover:shadow-md select-none' : ''}`}
+                onClick={modoSeleccion ? () => setSeleccionadas(prev => {
+                  const next = new Set(prev);
+                  if (next.has(p.id)) next.delete(p.id); else next.add(p.id);
+                  return next;
+                }) : undefined}
+              >
                 <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
+                  <div className="flex items-start gap-2">
+                    {modoSeleccion && (
+                      <div className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                        isSelected
+                          ? 'border-teal-500 bg-teal-500'
+                          : 'border-gray-300 dark:border-gray-600'
+                      }`}>
+                        {isSelected && (
+                          <svg className="h-3 w-3 text-white" viewBox="0 0 12 12" fill="none">
+                            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap gap-2 mb-2">
                         <Badge variant="outline" className="text-xs">{p.academia_nombre}</Badge>
                         <Badge variant="outline" className="text-xs">{p.tema_nombre}</Badge>
@@ -567,7 +731,7 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
                       variant="ghost"
                       size="sm"
                       className="flex-shrink-0 text-muted-foreground hover:text-teal-600"
-                      onClick={() => abrirEdicion(p)}
+                      onClick={e => { e.stopPropagation(); abrirEdicion(p); }}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -607,7 +771,7 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
                     <div className="border-t pt-2.5">
                       <button
                         className="flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors mb-2"
-                        onClick={() => toggleOriginal(p.id)}
+                        onClick={e => { e.stopPropagation(); toggleOriginal(p.id); }}
                       >
                         <Library className="h-3.5 w-3.5" />
                         Original del banco
@@ -641,23 +805,23 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
                     </div>
                   )}
 
-                  {estado === 'pendiente' && (
+                  {estado === 'pendiente' && !modoSeleccion && (
                     <div className="flex gap-2 pt-2 border-t">
                       <Button
                         size="sm"
                         className="flex-1 bg-green-600 hover:bg-green-700"
                         disabled={procesando === p.id}
-                        onClick={() => handleAccion(p.id, 'verificar')}
+                        onClick={e => { e.stopPropagation(); handleAccion(p.id, 'verificar'); }}
                       >
                         <CheckCircle className="h-4 w-4 mr-1" />
-                        Verificar
+                        {procesando === p.id ? 'Procesando...' : 'Verificar'}
                       </Button>
                       <Button
                         size="sm"
                         variant="destructive"
                         className="flex-1"
                         disabled={procesando === p.id}
-                        onClick={() => handleAccion(p.id, 'rechazar')}
+                        onClick={e => { e.stopPropagation(); handleAccion(p.id, 'rechazar'); }}
                       >
                         <XCircle className="h-4 w-4 mr-1" />
                         Rechazar
@@ -677,11 +841,48 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
             <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm text-muted-foreground">Página {page + 1}</span>
-            <Button variant="outline" size="sm" disabled={filteredPreguntas.length < PAGE_SIZE} onClick={() => setPage(p => p + 1)}>
+            <span className="text-sm text-muted-foreground">
+              Página {page + 1}{total > 0 && parteFilter === '__all__' ? ` de ${totalPages}` : ''}
+            </span>
+            <Button variant="outline" size="sm" disabled={!hasNextPage} onClick={() => setPage(p => p + 1)}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* Barra flotante de selección múltiple */}
+      {modoSeleccion && seleccionadas.size > 0 && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-background border border-border shadow-2xl rounded-2xl px-4 py-3">
+          <span className="text-sm font-semibold text-foreground mr-1">
+            {seleccionadas.size} selecc.
+          </span>
+          <Button
+            size="sm"
+            className="bg-green-600 hover:bg-green-700 text-white"
+            disabled={procesandoBatch}
+            onClick={() => handleBatchAccion('verificar')}
+          >
+            <CheckCircle className="h-3.5 w-3.5 mr-1" />
+            Verificar {seleccionadas.size}
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            disabled={procesandoBatch}
+            onClick={() => handleBatchAccion('rechazar')}
+          >
+            <XCircle className="h-3.5 w-3.5 mr-1" />
+            Rechazar {seleccionadas.size}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={procesandoBatch}
+            onClick={() => setSeleccionadas(new Set())}
+          >
+            Limpiar
+          </Button>
         </div>
       )}
 

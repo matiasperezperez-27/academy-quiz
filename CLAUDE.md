@@ -180,7 +180,7 @@ Eight-tab dashboard at `src/pages/Profesor.tsx`. Access requires `is_user_profes
 | Tab | Component | Purpose |
 |-----|-----------|---------|
 | Inicio | `ProfesorStats` + `ProfesorAcademias` | KPI cards + academia list with verification progress bars |
-| Verificar | `VerificacionPreguntas` | Review pending/verified/rejected questions with inline edit + approve/reject. Shows origin badges (📚 banco, 🤖 IA). |
+| Verificar | `VerificacionPreguntas` | Review pending/verified/rejected questions with inline edit + approve/reject. Supports single and batch (multi-select) verify/reject. Shows origin badges (📚 banco, 🤖 IA). |
 | Banco | `BancoPreguntas` | Browse biblioteca questions, import (clone) into own academia, AI rewrite button. |
 | Preguntas | `GestionPreguntas` | CRUD questions via Dialog form |
 | Temas | `GestionTemas` | Create / rename / delete temas per academia. Delete warns that all preguntas in the tema will also be deleted. |
@@ -249,9 +249,10 @@ The professor uses NotebookLM's "Personalizar tabla de datos" feature with a spe
 - After AI response, client applies `shuffleOptions()` (`src/lib/shuffleOptions.ts`): Fisher-Yates shuffle of active options tracked by `origIdx` (not object reference), `solucion_letra` updated to match the correct option's new position. Explanations follow their options during shuffle.
 
 **Verification dashboard**: `VerificacionPreguntas` shows a mini-dashboard split into two sections:
-- **"Tu academia"**: one card per propia academia (es_biblioteca = false) with color-coded verification progress (teal ≥70%, amber 30-70%, red <30%) and a "Temas" toggle. Tema chips are clickable to set the filter. Stats loaded lazily, cached in component state.
-- **"Progreso del banco"**: one card per biblioteca academia (JCLM, LICEO, LINCE) showing import progress (importadas / total) and verified count. Tema chips here are informational only (not clickable for filter). Stats loaded via `get_banco_tema_import_stats`.
-- Filter selects only show propias academias. Context bar below shows live counts for the current scope.
+- **"Tu academia"**: one card per propia academia (es_biblioteca = false) with color-coded verification progress (teal ≥70%, amber 30-70%, red <30%) and a "Temas" toggle. Tema chips are clickable to set the filter. **Stats are loaded directly from `preguntas` table** (`localStats` state) so they update immediately after every verify/reject action without a page refresh — bypasses the `get_profesor_academias` RPC cache. `temaStatsMap` cache is invalidated per-academia after each action.
+- Filter selects only show propias academias. Context bar below shows live counts for the current scope (`filterCounts` state, refreshed via `refreshKey` after each action).
+- **Batch multi-select**: "Selección múltiple" toggle (only shown when `estado = pendiente`) reveals checkboxes on each card. Clicking a card toggles it; "Seleccionar página (N)" marks all on the page. A floating bar at `bottom-20` shows count + **Verificar N** / **Rechazar N** buttons. RPCs run in parallel via `Promise.allSettled`.
+- Accepts an optional `onRefresh` prop (wired to `useProfesorData.refresh` from `Profesor.tsx`) called after each action to keep the Inicio tab stats in sync.
 
 **GestionPreguntas / GestionTemas**: Both components filter `academias` to `propias` (es_biblioteca = false) before rendering. If the professor has only one propia academia, the selector is replaced with a static label and the academia is auto-selected on mount.
 
