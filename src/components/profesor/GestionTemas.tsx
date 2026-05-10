@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Plus, BookOpen, Tag, Pencil, Trash2, AlertTriangle, BookMarked, Layers } from 'lucide-react';
+import { Plus, BookOpen, Tag, Pencil, Trash2, AlertTriangle, BookMarked, Layers, Library, GraduationCap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { ProfesorAcademia } from '@/hooks/useProfesorData';
@@ -21,15 +21,26 @@ interface TemaConConteos {
   rechazadas: number;
 }
 
-interface ParteConConteos {
-  id: string | null;
-  nombre: string;
+interface AcadBreakdown {
   academia_id: string;
+  academia_nombre: string;
+  es_biblioteca: boolean;
   total: number;
   verificadas: number;
   pendientes: number;
   rechazadas: number;
+}
+
+interface ParteConConteos {
+  // id / en_tabla son relativos a la academia propia actualmente seleccionada
+  id: string | null;
   en_tabla: boolean;
+  nombre: string;
+  total: number;
+  verificadas: number;
+  pendientes: number;
+  rechazadas: number;
+  breakdown: AcadBreakdown[];
 }
 
 const PARTE_PRESETS = ['Común', 'EXAMEN', 'Específica'];
@@ -120,36 +131,82 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
     }
   }, []);
 
-  const cargarPartes = useCallback(async (aid: string) => {
-    if (!aid) return;
+  // cargarPartes: vista GLOBAL de todas las academias accesibles.
+  // partes_academia solo se consulta para la academia propia seleccionada
+  // (para saber si una parte está "registrada" y permitir gestión).
+  const cargarPartes = useCallback(async (selAcademiaId: string, allAcademias: ProfesorAcademia[]) => {
+    if (!allAcademias.length) return;
     setLoadingPartes(true);
     try {
-      const [tableRes, pregsRes] = await Promise.all([
-        supabase.from('partes_academia').select('id, nombre').eq('academia_id', aid).order('nombre'),
-        supabase.from('preguntas').select('parte, verificada, rechazada').eq('academia_id', aid).not('parte', 'is', null),
-      ]);
-
-      const tableMap: Record<string, string> = {}; // nombre → id
-      (tableRes.data ?? []).forEach((p: any) => { tableMap[p.nombre] = p.id; });
-
-      const cm: Record<string, { total: number; verificadas: number; pendientes: number; rechazadas: number }> = {};
-      (pregsRes.data ?? []).forEach((p: any) => {
-        if (!p.parte) return;
-        if (!cm[p.parte]) cm[p.parte] = { total: 0, verificadas: 0, pendientes: 0, rechazadas: 0 };
-        cm[p.parte].total++;
-        if (p.verificada) cm[p.parte].verificadas++;
-        else if (p.rechazada) cm[p.parte].rechazadas++;
-        else cm[p.parte].pendientes++;
+      const allIds = allAcademias.map(a => a.academia_id);
+      const acadMeta: Record<string, { nombre: string; es_biblioteca: boolean }> = {};
+      allAcademias.forEach(a => {
+        acadMeta[a.academia_id] = { nombre: a.academia_nombre, es_biblioteca: a.es_biblioteca };
       });
 
-      const allNames = new Set([...Object.keys(tableMap), ...Object.keys(cm)]);
-      const result: ParteConConteos[] = Array.from(allNames).map(nombre => ({
-        id: tableMap[nombre] ?? null,
-        nombre,
-        academia_id: aid,
-        en_tabla: !!tableMap[nombre],
-        ...(cm[nombre] ?? { total: 0, verificadas: 0, pendientes: 0, rechazadas: 0 }),
-      })).sort((a, b) => {
+      const [tableRes, pregsRes] = await Promise.all([
+        // Partes registradas para la academia propia seleccionada
+        selAcademiaId
+          ? supabase.from('partes_academia').select('id, nombre').eq('academia_id', selAcademiaId)
+          : Promise.resolve({ data: [] as any[] }),
+        // Preguntas con parte de TODAS las academias accesibles
+        supabase
+          .from('preguntas')
+          .select('parte, academia_id, verificada, rechazada')
+          .in('academia_id', allIds)
+          .not('parte', 'is', null),
+      ]);
+
+      // Mapa nombre → id para la academia seleccionada (gestión local)
+      const tableMap: Record<string, string> = {};
+      (tableRes.data ?? []).forEach((p: any) => { tableMap[p.nombre] = p.id; });
+
+      // Conteo por parte × academia
+      const parteAcadMap: Record<string, Record<string, { total: number; verificadas: number; pendientes: number; rechazadas: number }>> = {};
+      (pregsRes.data ?? []).forEach((p: any) => {
+        if (!p.parte) return;
+        if (!parteAcadMap[p.parte]) parteAcadMap[p.parte] = {};
+        if (!parteAcadMap[p.parte][p.academia_id]) {
+          parteAcadMap[p.parte][p.academia_id] = { total: 0, verificadas: 0, pendientes: 0, rechazadas: 0 };
+        }
+        parteAcadMap[p.parte][p.academia_id].total++;
+        if (p.verificada) parteAcadMap[p.parte][p.academia_id].verificadas++;
+        else if (p.rechazada) parteAcadMap[p.parte][p.academia_id].rechazadas++;
+        else parteAcadMap[p.parte][p.academia_id].pendientes++;
+      });
+
+      // Unión de nombres: los de la tabla + los que aparecen en preguntas
+      const allNames = new Set([...Object.keys(tableMap), ...Object.keys(parteAcadMap)]);
+
+      const result: ParteConConteos[] = Array.from(allNames).map(nombre => {
+        const acadCounts = parteAcadMap[nombre] ?? {};
+        const total      = Object.values(acadCounts).reduce((a, c) => a + c.total, 0);
+        const verificadas = Object.values(acadCounts).reduce((a, c) => a + c.verificadas, 0);
+        const pendientes  = Object.values(acadCounts).reduce((a, c) => a + c.pendientes, 0);
+        const rechazadas  = Object.values(acadCounts).reduce((a, c) => a + c.rechazadas, 0);
+
+        const breakdown: AcadBreakdown[] = Object.entries(acadCounts)
+          .map(([aid, counts]) => ({
+            academia_id: aid,
+            academia_nombre: acadMeta[aid]?.nombre ?? aid,
+            es_biblioteca: acadMeta[aid]?.es_biblioteca ?? false,
+            ...counts,
+          }))
+          .sort((a, b) => {
+            // Propias primero, luego por cantidad desc
+            if (!a.es_biblioteca && b.es_biblioteca) return -1;
+            if (a.es_biblioteca && !b.es_biblioteca) return 1;
+            return b.total - a.total;
+          });
+
+        return {
+          id: tableMap[nombre] ?? null,
+          en_tabla: !!tableMap[nombre],
+          nombre,
+          total, verificadas, pendientes, rechazadas,
+          breakdown,
+        };
+      }).sort((a, b) => {
         const ia = PARTE_PRESETS.indexOf(a.nombre);
         const ib = PARTE_PRESETS.indexOf(b.nombre);
         if (ia >= 0 && ib < 0) return -1;
@@ -164,10 +221,14 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
     }
   }, []);
 
+  // Temas se recargan al cambiar academia; partes siempre son globales
   useEffect(() => {
     cargarTemas(academiaId);
-    cargarPartes(academiaId);
-  }, [academiaId, cargarTemas, cargarPartes]);
+  }, [academiaId, cargarTemas]);
+
+  useEffect(() => {
+    if (academias.length > 0) cargarPartes(academiaId, academias);
+  }, [academiaId, academias, cargarPartes]);
 
   // ── Tema handlers ─────────────────────────────────────────
 
@@ -234,7 +295,7 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
     }
   };
 
-  // ── Parte handlers ────────────────────────────────────────
+  // ── Parte handlers (siempre sobre la academia propia seleccionada) ───────
 
   const handleCrearParte = async () => {
     const nombre = nuevaParte.trim();
@@ -252,7 +313,7 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
       toast.success(`Parte "${nombre}" creada`);
       setNuevaParte('');
       setDialogCrearParte(false);
-      cargarPartes(academiaId);
+      cargarPartes(academiaId, academias);
     } catch (err: any) {
       toast.error(err.message || 'Error al crear la parte');
     } finally {
@@ -261,7 +322,7 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
   };
 
   const handleRenombrarParte = async () => {
-    if (!editParte || !editNombreParte.trim()) return;
+    if (!editParte || !editNombreParte.trim() || !academiaId) return;
     const oldName = editParte.nombre;
     const newName = editNombreParte.trim();
     if (oldName === newName) { setEditParte(null); return; }
@@ -271,19 +332,17 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
     }
     setSaving(true);
     try {
+      // Actualizar o insertar en partes_academia para esta academia
       if (editParte.id) {
-        const { error } = await supabase
-          .from('partes_academia')
-          .update({ nombre: newName })
-          .eq('id', editParte.id);
+        const { error } = await supabase.from('partes_academia').update({ nombre: newName }).eq('id', editParte.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from('partes_academia')
-          .insert({ academia_id: academiaId, nombre: newName });
+        const { error } = await supabase.from('partes_academia').insert({ academia_id: academiaId, nombre: newName });
         if (error) throw error;
       }
-      if (editParte.total > 0) {
+      // Renombrar en preguntas de esta academia únicamente
+      const propiaBreakdown = editParte.breakdown.find(b => b.academia_id === academiaId);
+      if (propiaBreakdown && propiaBreakdown.total > 0) {
         const { error } = await supabase.rpc('renombrar_parte_preguntas' as any, {
           p_profesor_id: profesorId,
           p_academia_id: academiaId,
@@ -292,12 +351,13 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
         });
         if (error) throw error;
       }
+      const propiaCount = propiaBreakdown?.total ?? 0;
       toast.success(
         `"${oldName}" → "${newName}"` +
-        (editParte.total > 0 ? ` · ${editParte.total} pregunta${editParte.total !== 1 ? 's' : ''} actualizadas` : '')
+        (propiaCount > 0 ? ` · ${propiaCount} pregunta${propiaCount !== 1 ? 's' : ''} actualizadas` : '')
       );
       setEditParte(null);
-      cargarPartes(academiaId);
+      cargarPartes(academiaId, academias);
     } catch (err: any) {
       toast.error(err.message || 'Error al renombrar la parte');
     } finally {
@@ -306,17 +366,15 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
   };
 
   const handleEliminarParte = async () => {
-    if (!deleteParte) return;
+    if (!deleteParte || !academiaId) return;
     setDeleting(true);
     try {
       if (deleteParte.id) {
-        const { error } = await supabase
-          .from('partes_academia')
-          .delete()
-          .eq('id', deleteParte.id);
+        const { error } = await supabase.from('partes_academia').delete().eq('id', deleteParte.id);
         if (error) throw error;
       }
-      if (deleteParte.total > 0) {
+      const propiaBreakdown = deleteParte.breakdown.find(b => b.academia_id === academiaId);
+      if (propiaBreakdown && propiaBreakdown.total > 0) {
         const { error } = await supabase.rpc('eliminar_parte_preguntas' as any, {
           p_profesor_id: profesorId,
           p_academia_id: academiaId,
@@ -324,9 +382,9 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
         });
         if (error) throw error;
       }
-      toast.success(`Parte "${deleteParte.nombre}" eliminada`);
+      toast.success(`Parte "${deleteParte.nombre}" eliminada de ${selectedAcademia?.academia_nombre ?? 'la academia'}`);
       setDeleteParte(null);
-      cargarPartes(academiaId);
+      cargarPartes(academiaId, academias);
     } catch (err: any) {
       toast.error(err.message || 'Error al eliminar la parte');
     } finally {
@@ -344,15 +402,17 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
 
   const partesTotals = useMemo(() => ({
     total: partes.reduce((a, p) => a + p.total, 0),
-    sinParte: 0, // computed below if needed
   }), [partes]);
 
   // ── Render ────────────────────────────────────────────────
 
+  // Partes necesita academia seleccionada para gestión (crear/renombrar/borrar)
+  const canManagePartes = !!academiaId;
+
   return (
     <div className="space-y-4">
 
-      {/* Academia selector */}
+      {/* Academia selector — para temas es obligatorio; para partes es contexto de gestión */}
       <div className="flex gap-2">
         {propias.length > 1 ? (
           <Select value={academiaId} onValueChange={v => { setAcademiaId(v); setSeccion('temas'); }}>
@@ -372,55 +432,66 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
         )}
       </div>
 
-      {!academiaId ? (
-        <div className="rounded-xl border border-dashed p-12 text-center text-muted-foreground">
-          <BookMarked className="h-8 w-8 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">Selecciona una academia para gestionar temas y partes</p>
-        </div>
-      ) : (
-        <>
-          {/* Section toggle + action */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <div className="flex p-1 bg-muted border rounded-xl">
-              {(['temas', 'partes'] as const).map(s => (
-                <button
-                  key={s}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-4 text-sm font-medium rounded-lg transition-all ${
-                    seccion === s
-                      ? 'bg-background shadow-sm text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                  onClick={() => setSeccion(s)}
-                >
-                  {s === 'temas'
-                    ? <BookOpen className="h-3.5 w-3.5 flex-shrink-0" />
-                    : <Tag className="h-3.5 w-3.5 flex-shrink-0" />}
-                  <span>{s === 'temas' ? 'Temas' : 'Partes'}</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
-                    seccion === s
-                      ? 'bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300'
-                      : 'bg-muted-foreground/15 text-muted-foreground'
-                  }`}>
-                    {s === 'temas' ? temas.length : partes.length}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <div className="flex-1 hidden sm:block" />
-            <Button
-              onClick={() => seccion === 'temas' ? setDialogCrearTema(true) : setDialogCrearParte(true)}
-              disabled={!academiaId}
-              className="bg-teal-600 hover:bg-teal-700 flex-shrink-0"
+      {/* Section toggle + action */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="flex p-1 bg-muted border rounded-xl">
+          {(['temas', 'partes'] as const).map(s => (
+            <button
+              key={s}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-4 text-sm font-medium rounded-lg transition-all ${
+                seccion === s
+                  ? 'bg-background shadow-sm text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+              onClick={() => setSeccion(s)}
             >
-              <Plus className="h-4 w-4 mr-1" />
-              {seccion === 'temas' ? 'Nuevo tema' : 'Nueva parte'}
-            </Button>
-          </div>
+              {s === 'temas'
+                ? <BookOpen className="h-3.5 w-3.5 flex-shrink-0" />
+                : <Tag className="h-3.5 w-3.5 flex-shrink-0" />}
+              <span>{s === 'temas' ? 'Temas' : 'Partes'}</span>
+              <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+                seccion === s
+                  ? 'bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300'
+                  : 'bg-muted-foreground/15 text-muted-foreground'
+              }`}>
+                {s === 'temas' ? temas.length : partes.length}
+              </span>
+            </button>
+          ))}
+        </div>
+        <div className="flex-1 hidden sm:block" />
+        {seccion === 'temas' ? (
+          <Button
+            onClick={() => setDialogCrearTema(true)}
+            disabled={!academiaId}
+            className="bg-teal-600 hover:bg-teal-700 flex-shrink-0"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Nuevo tema
+          </Button>
+        ) : (
+          <Button
+            onClick={() => setDialogCrearParte(true)}
+            disabled={!canManagePartes}
+            title={!canManagePartes ? 'Selecciona una academia para gestionar partes' : ''}
+            className="bg-teal-600 hover:bg-teal-700 flex-shrink-0"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Nueva parte
+          </Button>
+        )}
+      </div>
 
-          {/* ═══ TEMAS section ══════════════════════════════ */}
-          {seccion === 'temas' && (
+      {/* ═══ TEMAS ══════════════════════════════════════════ */}
+      {seccion === 'temas' && (
+        <>
+          {!academiaId ? (
+            <div className="rounded-xl border border-dashed p-12 text-center text-muted-foreground">
+              <BookMarked className="h-8 w-8 mx-auto mb-3 opacity-30" />
+              <p className="text-sm">Selecciona una academia para ver sus temas</p>
+            </div>
+          ) : (
             <>
-              {/* Summary bar */}
               {!loadingTemas && temas.length > 0 && (
                 <div className="flex flex-wrap gap-4 px-4 py-3 rounded-xl border bg-muted/40 text-sm">
                   <span className="flex items-center gap-1.5 font-medium">
@@ -445,9 +516,7 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
 
               {loadingTemas ? (
                 <div className="space-y-2">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="h-16 rounded-xl border animate-pulse bg-muted/50" />
-                  ))}
+                  {[...Array(5)].map((_, i) => <div key={i} className="h-16 rounded-xl border animate-pulse bg-muted/50" />)}
                 </div>
               ) : temas.length === 0 ? (
                 <div className="rounded-xl border border-dashed p-12 text-center text-muted-foreground">
@@ -495,14 +564,11 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
                             <>
                               <div className="flex items-center gap-2">
                                 <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                  <div
-                                    className={`h-full rounded-full transition-all duration-500 ${c.bar}`}
-                                    style={{ width: `${p}%` }}
-                                  />
+                                  <div className={`h-full rounded-full transition-all duration-500 ${c.bar}`} style={{ width: `${p}%` }} />
                                 </div>
                                 <span className={`text-xs font-semibold flex-shrink-0 ${c.text}`}>{p}%</span>
                               </div>
-                              <div className="flex gap-3 text-[11px] text-muted-foreground flex-wrap">
+                              <div className="flex gap-3 text-[11px] flex-wrap">
                                 {t.verificadas > 0 && <span className="text-teal-600 dark:text-teal-400">✅ {t.verificadas} verif.</span>}
                                 {t.pendientes > 0 && <span className="text-amber-600 dark:text-amber-400">🟡 {t.pendientes} pend.</span>}
                                 {t.rechazadas > 0 && <span className="text-red-600 dark:text-red-400">❌ {t.rechazadas} rech.</span>}
@@ -519,114 +585,161 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
               )}
             </>
           )}
+        </>
+      )}
 
-          {/* ═══ PARTES section ═════════════════════════════ */}
-          {seccion === 'partes' && (
-            <>
-              {/* Info + summary bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 rounded-xl border bg-muted/40">
-                <div className="flex-1 space-y-0.5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">¿Qué son las partes?</p>
-                  <p className="text-xs text-muted-foreground">
-                    Agrupan preguntas dentro de un tema: Común, EXAMEN, Específica, o cualquier categoría personalizada.
-                  </p>
-                </div>
-                {partes.length > 0 && (
-                  <div className="flex items-center gap-3 text-sm flex-shrink-0">
-                    <span className="flex items-center gap-1.5 font-medium">
-                      <Tag className="h-3.5 w-3.5 text-purple-500" />
-                      {partes.length} {partes.length === 1 ? 'parte' : 'partes'}
-                    </span>
-                    {partesTotals.total > 0 && (
-                      <>
-                        <span className="text-muted-foreground">·</span>
-                        <span className="text-muted-foreground">{partesTotals.total.toLocaleString()} preguntas</span>
-                      </>
-                    )}
-                  </div>
+      {/* ═══ PARTES (vista global) ═══════════════════════════ */}
+      {seccion === 'partes' && (
+        <>
+          {/* Info bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 rounded-xl border bg-muted/40">
+            <div className="flex-1 space-y-0.5 min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vista global de partes</p>
+              <p className="text-xs text-muted-foreground">
+                Todas las partes de todas tus academias · La gestión (crear/renombrar/borrar) aplica a{' '}
+                <span className="font-medium text-foreground">
+                  {selectedAcademia?.academia_nombre ?? 'la academia seleccionada'}
+                </span>
+              </p>
+            </div>
+            {partes.length > 0 && (
+              <div className="flex items-center gap-3 text-sm flex-shrink-0">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <Tag className="h-3.5 w-3.5 text-purple-500" />
+                  {partes.length} {partes.length === 1 ? 'parte' : 'partes'}
+                </span>
+                {partesTotals.total > 0 && (
+                  <>
+                    <span className="text-muted-foreground">·</span>
+                    <span className="text-muted-foreground">{partesTotals.total.toLocaleString()} preguntas</span>
+                  </>
                 )}
               </div>
+            )}
+          </div>
 
-              {loadingPartes ? (
-                <div className="space-y-2">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="h-14 rounded-xl border animate-pulse bg-muted/50" />
-                  ))}
-                </div>
-              ) : partes.length === 0 ? (
-                <div className="rounded-xl border border-dashed p-12 text-center text-muted-foreground">
-                  <Tag className="h-8 w-8 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">Ninguna parte registrada en esta academia</p>
-                  <p className="text-xs mt-1 mb-3 text-muted-foreground/70">
-                    Crea partes para categorizar preguntas (ej. Común, Específica…)
-                  </p>
-                  <Button size="sm" className="bg-teal-600 hover:bg-teal-700" onClick={() => setDialogCrearParte(true)}>
-                    <Plus className="h-3.5 w-3.5 mr-1" />
-                    Crear primera parte
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {partes.map(p => (
-                    <div key={p.nombre} className="flex items-center gap-3 px-3 py-3 rounded-xl border bg-card hover:shadow-sm transition-shadow">
+          {!canManagePartes && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs text-amber-700 dark:text-amber-400">
+              <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+              Selecciona una academia propia arriba para poder crear, renombrar o eliminar partes.
+            </div>
+          )}
+
+          {loadingPartes ? (
+            <div className="space-y-2">
+              {[...Array(4)].map((_, i) => <div key={i} className="h-20 rounded-xl border animate-pulse bg-muted/50" />)}
+            </div>
+          ) : partes.length === 0 ? (
+            <div className="rounded-xl border border-dashed p-12 text-center text-muted-foreground">
+              <Tag className="h-8 w-8 mx-auto mb-3 opacity-30" />
+              <p className="text-sm">Ninguna parte encontrada en tus academias</p>
+              <p className="text-xs mt-1 mb-3 text-muted-foreground/70">
+                Las partes aparecen automáticamente cuando se asignan a preguntas, o puedes crearlas aquí.
+              </p>
+              {canManagePartes && (
+                <Button size="sm" className="bg-teal-600 hover:bg-teal-700" onClick={() => setDialogCrearParte(true)}>
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Crear primera parte
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {partes.map(p => {
+                const propiaBreakdown = p.breakdown.find(b => b.academia_id === academiaId);
+                const propiaTotal = propiaBreakdown?.total ?? 0;
+                return (
+                  <div key={p.nombre} className="rounded-xl border bg-card hover:shadow-sm transition-shadow">
+                    {/* Fila principal */}
+                    <div className="flex items-center gap-3 px-3 py-3">
                       <div className="w-7 h-7 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center flex-shrink-0">
                         <Tag className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-semibold">{p.nombre}</span>
                           {PARTE_PRESETS.includes(p.nombre) && (
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-teal-300 dark:border-teal-700 text-teal-700 dark:text-teal-300">
                               Preset
                             </Badge>
                           )}
-                          {!p.en_tabla && (
+                          {!p.en_tabla && canManagePartes && (
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400">
                               Sin registrar
                             </Badge>
                           )}
                         </div>
-                        <p className="text-[11px] text-muted-foreground">
-                          {p.total > 0 ? (
-                            <>
-                              {p.total} pregunta{p.total !== 1 ? 's' : ''}
-                              {p.verificadas > 0 && <span className="text-teal-600 dark:text-teal-400"> · ✅ {p.verificadas}</span>}
-                              {p.pendientes > 0 && <span className="text-amber-600 dark:text-amber-400"> · 🟡 {p.pendientes}</span>}
-                              {p.rechazadas > 0 && <span className="text-red-600 dark:text-red-400"> · ❌ {p.rechazadas}</span>}
-                            </>
-                          ) : (
-                            <span>Sin preguntas aún</span>
-                          )}
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {p.total > 0
+                            ? `${p.total.toLocaleString()} preguntas totales en ${p.breakdown.length} academia${p.breakdown.length !== 1 ? 's' : ''}`
+                            : 'Sin preguntas aún'}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <button
-                          onClick={() => { setEditParte(p); setEditNombreParte(p.nombre); }}
-                          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                          title="Renombrar parte"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteParte(p)}
-                          className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-600 transition-colors"
-                          title="Eliminar parte"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                      {canManagePartes && (
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <button
+                            onClick={() => { setEditParte(p); setEditNombreParte(p.nombre); }}
+                            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                            title="Renombrar parte"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setDeleteParte(p)}
+                            className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-600 transition-colors"
+                            title="Eliminar parte"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
-            </>
+
+                    {/* Desglose por academia */}
+                    {p.breakdown.length > 0 && (
+                      <div className="border-t mx-3 pb-3 pt-2 space-y-1.5">
+                        {p.breakdown.map(b => {
+                          const bPct = verifPct(b.verificadas, b.total);
+                          const bColor = verifColor(bPct);
+                          return (
+                            <div key={b.academia_id} className="flex items-center gap-2">
+                              <div className={`flex-shrink-0 ${b.es_biblioteca ? 'text-muted-foreground' : 'text-teal-600 dark:text-teal-400'}`}>
+                                {b.es_biblioteca
+                                  ? <Library className="h-3 w-3" />
+                                  : <GraduationCap className="h-3 w-3" />}
+                              </div>
+                              <span className="text-xs text-muted-foreground truncate flex-shrink min-w-0 w-32">
+                                {b.academia_nombre}
+                              </span>
+                              <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden min-w-0">
+                                <div
+                                  className={`h-full rounded-full ${bColor.bar}`}
+                                  style={{ width: `${bPct}%` }}
+                                />
+                              </div>
+                              <span className={`text-[11px] font-medium flex-shrink-0 w-6 text-right ${bColor.text}`}>{bPct}%</span>
+                              <span className="text-[11px] text-muted-foreground flex-shrink-0 w-14 text-right">
+                                {b.total.toLocaleString()} preg.
+                              </span>
+                              <div className="flex gap-2 text-[11px] flex-shrink-0">
+                                {b.verificadas > 0 && <span className="text-teal-600 dark:text-teal-400">✅{b.verificadas}</span>}
+                                {b.pendientes > 0 && <span className="text-amber-600 dark:text-amber-400">🟡{b.pendientes}</span>}
+                                {b.rechazadas > 0 && <span className="text-red-600 dark:text-red-400">❌{b.rechazadas}</span>}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </>
       )}
 
-      {/* ═══════════════════════════════════════════════════ */}
-      {/* DIALOGS                                            */}
-      {/* ═══════════════════════════════════════════════════ */}
+      {/* ═══ DIALOGS ════════════════════════════════════════ */}
 
       {/* Crear tema */}
       <Dialog open={dialogCrearTema} onOpenChange={open => { setDialogCrearTema(open); if (!open) setNuevoTema(''); }}>
@@ -645,13 +758,7 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
           <div className="space-y-4 pt-1">
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Nombre <span className="text-red-500">*</span></Label>
-              <Input
-                value={nuevoTema}
-                onChange={e => setNuevoTema(e.target.value)}
-                placeholder="ej. Anatomía, Legislación, Técnicas..."
-                onKeyDown={e => e.key === 'Enter' && handleCrearTema()}
-                autoFocus
-              />
+              <Input value={nuevoTema} onChange={e => setNuevoTema(e.target.value)} placeholder="ej. Anatomía, Legislación..." onKeyDown={e => e.key === 'Enter' && handleCrearTema()} autoFocus />
             </div>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setDialogCrearTema(false)}>Cancelar</Button>
@@ -666,18 +773,11 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
       {/* Renombrar tema */}
       <Dialog open={!!editTema} onOpenChange={open => { if (!open) setEditTema(null); }}>
         <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-base">Renombrar tema</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle className="text-base">Renombrar tema</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-1">
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Nuevo nombre <span className="text-red-500">*</span></Label>
-              <Input
-                value={editNombreTema}
-                onChange={e => setEditNombreTema(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleRenombrarTema()}
-                autoFocus
-              />
+              <Input value={editNombreTema} onChange={e => setEditNombreTema(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleRenombrarTema()} autoFocus />
             </div>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setEditTema(null)}>Cancelar</Button>
@@ -699,9 +799,7 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
             </DialogTitle>
             <DialogDescription>
               Vas a eliminar <span className="font-medium text-foreground">"{deleteTema?.nombre}"</span>
-              {deleteTema && deleteTema.total > 0 && (
-                <> con <span className="font-semibold text-red-600">{deleteTema.total} preguntas</span></>
-              )}.
+              {deleteTema && deleteTema.total > 0 && <> con <span className="font-semibold text-red-600">{deleteTema.total} preguntas</span></>}.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-1">
@@ -733,20 +831,14 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
             </DialogTitle>
             {selectedAcademia && (
               <p className="text-xs text-muted-foreground pt-1">
-                Academia: <span className="font-medium text-foreground">{selectedAcademia.academia_nombre}</span>
+                Se creará en <span className="font-medium text-foreground">{selectedAcademia.academia_nombre}</span>
               </p>
             )}
           </DialogHeader>
           <div className="space-y-4 pt-1">
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Nombre <span className="text-red-500">*</span></Label>
-              <Input
-                value={nuevaParte}
-                onChange={e => setNuevaParte(e.target.value)}
-                placeholder="ej. Específica, Práctica, Avanzado..."
-                onKeyDown={e => e.key === 'Enter' && handleCrearParte()}
-                autoFocus
-              />
+              <Input value={nuevaParte} onChange={e => setNuevaParte(e.target.value)} placeholder="ej. Específica, Práctica..." onKeyDown={e => e.key === 'Enter' && handleCrearParte()} autoFocus />
             </div>
             <p className="text-[11px] text-muted-foreground">
               Los presets <strong>Común</strong>, <strong>EXAMEN</strong> y <strong>Específica</strong> están disponibles por defecto en todos los formularios.
@@ -766,21 +858,20 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-base">Renombrar parte</DialogTitle>
-            {editParte && editParte.total > 0 && (
+            {editParte && selectedAcademia && (
               <p className="text-xs text-muted-foreground pt-1">
-                Se actualizarán <span className="font-medium text-foreground">{editParte.total} pregunta{editParte.total !== 1 ? 's' : ''}</span> con el nuevo nombre.
+                Aplica solo a <span className="font-medium text-foreground">{selectedAcademia.academia_nombre}</span>
+                {(() => {
+                  const n = editParte.breakdown.find(b => b.academia_id === academiaId)?.total ?? 0;
+                  return n > 0 ? ` · actualizará ${n} pregunta${n !== 1 ? 's' : ''}` : '';
+                })()}
               </p>
             )}
           </DialogHeader>
           <div className="space-y-4 pt-1">
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Nuevo nombre <span className="text-red-500">*</span></Label>
-              <Input
-                value={editNombreParte}
-                onChange={e => setEditNombreParte(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleRenombrarParte()}
-                autoFocus
-              />
+              <Input value={editNombreParte} onChange={e => setEditNombreParte(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleRenombrarParte()} autoFocus />
             </div>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setEditParte(null)}>Cancelar</Button>
@@ -801,23 +892,26 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
               Eliminar parte
             </DialogTitle>
             <DialogDescription>
-              Vas a eliminar la parte <span className="font-medium text-foreground">"{deleteParte?.nombre}"</span>.
+              Vas a eliminar <span className="font-medium text-foreground">"{deleteParte?.nombre}"</span>
+              {selectedAcademia && <> de <span className="font-medium text-foreground">{selectedAcademia.academia_nombre}</span></>}.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-1">
-            {deleteParte && deleteParte.total > 0 ? (
-              <div className="rounded-lg border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-900/20 p-3 flex gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-700 dark:text-amber-400">
-                  <strong>{deleteParte.total} pregunta{deleteParte.total !== 1 ? 's' : ''}</strong> tiene{deleteParte.total !== 1 ? 'n' : ''} esta parte asignada.
-                  Quedarán <strong>sin parte</strong> pero no se eliminarán.
-                </p>
-              </div>
-            ) : (
-              <div className="rounded-lg border border-muted p-3">
-                <p className="text-xs text-muted-foreground">Esta parte no tiene preguntas asignadas. Se eliminará sin afectar a ninguna pregunta.</p>
-              </div>
-            )}
+            {deleteParte && (() => {
+              const n = deleteParte.breakdown.find(b => b.academia_id === academiaId)?.total ?? 0;
+              return n > 0 ? (
+                <div className="rounded-lg border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-900/20 p-3 flex gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    <strong>{n} pregunta{n !== 1 ? 's' : ''}</strong> de esta academia {n !== 1 ? 'quedarán' : 'quedará'} sin parte asignada. No se eliminarán.
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-muted p-3">
+                  <p className="text-xs text-muted-foreground">Esta parte no tiene preguntas en esta academia. Se eliminará sin efecto sobre ninguna pregunta.</p>
+                </div>
+              );
+            })()}
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setDeleteParte(null)}>Cancelar</Button>
               <Button variant="destructive" className="flex-1" disabled={deleting} onClick={handleEliminarParte}>
