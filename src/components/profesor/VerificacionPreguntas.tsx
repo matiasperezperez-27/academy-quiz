@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { CheckCircle, XCircle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Pencil, GraduationCap, Library } from 'lucide-react';
 import { useVerificacion, type PreguntaParaVerificar } from '@/hooks/useVerificacion';
 import { useGestionPreguntas, type PreguntaForm } from '@/hooks/useGestionPreguntas';
+import { useParteOptions } from '@/hooks/useParteOptions';
 import PreguntaFormDialog from '@/components/profesor/PreguntaFormDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -70,8 +71,12 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
 
   const [academiaId, setAcademiaId] = useState('__all__');
   const [temaId, setTemaId] = useState('__all__');
+  const [parteFilter, setParteFilter] = useState('__all__');
   const [estado, setEstado] = useState('pendiente');
   const [temas, setTemas] = useState<{ id: string; nombre: string }[]>([]);
+  const parteOptions = useParteOptions(
+    academiaId !== '__all__' ? [academiaId] : propias.map(a => a.academia_id)
+  );
   const [page, setPage] = useState(0);
   const [procesando, setProcesando] = useState<string | null>(null);
   const [filterCounts, setFilterCounts] = useState<FilterCounts | null>(null);
@@ -161,6 +166,7 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
         if (academiaId !== '__all__') q = q.eq('academia_id', academiaId);
         else q = q.in('academia_id', ids);
         if (temaId !== '__all__') q = q.eq('tema_id', temaId);
+        if (parteFilter !== '__all__') q = q.eq('parte', parteFilter);
         return q;
       };
       const [pendRes, verRes, rechRes] = await Promise.all([
@@ -174,7 +180,7 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
       setFilterCounts({ pendientes, verificadas, rechazadas, total: pendientes + verificadas + rechazadas });
     };
     load();
-  }, [academiaId, temaId, propias.length]);
+  }, [academiaId, temaId, parteFilter, propias.length]);
 
   const handleAccion = async (preguntaId: string, accion: 'verificar' | 'rechazar') => {
     setProcesando(preguntaId);
@@ -286,6 +292,10 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
       setAiBusy(false);
     }
   };
+
+  const filteredPreguntas = parteFilter !== '__all__'
+    ? preguntas.filter(p => p.parte === parteFilter)
+    : preguntas;
 
   const estadoLabel: Record<string, string> = {
     pendiente: 'pendientes de revisión',
@@ -399,7 +409,7 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-3">
-            <Select value={academiaId} onValueChange={v => { setAcademiaId(v); setTemaId('__all__'); setPage(0); }}>
+            <Select value={academiaId} onValueChange={v => { setAcademiaId(v); setTemaId('__all__'); setParteFilter('__all__'); setPage(0); }}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Todas las academias" />
               </SelectTrigger>
@@ -429,6 +439,18 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
                   >
                     <span className="truncate">{t.nombre}</span>
                   </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={parteFilter} onValueChange={v => { setParteFilter(v); setPage(0); }}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Todas las partes" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todas las partes</SelectItem>
+                {parteOptions.map(p => (
+                  <SelectItem key={p} value={p}>{p}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -507,15 +529,15 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
             </Card>
           ))}
         </div>
-      ) : preguntas.length === 0 ? (
+      ) : filteredPreguntas.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center text-muted-foreground">
-            No hay preguntas {estadoLabel[estado] ?? estado}
+            No hay preguntas {estadoLabel[estado] ?? estado}{parteFilter !== '__all__' ? ` en la parte "${parteFilter}"` : ''}
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
-          {preguntas.map(p => {
+          {filteredPreguntas.map(p => {
             const opciones: Array<[string, string | null]> = [
               ['A', p.opcion_a], ['B', p.opcion_b], ['C', p.opcion_c], ['D', p.opcion_d],
             ];
@@ -656,7 +678,7 @@ export default function VerificacionPreguntas({ profesorId, academias }: Props) 
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-sm text-muted-foreground">Página {page + 1}</span>
-            <Button variant="outline" size="sm" disabled={preguntas.length < PAGE_SIZE} onClick={() => setPage(p => p + 1)}>
+            <Button variant="outline" size="sm" disabled={filteredPreguntas.length < PAGE_SIZE} onClick={() => setPage(p => p + 1)}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

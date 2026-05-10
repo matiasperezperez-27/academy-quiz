@@ -14,6 +14,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useBancoPreguntas, type PreguntaBanco } from '@/hooks/useBancoPreguntas';
+import { useParteOptions } from '@/hooks/useParteOptions';
 import { useGestionPreguntas, type PreguntaForm } from '@/hooks/useGestionPreguntas';
 import PreguntaFormDialog from '@/components/profesor/PreguntaFormDialog';
 import { shuffleOptions } from '@/lib/shuffleOptions';
@@ -70,6 +71,11 @@ export default function BancoPreguntas({ profesorId, academias }: Props) {
   const [destTemaId, setDestTemaId] = useState('');
   const [destTemas, setDestTemas] = useState<{ id: string; nombre: string }[]>([]);
 
+  const [srcParteFilter, setSrcParteFilter] = useState('__all__');
+  const parteOptions = useParteOptions(
+    srcAcademiaId !== '__all__' ? [srcAcademiaId] : bibliotecas.map(b => b.id)
+  );
+
   const [soloNoImportadas, setSoloNoImportadas] = useState(true);
   const [page, setPage] = useState(0);
   const [importing, setImporting] = useState<string | null>(null);
@@ -103,7 +109,7 @@ export default function BancoPreguntas({ profesorId, academias }: Props) {
   }, [propias, destAcademiaId]);
 
   useEffect(() => {
-    if (srcAcademiaId === '__all__') { setBancoTemaStats([]); setSrcTemaId('__all__'); return; }
+    if (srcAcademiaId === '__all__') { setBancoTemaStats([]); setSrcTemaId('__all__'); setSrcParteFilter('__all__'); return; }
     setLoadingBancoTemas(true);
     setSrcTemaId('__all__');
     supabase.rpc('get_banco_tema_import_stats' as any, {
@@ -131,6 +137,10 @@ export default function BancoPreguntas({ profesorId, academias }: Props) {
   }, [cargar, srcAcademiaId, srcTemaId, soloNoImportadas, page]);
 
   useEffect(() => { recargar(); }, [recargar]);
+
+  const filteredPreguntas = srcParteFilter !== '__all__'
+    ? preguntas.filter(p => p.parte === srcParteFilter)
+    : preguntas;
 
   // ── Selección batch ──────────────────────────────────────────────────────
   const toggleSelect = (p: PreguntaBanco) => {
@@ -568,6 +578,20 @@ export default function BancoPreguntas({ profesorId, academias }: Props) {
             </div>
           )}
 
+          {parteOptions.length > 0 && (
+            <Select value={srcParteFilter} onValueChange={v => { setSrcParteFilter(v); setPage(0); }}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Todas las partes" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todas las partes</SelectItem>
+                {parteOptions.map(p => (
+                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
           <div className="flex items-center gap-2">
             <Switch id="solo-no-importadas" checked={soloNoImportadas} onCheckedChange={v => { setSoloNoImportadas(v); setPage(0); }} />
             <Label htmlFor="solo-no-importadas" className="text-xs cursor-pointer">Ocultar ya importadas</Label>
@@ -589,7 +613,7 @@ export default function BancoPreguntas({ profesorId, academias }: Props) {
             </CardContent></Card>
           ))}
         </div>
-      ) : preguntas.length === 0 ? (
+      ) : filteredPreguntas.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center text-muted-foreground">
             {soloNoImportadas ? 'Todas las preguntas de este filtro ya han sido importadas.' : 'No hay preguntas en este banco con los filtros seleccionados.'}
@@ -597,7 +621,7 @@ export default function BancoPreguntas({ profesorId, academias }: Props) {
         </Card>
       ) : (
         <div className="space-y-3">
-          {preguntas.map(p => {
+          {filteredPreguntas.map(p => {
             const isImporting = importing === p.id;
             const isSelected = selectedIds.has(p.id);
             return (
@@ -684,7 +708,7 @@ export default function BancoPreguntas({ profesorId, academias }: Props) {
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-sm text-muted-foreground">Página {page + 1}</span>
-            <Button variant="outline" size="sm" disabled={preguntas.length < PAGE_SIZE} onClick={() => setPage(p => p + 1)}>
+            <Button variant="outline" size="sm" disabled={filteredPreguntas.length < PAGE_SIZE} onClick={() => setPage(p => p + 1)}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

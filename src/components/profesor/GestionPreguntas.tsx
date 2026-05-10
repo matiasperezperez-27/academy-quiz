@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Plus, Pencil, Trash2, CheckCircle, Clock, XCircle, HelpCircle, AlertTriangle } from 'lucide-react';
 import { useGestionPreguntas, type PreguntaForm } from '@/hooks/useGestionPreguntas';
+import { useParteOptions } from '@/hooks/useParteOptions';
 import PreguntaFormDialog from '@/components/profesor/PreguntaFormDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -55,7 +56,9 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propias.length]);
   const [temaId, setTemaId] = useState('__all__');
+  const [parteFilter, setParteFilter] = useState('__all__');
   const [temas, setTemas] = useState<{ id: string; nombre: string }[]>([]);
+  const parteOptions = useParteOptions(academiaId ? [academiaId] : []);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<PreguntaForm>(FORM_EMPTY);
   const [formTemas, setFormTemas] = useState<{ id: string; nombre: string }[]>([]);
@@ -67,14 +70,19 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
       supabase.from('temas').select('id, nombre').eq('academia_id', academiaId).order('nombre')
         .then(({ data }) => setTemas(data || []));
       setTemaId('__all__');
+      setParteFilter('__all__');
     } else {
       setTemas([]);
     }
   }, [academiaId]);
 
   useEffect(() => {
-    if (academiaId) cargar(academiaId, temaId === '__all__' ? undefined : temaId);
-  }, [academiaId, temaId, cargar]);
+    if (academiaId) cargar(
+      academiaId,
+      temaId === '__all__' ? undefined : temaId,
+      parteFilter === '__all__' ? undefined : parteFilter,
+    );
+  }, [academiaId, temaId, parteFilter, cargar]);
 
   const handleAcademiaForm = async (value: string) => {
     setForm(prev => ({ ...prev, academia_id: value, tema_id: '' }));
@@ -122,7 +130,7 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
     if (id) {
       setDialogOpen(false);
       setForm(FORM_EMPTY);
-      if (academiaId) cargar(academiaId, temaId === '__all__' ? undefined : temaId);
+      if (academiaId) cargar(academiaId, temaId === '__all__' ? undefined : temaId, parteFilter === '__all__' ? undefined : parteFilter);
       onRefresh();
     }
   };
@@ -138,7 +146,7 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
       if (error) throw error;
       toast.success('Pregunta eliminada');
       setDeleteItem(null);
-      if (academiaId) cargar(academiaId, temaId === '__all__' ? undefined : temaId);
+      if (academiaId) cargar(academiaId, temaId === '__all__' ? undefined : temaId, parteFilter === '__all__' ? undefined : parteFilter);
       onRefresh();
     } catch (err: any) {
       toast.error(err.message || 'Error al eliminar la pregunta');
@@ -180,6 +188,20 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
               <SelectItem value="__all__">Todos los temas</SelectItem>
               {temas.map(t => (
                 <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        {academiaId && parteOptions.length > 0 && (
+          <Select value={parteFilter} onValueChange={setParteFilter}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Todas las partes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todas las partes</SelectItem>
+              {parteOptions.map(p => (
+                <SelectItem key={p} value={p}>{p}</SelectItem>
               ))}
             </SelectContent>
           </Select>

@@ -38,7 +38,7 @@ export function useGestionPreguntas(profesorId: string) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const cargar = useCallback(async (academiaId: string, temaId?: string) => {
+  const cargar = useCallback(async (academiaId: string, temaId?: string, parteFilter?: string) => {
     if (!academiaId) return;
     setLoading(true);
     try {
@@ -50,6 +50,7 @@ export function useGestionPreguntas(profesorId: string) {
         .limit(50);
 
       if (temaId) query = query.eq('tema_id', temaId);
+      if (parteFilter) query = query.eq('parte', parteFilter);
 
       const { data, error } = await query;
       if (error) throw error;
