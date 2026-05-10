@@ -1,19 +1,47 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Plus, BookOpen, BookMarked, Pencil, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, BookOpen, Tag, Pencil, Trash2, AlertTriangle, BookMarked, Layers } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { ProfesorAcademia } from '@/hooks/useProfesorData';
 
-interface Tema {
+interface TemaConConteos {
   id: string;
   nombre: string;
   academia_id: string;
   created_at: string;
+  total: number;
+  verificadas: number;
+  pendientes: number;
+  rechazadas: number;
+}
+
+interface ParteConConteos {
+  id: string | null;
+  nombre: string;
+  academia_id: string;
+  total: number;
+  verificadas: number;
+  pendientes: number;
+  rechazadas: number;
+  en_tabla: boolean;
+}
+
+const PARTE_PRESETS = ['Común', 'EXAMEN', 'Específica'];
+
+function verifPct(verificadas: number, total: number) {
+  return total > 0 ? Math.round((verificadas / total) * 100) : 0;
+}
+
+function verifColor(p: number) {
+  if (p >= 70) return { bar: 'bg-teal-500', text: 'text-teal-600 dark:text-teal-400' };
+  if (p >= 30) return { bar: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400' };
+  return { bar: 'bg-red-500', text: 'text-red-600 dark:text-red-400' };
 }
 
 interface Props {
@@ -23,79 +51,170 @@ interface Props {
 }
 
 export default function GestionTemas({ profesorId, academias, onRefresh }: Props) {
+  const propias = useMemo(() => academias.filter(a => !a.es_biblioteca), [academias]);
   const [academiaId, setAcademiaId] = useState('');
-  const [temas, setTemas] = useState<Tema[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [nombre, setNombre] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [seccion, setSeccion] = useState<'temas' | 'partes'>('temas');
 
-  const [editTema, setEditTema] = useState<Tema | null>(null);
-  const [editNombre, setEditNombre] = useState('');
-  const [deleteTema, setDeleteTema] = useState<Tema | null>(null);
+  // ── Temas ────────────────────────────────────────────────
+  const [temas, setTemas] = useState<TemaConConteos[]>([]);
+  const [loadingTemas, setLoadingTemas] = useState(false);
+  const [dialogCrearTema, setDialogCrearTema] = useState(false);
+  const [nuevoTema, setNuevoTema] = useState('');
+  const [editTema, setEditTema] = useState<TemaConConteos | null>(null);
+  const [editNombreTema, setEditNombreTema] = useState('');
+  const [deleteTema, setDeleteTema] = useState<TemaConConteos | null>(null);
+
+  // ── Partes ───────────────────────────────────────────────
+  const [partes, setPartes] = useState<ParteConConteos[]>([]);
+  const [loadingPartes, setLoadingPartes] = useState(false);
+  const [dialogCrearParte, setDialogCrearParte] = useState(false);
+  const [nuevaParte, setNuevaParte] = useState('');
+  const [editParte, setEditParte] = useState<ParteConConteos | null>(null);
+  const [editNombreParte, setEditNombreParte] = useState('');
+  const [deleteParte, setDeleteParte] = useState<ParteConConteos | null>(null);
+
+  // Shared
+  const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const cargar = async (aid: string) => {
-    if (!aid) return;
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('temas')
-      .select('id, nombre, academia_id, created_at')
-      .eq('academia_id', aid)
-      .order('nombre');
-    if (!error) setTemas((data as Tema[]) || []);
-    setLoading(false);
-  };
+  const selectedAcademia = propias.find(a => a.academia_id === academiaId);
 
   useEffect(() => {
-    cargar(academiaId);
-  }, [academiaId]);
+    if (propias.length === 1 && !academiaId) setAcademiaId(propias[0].academia_id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propias.length]);
 
-  const handleCrear = async () => {
-    if (!nombre.trim() || !academiaId) return;
+  // ── Data loaders ─────────────────────────────────────────
+
+  const cargarTemas = useCallback(async (aid: string) => {
+    if (!aid) return;
+    setLoadingTemas(true);
+    try {
+      const { data: temaData, error } = await supabase
+        .from('temas')
+        .select('id, nombre, academia_id, created_at')
+        .eq('academia_id', aid)
+        .order('nombre');
+      if (error) throw error;
+      if (!temaData || temaData.length === 0) { setTemas([]); return; }
+
+      const ids = temaData.map((t: any) => t.id);
+      const { data: pregsData } = await supabase
+        .from('preguntas')
+        .select('tema_id, verificada, rechazada')
+        .in('tema_id', ids);
+
+      const cm: Record<string, { total: number; verificadas: number; pendientes: number; rechazadas: number }> = {};
+      temaData.forEach((t: any) => { cm[t.id] = { total: 0, verificadas: 0, pendientes: 0, rechazadas: 0 }; });
+      (pregsData ?? []).forEach((p: any) => {
+        if (!cm[p.tema_id]) return;
+        cm[p.tema_id].total++;
+        if (p.verificada) cm[p.tema_id].verificadas++;
+        else if (p.rechazada) cm[p.tema_id].rechazadas++;
+        else cm[p.tema_id].pendientes++;
+      });
+
+      setTemas(temaData.map((t: any) => ({ ...t, ...cm[t.id] }) as TemaConConteos));
+    } finally {
+      setLoadingTemas(false);
+    }
+  }, []);
+
+  const cargarPartes = useCallback(async (aid: string) => {
+    if (!aid) return;
+    setLoadingPartes(true);
+    try {
+      const [tableRes, pregsRes] = await Promise.all([
+        supabase.from('partes_academia').select('id, nombre').eq('academia_id', aid).order('nombre'),
+        supabase.from('preguntas').select('parte, verificada, rechazada').eq('academia_id', aid).not('parte', 'is', null),
+      ]);
+
+      const tableMap: Record<string, string> = {}; // nombre → id
+      (tableRes.data ?? []).forEach((p: any) => { tableMap[p.nombre] = p.id; });
+
+      const cm: Record<string, { total: number; verificadas: number; pendientes: number; rechazadas: number }> = {};
+      (pregsRes.data ?? []).forEach((p: any) => {
+        if (!p.parte) return;
+        if (!cm[p.parte]) cm[p.parte] = { total: 0, verificadas: 0, pendientes: 0, rechazadas: 0 };
+        cm[p.parte].total++;
+        if (p.verificada) cm[p.parte].verificadas++;
+        else if (p.rechazada) cm[p.parte].rechazadas++;
+        else cm[p.parte].pendientes++;
+      });
+
+      const allNames = new Set([...Object.keys(tableMap), ...Object.keys(cm)]);
+      const result: ParteConConteos[] = Array.from(allNames).map(nombre => ({
+        id: tableMap[nombre] ?? null,
+        nombre,
+        academia_id: aid,
+        en_tabla: !!tableMap[nombre],
+        ...(cm[nombre] ?? { total: 0, verificadas: 0, pendientes: 0, rechazadas: 0 }),
+      })).sort((a, b) => {
+        const ia = PARTE_PRESETS.indexOf(a.nombre);
+        const ib = PARTE_PRESETS.indexOf(b.nombre);
+        if (ia >= 0 && ib < 0) return -1;
+        if (ib >= 0 && ia < 0) return 1;
+        if (ia >= 0 && ib >= 0) return ia - ib;
+        return a.nombre.localeCompare(b.nombre, 'es');
+      });
+
+      setPartes(result);
+    } finally {
+      setLoadingPartes(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarTemas(academiaId);
+    cargarPartes(academiaId);
+  }, [academiaId, cargarTemas, cargarPartes]);
+
+  // ── Tema handlers ─────────────────────────────────────────
+
+  const handleCrearTema = async () => {
+    if (!nuevoTema.trim() || !academiaId) return;
     setSaving(true);
     try {
       const { error } = await supabase.rpc('crear_tema' as any, {
         p_profesor_id: profesorId,
         p_academia_id: academiaId,
-        p_nombre: nombre.trim(),
+        p_nombre: nuevoTema.trim(),
       });
       if (error) throw error;
-      toast.success('Tema creado correctamente');
-      setNombre('');
-      setDialogOpen(false);
-      cargar(academiaId);
+      toast.success('Tema creado');
+      setNuevoTema('');
+      setDialogCrearTema(false);
+      cargarTemas(academiaId);
       onRefresh();
-    } catch (err) {
-      console.error('GestionTemas.handleCrear:', err);
-      toast.error('Error al crear el tema');
+    } catch (err: any) {
+      toast.error(err.message || 'Error al crear el tema');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleRenombrar = async () => {
-    if (!editTema || !editNombre.trim()) return;
+  const handleRenombrarTema = async () => {
+    if (!editTema || !editNombreTema.trim()) return;
     setSaving(true);
     try {
       const { error } = await supabase.rpc('renombrar_tema' as any, {
         p_profesor_id: profesorId,
         p_tema_id: editTema.id,
-        p_nuevo_nombre: editNombre.trim(),
+        p_nuevo_nombre: editNombreTema.trim(),
       });
       if (error) throw error;
       toast.success('Tema renombrado');
       setEditTema(null);
-      cargar(academiaId);
+      cargarTemas(academiaId);
       onRefresh();
     } catch (err: any) {
-      toast.error(err.message || 'Error al renombrar el tema');
+      toast.error(err.message || 'Error al renombrar');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleEliminar = async () => {
+  const handleEliminarTema = async () => {
     if (!deleteTema) return;
     setDeleting(true);
     try {
@@ -106,30 +225,137 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
       if (error) throw error;
       toast.success(`Tema "${deleteTema.nombre}" eliminado`);
       setDeleteTema(null);
-      cargar(academiaId);
+      cargarTemas(academiaId);
       onRefresh();
     } catch (err: any) {
-      toast.error(err.message || 'Error al eliminar el tema');
+      toast.error(err.message || 'Error al eliminar');
     } finally {
       setDeleting(false);
     }
   };
 
-  const propias = academias.filter(a => !a.es_biblioteca);
-  const selectedAcademia = propias.find(a => a.academia_id === academiaId);
+  // ── Parte handlers ────────────────────────────────────────
 
-  useEffect(() => {
-    if (propias.length === 1 && !academiaId) setAcademiaId(propias[0].academia_id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propias.length]);
+  const handleCrearParte = async () => {
+    const nombre = nuevaParte.trim();
+    if (!nombre || !academiaId) return;
+    if (partes.some(p => p.nombre.toLowerCase() === nombre.toLowerCase())) {
+      toast.error('Ya existe una parte con ese nombre');
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('partes_academia')
+        .insert({ academia_id: academiaId, nombre });
+      if (error) throw error;
+      toast.success(`Parte "${nombre}" creada`);
+      setNuevaParte('');
+      setDialogCrearParte(false);
+      cargarPartes(academiaId);
+    } catch (err: any) {
+      toast.error(err.message || 'Error al crear la parte');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRenombrarParte = async () => {
+    if (!editParte || !editNombreParte.trim()) return;
+    const oldName = editParte.nombre;
+    const newName = editNombreParte.trim();
+    if (oldName === newName) { setEditParte(null); return; }
+    if (partes.some(p => p.nombre.toLowerCase() === newName.toLowerCase() && p.nombre !== oldName)) {
+      toast.error('Ya existe una parte con ese nombre');
+      return;
+    }
+    setSaving(true);
+    try {
+      if (editParte.id) {
+        const { error } = await supabase
+          .from('partes_academia')
+          .update({ nombre: newName })
+          .eq('id', editParte.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('partes_academia')
+          .insert({ academia_id: academiaId, nombre: newName });
+        if (error) throw error;
+      }
+      if (editParte.total > 0) {
+        const { error } = await supabase.rpc('renombrar_parte_preguntas' as any, {
+          p_profesor_id: profesorId,
+          p_academia_id: academiaId,
+          p_nombre_actual: oldName,
+          p_nombre_nuevo: newName,
+        });
+        if (error) throw error;
+      }
+      toast.success(
+        `"${oldName}" → "${newName}"` +
+        (editParte.total > 0 ? ` · ${editParte.total} pregunta${editParte.total !== 1 ? 's' : ''} actualizadas` : '')
+      );
+      setEditParte(null);
+      cargarPartes(academiaId);
+    } catch (err: any) {
+      toast.error(err.message || 'Error al renombrar la parte');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEliminarParte = async () => {
+    if (!deleteParte) return;
+    setDeleting(true);
+    try {
+      if (deleteParte.id) {
+        const { error } = await supabase
+          .from('partes_academia')
+          .delete()
+          .eq('id', deleteParte.id);
+        if (error) throw error;
+      }
+      if (deleteParte.total > 0) {
+        const { error } = await supabase.rpc('eliminar_parte_preguntas' as any, {
+          p_profesor_id: profesorId,
+          p_academia_id: academiaId,
+          p_nombre: deleteParte.nombre,
+        });
+        if (error) throw error;
+      }
+      toast.success(`Parte "${deleteParte.nombre}" eliminada`);
+      setDeleteParte(null);
+      cargarPartes(academiaId);
+    } catch (err: any) {
+      toast.error(err.message || 'Error al eliminar la parte');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // ── Derived totals ────────────────────────────────────────
+
+  const temasTotals = useMemo(() => ({
+    total: temas.reduce((a, t) => a + t.total, 0),
+    verificadas: temas.reduce((a, t) => a + t.verificadas, 0),
+    pendientes: temas.reduce((a, t) => a + t.pendientes, 0),
+  }), [temas]);
+
+  const partesTotals = useMemo(() => ({
+    total: partes.reduce((a, p) => a + p.total, 0),
+    sinParte: 0, // computed below if needed
+  }), [partes]);
+
+  // ── Render ────────────────────────────────────────────────
 
   return (
     <div className="space-y-4">
 
-      {/* Toolbar */}
+      {/* Academia selector */}
       <div className="flex gap-2">
         {propias.length > 1 ? (
-          <Select value={academiaId} onValueChange={setAcademiaId}>
+          <Select value={academiaId} onValueChange={v => { setAcademiaId(v); setSeccion('temas'); }}>
             <SelectTrigger className="flex-1">
               <SelectValue placeholder="Selecciona academia" />
             </SelectTrigger>
@@ -144,91 +370,300 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
             {propias[0]?.academia_nombre ?? 'Sin academia'}
           </div>
         )}
-        <Button
-          onClick={() => setDialogOpen(true)}
-          disabled={!academiaId}
-          className="bg-teal-600 hover:bg-teal-700 flex-shrink-0"
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          Nuevo
-        </Button>
       </div>
 
-      {/* Context bar */}
-      {academiaId && !loading && (
-        <div className="flex items-center justify-between px-1">
-          <p className="text-xs text-muted-foreground">
-            <span className="font-medium">{selectedAcademia?.academia_nombre}</span>
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {temas.length} {temas.length === 1 ? 'tema' : 'temas'}
-          </p>
-        </div>
-      )}
-
-      {/* Content */}
       {!academiaId ? (
-        <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
+        <div className="rounded-xl border border-dashed p-12 text-center text-muted-foreground">
           <BookMarked className="h-8 w-8 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">Selecciona una academia para ver sus temas</p>
-        </div>
-      ) : loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-12 rounded-xl border animate-pulse bg-muted/50" />
-          ))}
-        </div>
-      ) : temas.length === 0 ? (
-        <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
-          <p className="text-sm">Esta academia no tiene temas todavía</p>
-          <Button
-            size="sm"
-            className="mt-3 bg-teal-600 hover:bg-teal-700"
-            onClick={() => setDialogOpen(true)}
-          >
-            <Plus className="h-3.5 w-3.5 mr-1" />
-            Crear primer tema
-          </Button>
+          <p className="text-sm">Selecciona una academia para gestionar temas y partes</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {temas.map((t, i) => (
-            <div
-              key={t.id}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl border bg-card hover:shadow-sm transition-shadow"
-            >
-              <div className="w-6 h-6 rounded-full bg-teal-100 dark:bg-teal-900/40 flex items-center justify-center flex-shrink-0">
-                <BookOpen className="h-3 w-3 text-teal-600 dark:text-teal-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{t.nombre}</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {new Date(t.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
-                </p>
-              </div>
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <span className="text-[11px] text-muted-foreground">#{i + 1}</span>
+        <>
+          {/* Section toggle + action */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="flex p-1 bg-muted border rounded-xl">
+              {(['temas', 'partes'] as const).map(s => (
                 <button
-                  onClick={() => { setEditTema(t); setEditNombre(t.nombre); }}
-                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                  title="Renombrar tema"
+                  key={s}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-4 text-sm font-medium rounded-lg transition-all ${
+                    seccion === s
+                      ? 'bg-background shadow-sm text-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  onClick={() => setSeccion(s)}
                 >
-                  <Pencil className="h-3.5 w-3.5" />
+                  {s === 'temas'
+                    ? <BookOpen className="h-3.5 w-3.5 flex-shrink-0" />
+                    : <Tag className="h-3.5 w-3.5 flex-shrink-0" />}
+                  <span>{s === 'temas' ? 'Temas' : 'Partes'}</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+                    seccion === s
+                      ? 'bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300'
+                      : 'bg-muted-foreground/15 text-muted-foreground'
+                  }`}>
+                    {s === 'temas' ? temas.length : partes.length}
+                  </span>
                 </button>
-                <button
-                  onClick={() => setDeleteTema(t)}
-                  className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-600 transition-colors"
-                  title="Eliminar tema"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
+            <div className="flex-1 hidden sm:block" />
+            <Button
+              onClick={() => seccion === 'temas' ? setDialogCrearTema(true) : setDialogCrearParte(true)}
+              disabled={!academiaId}
+              className="bg-teal-600 hover:bg-teal-700 flex-shrink-0"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              {seccion === 'temas' ? 'Nuevo tema' : 'Nueva parte'}
+            </Button>
+          </div>
+
+          {/* ═══ TEMAS section ══════════════════════════════ */}
+          {seccion === 'temas' && (
+            <>
+              {/* Summary bar */}
+              {!loadingTemas && temas.length > 0 && (
+                <div className="flex flex-wrap gap-4 px-4 py-3 rounded-xl border bg-muted/40 text-sm">
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <BookOpen className="h-3.5 w-3.5 text-teal-500" />
+                    {temas.length} {temas.length === 1 ? 'tema' : 'temas'}
+                  </span>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <Layers className="h-3.5 w-3.5" />
+                    {temasTotals.total.toLocaleString()} preguntas
+                  </span>
+                  {temasTotals.total > 0 && (
+                    <>
+                      <span className="text-muted-foreground">·</span>
+                      <span className={`font-medium ${verifColor(verifPct(temasTotals.verificadas, temasTotals.total)).text}`}>
+                        {verifPct(temasTotals.verificadas, temasTotals.total)}% verificadas
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {loadingTemas ? (
+                <div className="space-y-2">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="h-16 rounded-xl border animate-pulse bg-muted/50" />
+                  ))}
+                </div>
+              ) : temas.length === 0 ? (
+                <div className="rounded-xl border border-dashed p-12 text-center text-muted-foreground">
+                  <BookOpen className="h-8 w-8 mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">Esta academia no tiene temas todavía</p>
+                  <Button size="sm" className="mt-3 bg-teal-600 hover:bg-teal-700" onClick={() => setDialogCrearTema(true)}>
+                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    Crear primer tema
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {temas.map(t => {
+                    const p = verifPct(t.verificadas, t.total);
+                    const c = verifColor(p);
+                    return (
+                      <div key={t.id} className="flex items-start gap-3 px-3 py-3 rounded-xl border bg-card hover:shadow-sm transition-shadow">
+                        <div className="w-7 h-7 rounded-full bg-teal-100 dark:bg-teal-900/40 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <BookOpen className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />
+                        </div>
+                        <div className="flex-1 min-w-0 space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-semibold truncate">{t.nombre}</p>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <span className="text-xs text-muted-foreground font-medium">
+                                {t.total > 0 ? `${t.total} preg.` : 'vacío'}
+                              </span>
+                              <button
+                                onClick={() => { setEditTema(t); setEditNombreTema(t.nombre); }}
+                                className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                                title="Renombrar"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setDeleteTema(t)}
+                                className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-600 transition-colors"
+                                title="Eliminar"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                          {t.total > 0 ? (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-500 ${c.bar}`}
+                                    style={{ width: `${p}%` }}
+                                  />
+                                </div>
+                                <span className={`text-xs font-semibold flex-shrink-0 ${c.text}`}>{p}%</span>
+                              </div>
+                              <div className="flex gap-3 text-[11px] text-muted-foreground flex-wrap">
+                                {t.verificadas > 0 && <span className="text-teal-600 dark:text-teal-400">✅ {t.verificadas} verif.</span>}
+                                {t.pendientes > 0 && <span className="text-amber-600 dark:text-amber-400">🟡 {t.pendientes} pend.</span>}
+                                {t.rechazadas > 0 && <span className="text-red-600 dark:text-red-400">❌ {t.rechazadas} rech.</span>}
+                              </div>
+                            </>
+                          ) : (
+                            <p className="text-[11px] text-muted-foreground">Sin preguntas aún</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ═══ PARTES section ═════════════════════════════ */}
+          {seccion === 'partes' && (
+            <>
+              {/* Info + summary bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 rounded-xl border bg-muted/40">
+                <div className="flex-1 space-y-0.5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">¿Qué son las partes?</p>
+                  <p className="text-xs text-muted-foreground">
+                    Agrupan preguntas dentro de un tema: Común, EXAMEN, Específica, o cualquier categoría personalizada.
+                  </p>
+                </div>
+                {partes.length > 0 && (
+                  <div className="flex items-center gap-3 text-sm flex-shrink-0">
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <Tag className="h-3.5 w-3.5 text-purple-500" />
+                      {partes.length} {partes.length === 1 ? 'parte' : 'partes'}
+                    </span>
+                    {partesTotals.total > 0 && (
+                      <>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="text-muted-foreground">{partesTotals.total.toLocaleString()} preguntas</span>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {loadingPartes ? (
+                <div className="space-y-2">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="h-14 rounded-xl border animate-pulse bg-muted/50" />
+                  ))}
+                </div>
+              ) : partes.length === 0 ? (
+                <div className="rounded-xl border border-dashed p-12 text-center text-muted-foreground">
+                  <Tag className="h-8 w-8 mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">Ninguna parte registrada en esta academia</p>
+                  <p className="text-xs mt-1 mb-3 text-muted-foreground/70">
+                    Crea partes para categorizar preguntas (ej. Común, Específica…)
+                  </p>
+                  <Button size="sm" className="bg-teal-600 hover:bg-teal-700" onClick={() => setDialogCrearParte(true)}>
+                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    Crear primera parte
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {partes.map(p => (
+                    <div key={p.nombre} className="flex items-center gap-3 px-3 py-3 rounded-xl border bg-card hover:shadow-sm transition-shadow">
+                      <div className="w-7 h-7 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center flex-shrink-0">
+                        <Tag className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                          <span className="text-sm font-semibold">{p.nombre}</span>
+                          {PARTE_PRESETS.includes(p.nombre) && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-teal-300 dark:border-teal-700 text-teal-700 dark:text-teal-300">
+                              Preset
+                            </Badge>
+                          )}
+                          {!p.en_tabla && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400">
+                              Sin registrar
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          {p.total > 0 ? (
+                            <>
+                              {p.total} pregunta{p.total !== 1 ? 's' : ''}
+                              {p.verificadas > 0 && <span className="text-teal-600 dark:text-teal-400"> · ✅ {p.verificadas}</span>}
+                              {p.pendientes > 0 && <span className="text-amber-600 dark:text-amber-400"> · 🟡 {p.pendientes}</span>}
+                              {p.rechazadas > 0 && <span className="text-red-600 dark:text-red-400"> · ❌ {p.rechazadas}</span>}
+                            </>
+                          ) : (
+                            <span>Sin preguntas aún</span>
+                          )}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button
+                          onClick={() => { setEditParte(p); setEditNombreParte(p.nombre); }}
+                          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                          title="Renombrar parte"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteParte(p)}
+                          className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-600 transition-colors"
+                          title="Eliminar parte"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </>
       )}
 
-      {/* Edit dialog */}
+      {/* ═══════════════════════════════════════════════════ */}
+      {/* DIALOGS                                            */}
+      {/* ═══════════════════════════════════════════════════ */}
+
+      {/* Crear tema */}
+      <Dialog open={dialogCrearTema} onOpenChange={open => { setDialogCrearTema(open); if (!open) setNuevoTema(''); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-teal-500" />
+              Nuevo tema
+            </DialogTitle>
+            {selectedAcademia && (
+              <p className="text-xs text-muted-foreground pt-1">
+                Academia: <span className="font-medium text-foreground">{selectedAcademia.academia_nombre}</span>
+              </p>
+            )}
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Nombre <span className="text-red-500">*</span></Label>
+              <Input
+                value={nuevoTema}
+                onChange={e => setNuevoTema(e.target.value)}
+                placeholder="ej. Anatomía, Legislación, Técnicas..."
+                onKeyDown={e => e.key === 'Enter' && handleCrearTema()}
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setDialogCrearTema(false)}>Cancelar</Button>
+              <Button className="flex-1 bg-teal-600 hover:bg-teal-700" disabled={saving || !nuevoTema.trim()} onClick={handleCrearTema}>
+                {saving ? 'Creando...' : 'Crear tema'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Renombrar tema */}
       <Dialog open={!!editTema} onOpenChange={open => { if (!open) setEditTema(null); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -238,21 +673,15 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Nuevo nombre <span className="text-red-500">*</span></Label>
               <Input
-                value={editNombre}
-                onChange={e => setEditNombre(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleRenombrar()}
+                value={editNombreTema}
+                onChange={e => setEditNombreTema(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleRenombrarTema()}
                 autoFocus
               />
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setEditTema(null)}>
-                Cancelar
-              </Button>
-              <Button
-                className="flex-1 bg-teal-600 hover:bg-teal-700"
-                disabled={saving || !editNombre.trim()}
-                onClick={handleRenombrar}
-              >
+              <Button variant="outline" className="flex-1" onClick={() => setEditTema(null)}>Cancelar</Button>
+              <Button className="flex-1 bg-teal-600 hover:bg-teal-700" disabled={saving || !editNombreTema.trim()} onClick={handleRenombrarTema}>
                 {saving ? 'Guardando...' : 'Guardar'}
               </Button>
             </div>
@@ -260,7 +689,7 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
         </DialogContent>
       </Dialog>
 
-      {/* Delete confirmation dialog */}
+      {/* Eliminar tema */}
       <Dialog open={!!deleteTema} onOpenChange={open => { if (!open) setDeleteTema(null); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -268,27 +697,25 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
               <AlertTriangle className="h-4 w-4 text-red-500" />
               Eliminar tema
             </DialogTitle>
-            <DialogDescription className="text-sm">
-              Estás a punto de eliminar <span className="font-medium text-foreground">"{deleteTema?.nombre}"</span>.
+            <DialogDescription>
+              Vas a eliminar <span className="font-medium text-foreground">"{deleteTema?.nombre}"</span>
+              {deleteTema && deleteTema.total > 0 && (
+                <> con <span className="font-semibold text-red-600">{deleteTema.total} preguntas</span></>
+              )}.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-1">
             <div className="rounded-lg border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-900/20 p-3 flex gap-2">
               <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-red-700 dark:text-red-400">
-                Se eliminarán también <strong>todas las preguntas</strong> asociadas a este tema. Esta acción no se puede deshacer.
+                {deleteTema && deleteTema.total > 0
+                  ? `Se eliminarán también las ${deleteTema.total} preguntas del tema. Esta acción no se puede deshacer.`
+                  : 'El tema se eliminará permanentemente.'}
               </p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setDeleteTema(null)}>
-                Cancelar
-              </Button>
-              <Button
-                variant="destructive"
-                className="flex-1"
-                disabled={deleting}
-                onClick={handleEliminar}
-              >
+              <Button variant="outline" className="flex-1" onClick={() => setDeleteTema(null)}>Cancelar</Button>
+              <Button variant="destructive" className="flex-1" disabled={deleting} onClick={handleEliminarTema}>
                 {deleting ? 'Eliminando...' : 'Eliminar'}
               </Button>
             </div>
@@ -296,45 +723,111 @@ export default function GestionTemas({ profesorId, academias, onRefresh }: Props
         </DialogContent>
       </Dialog>
 
-      {/* Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={open => { setDialogOpen(open); if (!open) setNombre(''); }}>
+      {/* Crear parte */}
+      <Dialog open={dialogCrearParte} onOpenChange={open => { setDialogCrearParte(open); if (!open) setNuevaParte(''); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-base">Nuevo Tema</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-1">
+            <DialogTitle className="text-base flex items-center gap-2">
+              <Tag className="h-4 w-4 text-purple-500" />
+              Nueva parte
+            </DialogTitle>
             {selectedAcademia && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground pt-1">
                 Academia: <span className="font-medium text-foreground">{selectedAcademia.academia_nombre}</span>
               </p>
             )}
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium">
-                Nombre del tema <span className="text-red-500">*</span>
-              </Label>
+              <Label className="text-xs font-medium">Nombre <span className="text-red-500">*</span></Label>
               <Input
-                value={nombre}
-                onChange={e => setNombre(e.target.value)}
-                placeholder="ej. Anatomía, Legislación, Técnicas..."
-                onKeyDown={e => e.key === 'Enter' && handleCrear()}
+                value={nuevaParte}
+                onChange={e => setNuevaParte(e.target.value)}
+                placeholder="ej. Específica, Práctica, Avanzado..."
+                onKeyDown={e => e.key === 'Enter' && handleCrearParte()}
                 autoFocus
               />
             </div>
+            <p className="text-[11px] text-muted-foreground">
+              Los presets <strong>Común</strong>, <strong>EXAMEN</strong> y <strong>Específica</strong> están disponibles por defecto en todos los formularios.
+            </p>
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button
-                className="flex-1 bg-teal-600 hover:bg-teal-700"
-                disabled={saving || !nombre.trim()}
-                onClick={handleCrear}
-              >
-                {saving ? 'Creando...' : 'Crear tema'}
+              <Button variant="outline" className="flex-1" onClick={() => setDialogCrearParte(false)}>Cancelar</Button>
+              <Button className="flex-1 bg-teal-600 hover:bg-teal-700" disabled={saving || !nuevaParte.trim()} onClick={handleCrearParte}>
+                {saving ? 'Creando...' : 'Crear parte'}
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Renombrar parte */}
+      <Dialog open={!!editParte} onOpenChange={open => { if (!open) setEditParte(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base">Renombrar parte</DialogTitle>
+            {editParte && editParte.total > 0 && (
+              <p className="text-xs text-muted-foreground pt-1">
+                Se actualizarán <span className="font-medium text-foreground">{editParte.total} pregunta{editParte.total !== 1 ? 's' : ''}</span> con el nuevo nombre.
+              </p>
+            )}
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Nuevo nombre <span className="text-red-500">*</span></Label>
+              <Input
+                value={editNombreParte}
+                onChange={e => setEditNombreParte(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleRenombrarParte()}
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setEditParte(null)}>Cancelar</Button>
+              <Button className="flex-1 bg-teal-600 hover:bg-teal-700" disabled={saving || !editNombreParte.trim()} onClick={handleRenombrarParte}>
+                {saving ? 'Guardando...' : 'Guardar'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Eliminar parte */}
+      <Dialog open={!!deleteParte} onOpenChange={open => { if (!open) setDeleteParte(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-500" />
+              Eliminar parte
+            </DialogTitle>
+            <DialogDescription>
+              Vas a eliminar la parte <span className="font-medium text-foreground">"{deleteParte?.nombre}"</span>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            {deleteParte && deleteParte.total > 0 ? (
+              <div className="rounded-lg border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-900/20 p-3 flex gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  <strong>{deleteParte.total} pregunta{deleteParte.total !== 1 ? 's' : ''}</strong> tiene{deleteParte.total !== 1 ? 'n' : ''} esta parte asignada.
+                  Quedarán <strong>sin parte</strong> pero no se eliminarán.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-muted p-3">
+                <p className="text-xs text-muted-foreground">Esta parte no tiene preguntas asignadas. Se eliminará sin afectar a ninguna pregunta.</p>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setDeleteParte(null)}>Cancelar</Button>
+              <Button variant="destructive" className="flex-1" disabled={deleting} onClick={handleEliminarParte}>
+                {deleting ? 'Eliminando...' : 'Eliminar parte'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

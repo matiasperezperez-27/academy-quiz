@@ -9,18 +9,29 @@ export function useParteOptions(academiaIds: string[]) {
 
   useEffect(() => {
     if (!key) { setOptions(PARTE_PRESETS); return; }
-    supabase
-      .from('preguntas')
-      .select('parte')
-      .in('academia_id', academiaIds)
-      .not('parte', 'is', null)
-      .neq('parte', '')
-      .then(({ data }) => {
-        const dbValues = (data?.map(p => p.parte as string) ?? []).filter(Boolean);
-        const merged = [...new Set([...PARTE_PRESETS, ...dbValues])].sort();
-        setOptions(merged);
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    Promise.all([
+      // Partes registradas oficialmente en la tabla
+      supabase
+        .from('partes_academia')
+        .select('nombre')
+        .in('academia_id', academiaIds),
+      // Valores de parte que ya existen en preguntas (compatibilidad con datos anteriores)
+      supabase
+        .from('preguntas')
+        .select('parte')
+        .in('academia_id', academiaIds)
+        .not('parte', 'is', null)
+        .neq('parte', ''),
+    ]).then(([tableRes, pregsRes]) => {
+      const tableValues = (tableRes.data ?? []).map((p: any) => p.nombre as string);
+      const pregValues = (pregsRes.data ?? []).map((p: any) => p.parte as string).filter(Boolean);
+      const merged = [...new Set([...PARTE_PRESETS, ...tableValues, ...pregValues])].sort((a, b) =>
+        a.localeCompare(b, 'es')
+      );
+      setOptions(merged);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
   return options;
