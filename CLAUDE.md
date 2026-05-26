@@ -301,6 +301,7 @@ Imports 1,075 questions from 11 JSON files (ITA × 4, IA × 7) representing offi
   - `shared.tsx` — TS types, the imported `data`, color palette, `tooltipStyle`, `trunc`, `SectionCard`/`StatCard`.
 - Charts use **recharts** (consistent with the rest of the app). **recharts v3 + `moduleResolution: "bundler"` gotcha**: `ReferenceLine` and `Cell` fail to typecheck (they exist at runtime and `vite build` doesn't typecheck). `src/types/recharts-augment.d.ts` redeclares them so `tsc` passes — don't delete unless fixed upstream.
 - `tsconfig.app.json` enables `resolveJsonModule: true` for the JSON import.
+- **Full offline reports** (not in this repo): `Academia Yeray/scripts/generar_informe_pdf.py` generates a 31-page branded PDF + 12-sheet Excel (`data/Informe_Analisis_Oposiciones_ITA_IA.{pdf,xlsx}`) from the same CSV. Run it whenever you need a printable/shareable report.
 
 **GestionPreguntas / GestionTemas**: Both components filter `academias` to `propias` (es_biblioteca = false) before rendering. If the professor has only one propia academia, the selector is replaced with a static label and the academia is auto-selected on mount.
 
