@@ -196,7 +196,7 @@ Anuladas (`anulada = true`) ARE excluded — `get_smart_preguntas` and `get_rand
 
 ### Profesor panel (`/profesor`)
 
-Eight-tab dashboard at `src/pages/Profesor.tsx`. Access requires `is_user_profesor` = true (role `profesor` or `admin`) + entries in `profesor_academias`.
+Nine-tab dashboard at `src/pages/Profesor.tsx`. Access requires `is_user_profesor` = true (role `profesor` or `admin`) + entries in `profesor_academias`.
 
 | Tab | Component | Purpose |
 |-----|-----------|---------|
@@ -208,6 +208,7 @@ Eight-tab dashboard at `src/pages/Profesor.tsx`. Access requires `is_user_profes
 | Exámenes | `CrearExamen` + `ExamenForm` | 3-step stepper: basic info → select verified questions → review & create |
 | Alumnos | `EstadisticasEstudiantes` | Per-student and per-topic accuracy tables |
 | Importar | `ImportarPreguntas` | Bulk import questions from NotebookLM-generated .xlsx files |
+| Análisis | `AnalisisExamenes` | Read-only analytics over the 1,075 official exam questions (precomputed JSON). ITA/IA toggle + 5 sub-tabs: Temas, Recicladas, Estrategia, Conceptos, Calidad. |
 
 Admin panel (`/admin`) includes a **Gestión de Profesores** section (`ProfesorManager`) to assign/remove the `profesor` role and manage `profesor_academias` assignments, plus an **Academias de Profesores** section (`AcademiaManager`) to create new non-biblioteca academias and assign them to a professor.
 
@@ -286,6 +287,20 @@ Imports 1,075 questions from 11 JSON files (ITA × 4, IA × 7) representing offi
 - Anuladas imported with `solucion_letra = NULL` — the `solucion_letra` CHECK constraint was updated in migration `20260521000000` to allow NULL.
 - Questions live directly in **Academia Yeray** (not biblioteca academias). Using `clonar_pregunta` was avoided because it loses trazabilidad fields (`convocatoria_id`, `numero_pregunta`, `anulada`, etc.) and resets `verificada = false`.
 - The spec/prompt document is preserved at `PROMPT_IMPORTAR_EXAMENES_OFICIALES.md`.
+
+**Análisis tab** (`AnalisisExamenes`): read-only statistical analytics over the 1,075 official exam questions, **precomputed offline** and shipped as a static JSON — independent of the live Supabase question bank.
+
+- **Data pipeline**: source is `Academia Yeray/data/dataset_completo.csv` (external repo, not versioned here). `scripts/generar_analisis_json.py` reads it and writes `src/data/analisisExamenes.json` (~117 KB). The frontend only renders; it never recomputes. Re-run after the CSV changes: `python scripts/generar_analisis_json.py`.
+- **Conventions** (mirrored from the dataset analysis): IA = 7 exams (Libre + Interna together); a question is *valid* if not anulada and not an inactive reserva (activated reservas count); temporal axis is `exam_id` in chronological order.
+- **UI**: `src/components/profesor/AnalisisExamenes.tsx` is an orchestrator (global ITA/IA toggle + 5 sub-tabs); each panel lives in `src/components/profesor/analisis/`:
+  - `TemasPanel` — ranking, tema×examen heatmap, temporal evolution, común/específico split, appearance probability (ITA vs IA), tema correlation.
+  - `RecicladasPanel` — questions repeated verbatim across exams, near-duplicates (similarity ≥0.85), and questions shared ITA↔IA.
+  - `EstrategiaPanel` — correct-letter bias (A/B/C/D, with a 25% reference line), % negatively-phrased questions, longest-option and "todas las anteriores" heuristics (labelled orientative).
+  - `ConceptosPanel` — keyword ranking + sized word cloud (PAC, DOP, FEAGA…).
+  - `CalidadPanel` — annulled questions per tema/examen, activated reservas, tema coverage per exam (out of 65).
+  - `shared.tsx` — TS types, the imported `data`, color palette, `tooltipStyle`, `trunc`, `SectionCard`/`StatCard`.
+- Charts use **recharts** (consistent with the rest of the app). **recharts v3 + `moduleResolution: "bundler"` gotcha**: `ReferenceLine` and `Cell` fail to typecheck (they exist at runtime and `vite build` doesn't typecheck). `src/types/recharts-augment.d.ts` redeclares them so `tsc` passes — don't delete unless fixed upstream.
+- `tsconfig.app.json` enables `resolveJsonModule: true` for the JSON import.
 
 **GestionPreguntas / GestionTemas**: Both components filter `academias` to `propias` (es_biblioteca = false) before rendering. If the professor has only one propia academia, the selector is replaced with a static label and the academia is auto-selected on mount.
 

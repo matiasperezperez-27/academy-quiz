@@ -1,0 +1,4419 @@
+{
+  "generado": "2026-05-26",
+  "fuente": "dataset_completo.csv — 11 examenes oficiales JCCM (ITA + IA)",
+  "global": {
+    "nValidas": 1020,
+    "nExamenes": 11
+  },
+  "cuerpos": {
+    "ITA": {
+      "nExamenes": 4,
+      "nValidas": 360,
+      "pctComun": 15.6,
+      "pctEspecifico": 84.4,
+      "examenes": [
+        "2016",
+        "2020",
+        "2022",
+        "2024"
+      ],
+      "ranking": [
+        {
+          "temaId": "especifico_13",
+          "titulo": "Los pagos directos a los agricultores en el marco de la PAC",
+          "bloque": "especifico",
+          "total": 19,
+          "media": 4.75,
+          "pct": 5.3
+        },
+        {
+          "temaId": "especifico_22",
+          "titulo": "La política de Desarrollo Rural de la PAC",
+          "bloque": "especifico",
+          "total": 18,
+          "media": 4.5,
+          "pct": 5.0
+        },
+        {
+          "temaId": "especifico_16",
+          "titulo": "El sector vitivinícola en el marco de la OCM",
+          "bloque": "especifico",
+          "total": 18,
+          "media": 4.5,
+          "pct": 5.0
+        },
+        {
+          "temaId": "especifico_49",
+          "titulo": "Calidad diferenciada",
+          "bloque": "especifico",
+          "total": 15,
+          "media": 3.75,
+          "pct": 4.2
+        },
+        {
+          "temaId": "comun_1",
+          "titulo": "La Unión Europea y sus instituciones",
+          "bloque": "comun",
+          "total": 13,
+          "media": 3.25,
+          "pct": 3.6
+        },
+        {
+          "temaId": "especifico_31",
+          "titulo": "Técnicas de producción de la vid",
+          "bloque": "especifico",
+          "total": 11,
+          "media": 2.75,
+          "pct": 3.1
+        },
+        {
+          "temaId": "especifico_44",
+          "titulo": "Industria enológica",
+          "bloque": "especifico",
+          "total": 11,
+          "media": 2.75,
+          "pct": 3.1
+        },
+        {
+          "temaId": "especifico_36",
+          "titulo": "Técnicas de producción ecológica, producción integrada y otros sistemas de producción respetuosos con el medio ambiente",
+          "bloque": "especifico",
+          "total": 10,
+          "media": 2.5,
+          "pct": 2.8
+        },
+        {
+          "temaId": "especifico_32",
+          "titulo": "Técnicas de producción del olivar, albaricoque, almendro y pistacho",
+          "bloque": "especifico",
+          "total": 9,
+          "media": 2.25,
+          "pct": 2.5
+        },
+        {
+          "temaId": "especifico_3",
+          "titulo": "Política de sanidad vegetal",
+          "bloque": "especifico",
+          "total": 8,
+          "media": 2.0,
+          "pct": 2.2
+        },
+        {
+          "temaId": "especifico_30",
+          "titulo": "Productos fitosanitarios",
+          "bloque": "especifico",
+          "total": 8,
+          "media": 2.0,
+          "pct": 2.2
+        },
+        {
+          "temaId": "especifico_35",
+          "titulo": "Técnicas de producción de cultivos hortícolas (ajo, melón, cebolla y champiñón)",
+          "bloque": "especifico",
+          "total": 7,
+          "media": 1.75,
+          "pct": 1.9
+        },
+        {
+          "temaId": "comun_5",
+          "titulo": "La Administración Pública: principios de actuación",
+          "bloque": "comun",
+          "total": 7,
+          "media": 1.75,
+          "pct": 1.9
+        },
+        {
+          "temaId": "especifico_11",
+          "titulo": "La Política Agrícola Común (PAC) y sus distintas reformas",
+          "bloque": "especifico",
+          "total": 7,
+          "media": 1.75,
+          "pct": 1.9
+        },
+        {
+          "temaId": "especifico_8",
+          "titulo": "Política de I+D+i en el sector agrario y agroalimentario",
+          "bloque": "especifico",
+          "total": 7,
+          "media": 1.75,
+          "pct": 1.9
+        },
+        {
+          "temaId": "especifico_7",
+          "titulo": "Política de estructuras agrarias",
+          "bloque": "especifico",
+          "total": 7,
+          "media": 1.75,
+          "pct": 1.9
+        },
+        {
+          "temaId": "especifico_45",
+          "titulo": "Industria elayotécnica",
+          "bloque": "especifico",
+          "total": 7,
+          "media": 1.75,
+          "pct": 1.9
+        },
+        {
+          "temaId": "especifico_26",
+          "titulo": "Fertilizantes",
+          "bloque": "especifico",
+          "total": 6,
+          "media": 1.5,
+          "pct": 1.7
+        },
+        {
+          "temaId": "especifico_29",
+          "titulo": "Lucha contra plagas y enfermedades",
+          "bloque": "especifico",
+          "total": 6,
+          "media": 1.5,
+          "pct": 1.7
+        },
+        {
+          "temaId": "especifico_37",
+          "titulo": "La empresa agrícola de secano y de regadío",
+          "bloque": "especifico",
+          "total": 6,
+          "media": 1.5,
+          "pct": 1.7
+        },
+        {
+          "temaId": "especifico_4",
+          "titulo": "Política de regadíos",
+          "bloque": "especifico",
+          "total": 6,
+          "media": 1.5,
+          "pct": 1.7
+        },
+        {
+          "temaId": "especifico_43",
+          "titulo": "Teledetección y Sistemas de Información Geográfica (SIG)",
+          "bloque": "especifico",
+          "total": 6,
+          "media": 1.5,
+          "pct": 1.7
+        },
+        {
+          "temaId": "comun_4",
+          "titulo": "El Gobierno y la Administración Regional: estructura, organización y régimen jurídico",
+          "bloque": "comun",
+          "total": 6,
+          "media": 1.5,
+          "pct": 1.7
+        },
+        {
+          "temaId": "especifico_1",
+          "titulo": "Las macromagnitudes de la agricultura",
+          "bloque": "especifico",
+          "total": 6,
+          "media": 1.5,
+          "pct": 1.7
+        },
+        {
+          "temaId": "especifico_5",
+          "titulo": "Política de industrialización agroalimentaria",
+          "bloque": "especifico",
+          "total": 6,
+          "media": 1.5,
+          "pct": 1.7
+        },
+        {
+          "temaId": "especifico_42",
+          "titulo": "Evaluación del impacto ambiental (EIA)",
+          "bloque": "especifico",
+          "total": 6,
+          "media": 1.5,
+          "pct": 1.7
+        },
+        {
+          "temaId": "especifico_41",
+          "titulo": "Conservación y almacenamiento de productos agrarios",
+          "bloque": "especifico",
+          "total": 6,
+          "media": 1.5,
+          "pct": 1.7
+        },
+        {
+          "temaId": "comun_3",
+          "titulo": "El Estatuto de Autonomía de Castilla-La Mancha",
+          "bloque": "comun",
+          "total": 5,
+          "media": 1.25,
+          "pct": 1.4
+        },
+        {
+          "temaId": "especifico_50",
+          "titulo": "Asociacionismo agrario",
+          "bloque": "especifico",
+          "total": 5,
+          "media": 1.25,
+          "pct": 1.4
+        },
+        {
+          "temaId": "especifico_9",
+          "titulo": "Política agraria y medio ambiente",
+          "bloque": "especifico",
+          "total": 5,
+          "media": 1.25,
+          "pct": 1.4
+        },
+        {
+          "temaId": "especifico_2",
+          "titulo": "Política de rentas",
+          "bloque": "especifico",
+          "total": 5,
+          "media": 1.25,
+          "pct": 1.4
+        },
+        {
+          "temaId": "especifico_24",
+          "titulo": "Los inputs energéticos en la producción agraria",
+          "bloque": "especifico",
+          "total": 5,
+          "media": 1.25,
+          "pct": 1.4
+        },
+        {
+          "temaId": "comun_10",
+          "titulo": "El personal al servicio de la Administración de la JCCM: clases y régimen jurídico",
+          "bloque": "comun",
+          "total": 5,
+          "media": 1.25,
+          "pct": 1.4
+        },
+        {
+          "temaId": "especifico_28",
+          "titulo": "Semillas y plantas de vivero",
+          "bloque": "especifico",
+          "total": 5,
+          "media": 1.25,
+          "pct": 1.4
+        },
+        {
+          "temaId": "especifico_23",
+          "titulo": "El suelo y la tecnología para uso agrario",
+          "bloque": "especifico",
+          "total": 4,
+          "media": 1.0,
+          "pct": 1.1
+        },
+        {
+          "temaId": "comun_13",
+          "titulo": "La igualdad efectiva de mujeres y hombres",
+          "bloque": "comun",
+          "total": 4,
+          "media": 1.0,
+          "pct": 1.1
+        },
+        {
+          "temaId": "especifico_14",
+          "titulo": "El sector de los cereales en el marco de la OCM",
+          "bloque": "especifico",
+          "total": 4,
+          "media": 1.0,
+          "pct": 1.1
+        },
+        {
+          "temaId": "especifico_18",
+          "titulo": "El sector de la leche y productos lácteos en el marco de la OCM",
+          "bloque": "especifico",
+          "total": 4,
+          "media": 1.0,
+          "pct": 1.1
+        },
+        {
+          "temaId": "especifico_20",
+          "titulo": "Los sectores de ovino y caprino en el marco de la OCM",
+          "bloque": "especifico",
+          "total": 4,
+          "media": 1.0,
+          "pct": 1.1
+        },
+        {
+          "temaId": "especifico_34",
+          "titulo": "Técnicas de producción de cultivos industriales (girasol, colza, azafrán) y tubérculos (patata)",
+          "bloque": "especifico",
+          "total": 4,
+          "media": 1.0,
+          "pct": 1.1
+        },
+        {
+          "temaId": "especifico_48",
+          "titulo": "Industria de la leche y sus derivados",
+          "bloque": "especifico",
+          "total": 4,
+          "media": 1.0,
+          "pct": 1.1
+        },
+        {
+          "temaId": "especifico_10",
+          "titulo": "Política de Residuos",
+          "bloque": "especifico",
+          "total": 3,
+          "media": 0.75,
+          "pct": 0.8
+        },
+        {
+          "temaId": "comun_8",
+          "titulo": "Los contratos del Sector público: clases y régimen jurídico",
+          "bloque": "comun",
+          "total": 3,
+          "media": 0.75,
+          "pct": 0.8
+        },
+        {
+          "temaId": "especifico_25",
+          "titulo": "Los inputs hidráulicos",
+          "bloque": "especifico",
+          "total": 3,
+          "media": 0.75,
+          "pct": 0.8
+        },
+        {
+          "temaId": "especifico_17",
+          "titulo": "El sector de las frutas y hortalizas frescas y transformadas en el marco de la OCM",
+          "bloque": "especifico",
+          "total": 3,
+          "media": 0.75,
+          "pct": 0.8
+        },
+        {
+          "temaId": "especifico_15",
+          "titulo": "El sector del aceite de oliva en el marco de la OCM",
+          "bloque": "especifico",
+          "total": 3,
+          "media": 0.75,
+          "pct": 0.8
+        },
+        {
+          "temaId": "especifico_12",
+          "titulo": "La Organización Común de Mercado Única (OCM)",
+          "bloque": "especifico",
+          "total": 3,
+          "media": 0.75,
+          "pct": 0.8
+        },
+        {
+          "temaId": "comun_7",
+          "titulo": "El procedimiento administrativo común y sus fases",
+          "bloque": "comun",
+          "total": 3,
+          "media": 0.75,
+          "pct": 0.8
+        },
+        {
+          "temaId": "comun_2",
+          "titulo": "La Constitución Española de 1978",
+          "bloque": "comun",
+          "total": 3,
+          "media": 0.75,
+          "pct": 0.8
+        },
+        {
+          "temaId": "especifico_40",
+          "titulo": "Infraestructuras agrarias",
+          "bloque": "especifico",
+          "total": 3,
+          "media": 0.75,
+          "pct": 0.8
+        },
+        {
+          "temaId": "especifico_39",
+          "titulo": "Valoración agraria",
+          "bloque": "especifico",
+          "total": 3,
+          "media": 0.75,
+          "pct": 0.8
+        },
+        {
+          "temaId": "especifico_38",
+          "titulo": "La empresa ganadera extensiva e intensiva",
+          "bloque": "especifico",
+          "total": 3,
+          "media": 0.75,
+          "pct": 0.8
+        },
+        {
+          "temaId": "especifico_27",
+          "titulo": "Maquinaria y equipos agrícolas",
+          "bloque": "especifico",
+          "total": 3,
+          "media": 0.75,
+          "pct": 0.8
+        },
+        {
+          "temaId": "especifico_47",
+          "titulo": "Industrias cárnicas y derivados",
+          "bloque": "especifico",
+          "total": 3,
+          "media": 0.75,
+          "pct": 0.8
+        },
+        {
+          "temaId": "especifico_19",
+          "titulo": "El sector de la carne de vacuno en el marco de la OCM",
+          "bloque": "especifico",
+          "total": 2,
+          "media": 0.5,
+          "pct": 0.6
+        },
+        {
+          "temaId": "comun_14",
+          "titulo": "La transparencia en la Administración de la JCCM",
+          "bloque": "comun",
+          "total": 2,
+          "media": 0.5,
+          "pct": 0.6
+        },
+        {
+          "temaId": "especifico_21",
+          "titulo": "El sector del porcino, de los huevos y las aves en el marco de la OCM",
+          "bloque": "especifico",
+          "total": 2,
+          "media": 0.5,
+          "pct": 0.6
+        },
+        {
+          "temaId": "especifico_6",
+          "titulo": "Política alimentaria",
+          "bloque": "especifico",
+          "total": 2,
+          "media": 0.5,
+          "pct": 0.6
+        },
+        {
+          "temaId": "especifico_33",
+          "titulo": "Técnicas de producción de cereales y leguminosas grano",
+          "bloque": "especifico",
+          "total": 2,
+          "media": 0.5,
+          "pct": 0.6
+        },
+        {
+          "temaId": "comun_15",
+          "titulo": "La protección de datos",
+          "bloque": "comun",
+          "total": 1,
+          "media": 0.25,
+          "pct": 0.3
+        },
+        {
+          "temaId": "comun_11",
+          "titulo": "El presupuesto de la JCCM: elaboración, aprobación y ejecución",
+          "bloque": "comun",
+          "total": 1,
+          "media": 0.25,
+          "pct": 0.3
+        },
+        {
+          "temaId": "comun_9",
+          "titulo": "Las subvenciones públicas en la Administración de la JCCM",
+          "bloque": "comun",
+          "total": 1,
+          "media": 0.25,
+          "pct": 0.3
+        },
+        {
+          "temaId": "comun_12",
+          "titulo": "La administración burocrática y la nueva gestión pública",
+          "bloque": "comun",
+          "total": 1,
+          "media": 0.25,
+          "pct": 0.3
+        },
+        {
+          "temaId": "comun_6",
+          "titulo": "Los actos administrativos: requisitos y eficacia",
+          "bloque": "comun",
+          "total": 1,
+          "media": 0.25,
+          "pct": 0.3
+        },
+        {
+          "temaId": "especifico_46",
+          "titulo": "Industrias de alimentos para el ganado",
+          "bloque": "especifico",
+          "total": 1,
+          "media": 0.25,
+          "pct": 0.3
+        }
+      ],
+      "matriz": {
+        "examenes": [
+          "2016",
+          "2020",
+          "2022",
+          "2024"
+        ],
+        "maximo": 11,
+        "filas": [
+          {
+            "titulo": "Los pagos directos a los agricultores en el marco de la PAC",
+            "valores": [
+              2,
+              3,
+              7,
+              7
+            ]
+          },
+          {
+            "titulo": "La política de Desarrollo Rural de la PAC",
+            "valores": [
+              4,
+              3,
+              0,
+              11
+            ]
+          },
+          {
+            "titulo": "El sector vitivinícola en el marco de la OCM",
+            "valores": [
+              5,
+              5,
+              5,
+              3
+            ]
+          },
+          {
+            "titulo": "Calidad diferenciada",
+            "valores": [
+              1,
+              6,
+              4,
+              4
+            ]
+          },
+          {
+            "titulo": "La Unión Europea y sus instituciones",
+            "valores": [
+              5,
+              4,
+              1,
+              3
+            ]
+          },
+          {
+            "titulo": "Industria enológica",
+            "valores": [
+              1,
+              3,
+              1,
+              6
+            ]
+          },
+          {
+            "titulo": "Técnicas de producción de la vid",
+            "valores": [
+              0,
+              1,
+              5,
+              5
+            ]
+          },
+          {
+            "titulo": "Técnicas de producción ecológica, producción integrada y otros sistemas de producción respetuosos con el medio ambiente",
+            "valores": [
+              3,
+              2,
+              1,
+              4
+            ]
+          },
+          {
+            "titulo": "Técnicas de producción del olivar, albaricoque, almendro y pistacho",
+            "valores": [
+              2,
+              2,
+              2,
+              3
+            ]
+          },
+          {
+            "titulo": "Política de sanidad vegetal",
+            "valores": [
+              2,
+              1,
+              2,
+              3
+            ]
+          },
+          {
+            "titulo": "Productos fitosanitarios",
+            "valores": [
+              2,
+              3,
+              2,
+              1
+            ]
+          },
+          {
+            "titulo": "Política de estructuras agrarias",
+            "valores": [
+              1,
+              0,
+              4,
+              2
+            ]
+          },
+          {
+            "titulo": "Política de I+D+i en el sector agrario y agroalimentario",
+            "valores": [
+              3,
+              0,
+              3,
+              1
+            ]
+          },
+          {
+            "titulo": "Industria elayotécnica",
+            "valores": [
+              1,
+              2,
+              3,
+              1
+            ]
+          },
+          {
+            "titulo": "La Administración Pública: principios de actuación",
+            "valores": [
+              4,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "titulo": "La Política Agrícola Común (PAC) y sus distintas reformas",
+            "valores": [
+              1,
+              3,
+              3,
+              0
+            ]
+          },
+          {
+            "titulo": "Técnicas de producción de cultivos hortícolas (ajo, melón, cebolla y champiñón)",
+            "valores": [
+              1,
+              2,
+              1,
+              3
+            ]
+          },
+          {
+            "titulo": "La empresa agrícola de secano y de regadío",
+            "valores": [
+              0,
+              3,
+              1,
+              2
+            ]
+          },
+          {
+            "titulo": "Política de regadíos",
+            "valores": [
+              3,
+              0,
+              2,
+              1
+            ]
+          },
+          {
+            "titulo": "Evaluación del impacto ambiental (EIA)",
+            "valores": [
+              2,
+              3,
+              0,
+              1
+            ]
+          },
+          {
+            "titulo": "Lucha contra plagas y enfermedades",
+            "valores": [
+              1,
+              1,
+              4,
+              0
+            ]
+          },
+          {
+            "titulo": "Las macromagnitudes de la agricultura",
+            "valores": [
+              1,
+              1,
+              2,
+              2
+            ]
+          },
+          {
+            "titulo": "Política de industrialización agroalimentaria",
+            "valores": [
+              1,
+              0,
+              4,
+              1
+            ]
+          },
+          {
+            "titulo": "Teledetección y Sistemas de Información Geográfica (SIG)",
+            "valores": [
+              1,
+              0,
+              3,
+              2
+            ]
+          },
+          {
+            "titulo": "El Gobierno y la Administración Regional: estructura, organización y régimen jurídico",
+            "valores": [
+              3,
+              2,
+              1,
+              0
+            ]
+          },
+          {
+            "titulo": "Conservación y almacenamiento de productos agrarios",
+            "valores": [
+              2,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "titulo": "Fertilizantes",
+            "valores": [
+              3,
+              2,
+              1,
+              0
+            ]
+          },
+          {
+            "titulo": "Asociacionismo agrario",
+            "valores": [
+              3,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "titulo": "Política agraria y medio ambiente",
+            "valores": [
+              1,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "titulo": "El personal al servicio de la Administración de la JCCM: clases y régimen jurídico",
+            "valores": [
+              3,
+              2,
+              0,
+              0
+            ]
+          },
+          {
+            "titulo": "El Estatuto de Autonomía de Castilla-La Mancha",
+            "valores": [
+              1,
+              1,
+              2,
+              1
+            ]
+          },
+          {
+            "titulo": "Los inputs energéticos en la producción agraria",
+            "valores": [
+              1,
+              2,
+              0,
+              2
+            ]
+          },
+          {
+            "titulo": "Política de rentas",
+            "valores": [
+              3,
+              0,
+              1,
+              1
+            ]
+          },
+          {
+            "titulo": "Semillas y plantas de vivero",
+            "valores": [
+              1,
+              2,
+              2,
+              0
+            ]
+          },
+          {
+            "titulo": "El suelo y la tecnología para uso agrario",
+            "valores": [
+              2,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "titulo": "El sector de la leche y productos lácteos en el marco de la OCM",
+            "valores": [
+              2,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "titulo": "Los sectores de ovino y caprino en el marco de la OCM",
+            "valores": [
+              1,
+              1,
+              2,
+              0
+            ]
+          },
+          {
+            "titulo": "Técnicas de producción de cultivos industriales (girasol, colza, azafrán) y tubérculos (patata)",
+            "valores": [
+              0,
+              0,
+              1,
+              3
+            ]
+          },
+          {
+            "titulo": "El sector de los cereales en el marco de la OCM",
+            "valores": [
+              0,
+              0,
+              1,
+              3
+            ]
+          },
+          {
+            "titulo": "Industria de la leche y sus derivados",
+            "valores": [
+              1,
+              2,
+              0,
+              1
+            ]
+          },
+          {
+            "titulo": "La igualdad efectiva de mujeres y hombres",
+            "valores": [
+              1,
+              1,
+              2,
+              0
+            ]
+          },
+          {
+            "titulo": "El sector del aceite de oliva en el marco de la OCM",
+            "valores": [
+              0,
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "titulo": "Industrias cárnicas y derivados",
+            "valores": [
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "titulo": "El procedimiento administrativo común y sus fases",
+            "valores": [
+              1,
+              2,
+              0,
+              0
+            ]
+          },
+          {
+            "titulo": "El sector de las frutas y hortalizas frescas y transformadas en el marco de la OCM",
+            "valores": [
+              0,
+              1,
+              2,
+              0
+            ]
+          },
+          {
+            "titulo": "La Constitución Española de 1978",
+            "valores": [
+              2,
+              0,
+              1,
+              0
+            ]
+          },
+          {
+            "titulo": "Infraestructuras agrarias",
+            "valores": [
+              2,
+              0,
+              1,
+              0
+            ]
+          },
+          {
+            "titulo": "La Organización Común de Mercado Única (OCM)",
+            "valores": [
+              0,
+              2,
+              1,
+              0
+            ]
+          },
+          {
+            "titulo": "La empresa ganadera extensiva e intensiva",
+            "valores": [
+              2,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "titulo": "Valoración agraria",
+            "valores": [
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "titulo": "Política de Residuos",
+            "valores": [
+              2,
+              0,
+              1,
+              0
+            ]
+          },
+          {
+            "titulo": "Los inputs hidráulicos",
+            "valores": [
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "titulo": "Los contratos del Sector público: clases y régimen jurídico",
+            "valores": [
+              0,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "titulo": "Maquinaria y equipos agrícolas",
+            "valores": [
+              1,
+              2,
+              0,
+              0
+            ]
+          },
+          {
+            "titulo": "El sector de la carne de vacuno en el marco de la OCM",
+            "valores": [
+              1,
+              0,
+              1,
+              0
+            ]
+          },
+          {
+            "titulo": "La transparencia en la Administración de la JCCM",
+            "valores": [
+              0,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "titulo": "El sector del porcino, de los huevos y las aves en el marco de la OCM",
+            "valores": [
+              0,
+              2,
+              0,
+              0
+            ]
+          },
+          {
+            "titulo": "Técnicas de producción de cereales y leguminosas grano",
+            "valores": [
+              1,
+              0,
+              1,
+              0
+            ]
+          },
+          {
+            "titulo": "Política alimentaria",
+            "valores": [
+              0,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "titulo": "El presupuesto de la JCCM: elaboración, aprobación y ejecución",
+            "valores": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "titulo": "Industrias de alimentos para el ganado",
+            "valores": [
+              0,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "titulo": "La administración burocrática y la nueva gestión pública",
+            "valores": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "titulo": "Los actos administrativos: requisitos y eficacia",
+            "valores": [
+              0,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "titulo": "Las subvenciones públicas en la Administración de la JCCM",
+            "valores": [
+              0,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "titulo": "La protección de datos",
+            "valores": [
+              0,
+              1,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "temporal": {
+        "data": [
+          {
+            "examen": "2016",
+            "Los pagos directos a los agricultores en el marco de la PAC": 2,
+            "La política de Desarrollo Rural de la PAC": 4,
+            "El sector vitivinícola en el marco de la OCM": 5,
+            "Calidad diferenciada": 1,
+            "La Unión Europea y sus instituciones": 5,
+            "Industria enológica": 1,
+            "Técnicas de producción de la vid": 0,
+            "Técnicas de producción ecológica, producción integrada y otros sistemas de producción respetuosos con el medio ambiente": 3,
+            "Técnicas de producción del olivar, albaricoque, almendro y pistacho": 2,
+            "Política de sanidad vegetal": 2
+          },
+          {
+            "examen": "2020",
+            "Los pagos directos a los agricultores en el marco de la PAC": 3,
+            "La política de Desarrollo Rural de la PAC": 3,
+            "El sector vitivinícola en el marco de la OCM": 5,
+            "Calidad diferenciada": 6,
+            "La Unión Europea y sus instituciones": 4,
+            "Industria enológica": 3,
+            "Técnicas de producción de la vid": 1,
+            "Técnicas de producción ecológica, producción integrada y otros sistemas de producción respetuosos con el medio ambiente": 2,
+            "Técnicas de producción del olivar, albaricoque, almendro y pistacho": 2,
+            "Política de sanidad vegetal": 1
+          },
+          {
+            "examen": "2022",
+            "Los pagos directos a los agricultores en el marco de la PAC": 7,
+            "La política de Desarrollo Rural de la PAC": 0,
+            "El sector vitivinícola en el marco de la OCM": 5,
+            "Calidad diferenciada": 4,
+            "La Unión Europea y sus instituciones": 1,
+            "Industria enológica": 1,
+            "Técnicas de producción de la vid": 5,
+            "Técnicas de producción ecológica, producción integrada y otros sistemas de producción respetuosos con el medio ambiente": 1,
+            "Técnicas de producción del olivar, albaricoque, almendro y pistacho": 2,
+            "Política de sanidad vegetal": 2
+          },
+          {
+            "examen": "2024",
+            "Los pagos directos a los agricultores en el marco de la PAC": 7,
+            "La política de Desarrollo Rural de la PAC": 11,
+            "El sector vitivinícola en el marco de la OCM": 3,
+            "Calidad diferenciada": 4,
+            "La Unión Europea y sus instituciones": 3,
+            "Industria enológica": 6,
+            "Técnicas de producción de la vid": 5,
+            "Técnicas de producción ecológica, producción integrada y otros sistemas de producción respetuosos con el medio ambiente": 4,
+            "Técnicas de producción del olivar, albaricoque, almendro y pistacho": 3,
+            "Política de sanidad vegetal": 3
+          }
+        ],
+        "temas": [
+          "Los pagos directos a los agricultores en el marco de la PAC",
+          "La política de Desarrollo Rural de la PAC",
+          "El sector vitivinícola en el marco de la OCM",
+          "Calidad diferenciada",
+          "La Unión Europea y sus instituciones",
+          "Industria enológica",
+          "Técnicas de producción de la vid",
+          "Técnicas de producción ecológica, producción integrada y otros sistemas de producción respetuosos con el medio ambiente",
+          "Técnicas de producción del olivar, albaricoque, almendro y pistacho",
+          "Política de sanidad vegetal"
+        ]
+      },
+      "bloques": [
+        {
+          "examen": "2016",
+          "comun": 20,
+          "especifico": 70
+        },
+        {
+          "examen": "2020",
+          "comun": 18,
+          "especifico": 72
+        },
+        {
+          "examen": "2022",
+          "comun": 10,
+          "especifico": 80
+        },
+        {
+          "examen": "2024",
+          "comun": 8,
+          "especifico": 82
+        }
+      ],
+      "calientes": [
+        {
+          "temaId": "especifico_13",
+          "titulo": "Los pagos directos a los agricultores en el marco de la PAC",
+          "bloque": "especifico",
+          "total": 19,
+          "media": 4.75,
+          "pct": 5.3
+        },
+        {
+          "temaId": "especifico_22",
+          "titulo": "La política de Desarrollo Rural de la PAC",
+          "bloque": "especifico",
+          "total": 18,
+          "media": 4.5,
+          "pct": 5.0
+        },
+        {
+          "temaId": "especifico_16",
+          "titulo": "El sector vitivinícola en el marco de la OCM",
+          "bloque": "especifico",
+          "total": 18,
+          "media": 4.5,
+          "pct": 5.0
+        },
+        {
+          "temaId": "especifico_49",
+          "titulo": "Calidad diferenciada",
+          "bloque": "especifico",
+          "total": 15,
+          "media": 3.75,
+          "pct": 4.2
+        },
+        {
+          "temaId": "comun_1",
+          "titulo": "La Unión Europea y sus instituciones",
+          "bloque": "comun",
+          "total": 13,
+          "media": 3.25,
+          "pct": 3.6
+        },
+        {
+          "temaId": "especifico_31",
+          "titulo": "Técnicas de producción de la vid",
+          "bloque": "especifico",
+          "total": 11,
+          "media": 2.75,
+          "pct": 3.1
+        },
+        {
+          "temaId": "especifico_44",
+          "titulo": "Industria enológica",
+          "bloque": "especifico",
+          "total": 11,
+          "media": 2.75,
+          "pct": 3.1
+        },
+        {
+          "temaId": "especifico_36",
+          "titulo": "Técnicas de producción ecológica, producción integrada y otros sistemas de producción respetuosos con el medio ambiente",
+          "bloque": "especifico",
+          "total": 10,
+          "media": 2.5,
+          "pct": 2.8
+        },
+        {
+          "temaId": "especifico_32",
+          "titulo": "Técnicas de producción del olivar, albaricoque, almendro y pistacho",
+          "bloque": "especifico",
+          "total": 9,
+          "media": 2.25,
+          "pct": 2.5
+        },
+        {
+          "temaId": "especifico_3",
+          "titulo": "Política de sanidad vegetal",
+          "bloque": "especifico",
+          "total": 8,
+          "media": 2.0,
+          "pct": 2.2
+        }
+      ]
+    },
+    "IA": {
+      "nExamenes": 7,
+      "nValidas": 660,
+      "pctComun": 12.0,
+      "pctEspecifico": 88.0,
+      "examenes": [
+        "2016",
+        "2018",
+        "2020",
+        "2022",
+        "2022 Int",
+        "2024",
+        "2024 Int"
+      ],
+      "ranking": [
+        {
+          "temaId": "especifico_9",
+          "titulo": "Política agraria y medio ambiente",
+          "bloque": "especifico",
+          "total": 28,
+          "media": 4.0,
+          "pct": 4.2
+        },
+        {
+          "temaId": "especifico_7",
+          "titulo": "Política de estructuras agrarias",
+          "bloque": "especifico",
+          "total": 24,
+          "media": 3.43,
+          "pct": 3.6
+        },
+        {
+          "temaId": "especifico_25",
+          "titulo": "Los inputs hidráulicos",
+          "bloque": "especifico",
+          "total": 23,
+          "media": 3.29,
+          "pct": 3.5
+        },
+        {
+          "temaId": "especifico_4",
+          "titulo": "Política de regadíos",
+          "bloque": "especifico",
+          "total": 21,
+          "media": 3.0,
+          "pct": 3.2
+        },
+        {
+          "temaId": "especifico_10",
+          "titulo": "Política de Residuos",
+          "bloque": "especifico",
+          "total": 20,
+          "media": 2.86,
+          "pct": 3.0
+        },
+        {
+          "temaId": "especifico_16",
+          "titulo": "El sector vitivinícola en el marco de la OCM",
+          "bloque": "especifico",
+          "total": 19,
+          "media": 2.71,
+          "pct": 2.9
+        },
+        {
+          "temaId": "especifico_6",
+          "titulo": "Política alimentaria",
+          "bloque": "especifico",
+          "total": 19,
+          "media": 2.71,
+          "pct": 2.9
+        },
+        {
+          "temaId": "especifico_13",
+          "titulo": "Los pagos directos a los agricultores en el marco de la PAC",
+          "bloque": "especifico",
+          "total": 18,
+          "media": 2.57,
+          "pct": 2.7
+        },
+        {
+          "temaId": "especifico_2",
+          "titulo": "Política de rentas",
+          "bloque": "especifico",
+          "total": 17,
+          "media": 2.43,
+          "pct": 2.6
+        },
+        {
+          "temaId": "especifico_37",
+          "titulo": "La empresa agrícola de secano y de regadío",
+          "bloque": "especifico",
+          "total": 17,
+          "media": 2.43,
+          "pct": 2.6
+        },
+        {
+          "temaId": "especifico_49",
+          "titulo": "Calidad diferenciada",
+          "bloque": "especifico",
+          "total": 17,
+          "media": 2.43,
+          "pct": 2.6
+        },
+        {
+          "temaId": "especifico_22",
+          "titulo": "La política de Desarrollo Rural de la PAC",
+          "bloque": "especifico",
+          "total": 16,
+          "media": 2.29,
+          "pct": 2.4
+        },
+        {
+          "temaId": "especifico_32",
+          "titulo": "Técnicas de producción del olivar, albaricoque, almendro y pistacho",
+          "bloque": "especifico",
+          "total": 15,
+          "media": 2.14,
+          "pct": 2.3
+        },
+        {
+          "temaId": "especifico_50",
+          "titulo": "Asociacionismo agrario",
+          "bloque": "especifico",
+          "total": 14,
+          "media": 2.0,
+          "pct": 2.1
+        },
+        {
+          "temaId": "especifico_29",
+          "titulo": "Lucha contra plagas y enfermedades",
+          "bloque": "especifico",
+          "total": 14,
+          "media": 2.0,
+          "pct": 2.1
+        },
+        {
+          "temaId": "especifico_44",
+          "titulo": "Industria enológica",
+          "bloque": "especifico",
+          "total": 13,
+          "media": 1.86,
+          "pct": 2.0
+        },
+        {
+          "temaId": "especifico_38",
+          "titulo": "La empresa ganadera extensiva e intensiva",
+          "bloque": "especifico",
+          "total": 13,
+          "media": 1.86,
+          "pct": 2.0
+        },
+        {
+          "temaId": "comun_1",
+          "titulo": "La Unión Europea y sus instituciones",
+          "bloque": "comun",
+          "total": 12,
+          "media": 1.71,
+          "pct": 1.8
+        },
+        {
+          "temaId": "especifico_33",
+          "titulo": "Técnicas de producción de cereales y leguminosas grano",
+          "bloque": "especifico",
+          "total": 12,
+          "media": 1.71,
+          "pct": 1.8
+        },
+        {
+          "temaId": "especifico_11",
+          "titulo": "La Política Agrícola Común (PAC) y sus distintas reformas",
+          "bloque": "especifico",
+          "total": 12,
+          "media": 1.71,
+          "pct": 1.8
+        },
+        {
+          "temaId": "especifico_31",
+          "titulo": "Técnicas de producción de la vid",
+          "bloque": "especifico",
+          "total": 12,
+          "media": 1.71,
+          "pct": 1.8
+        },
+        {
+          "temaId": "especifico_1",
+          "titulo": "Las macromagnitudes de la agricultura",
+          "bloque": "especifico",
+          "total": 11,
+          "media": 1.57,
+          "pct": 1.7
+        },
+        {
+          "temaId": "especifico_23",
+          "titulo": "El suelo y la tecnología para uso agrario",
+          "bloque": "especifico",
+          "total": 11,
+          "media": 1.57,
+          "pct": 1.7
+        },
+        {
+          "temaId": "especifico_8",
+          "titulo": "Política de I+D+i en el sector agrario y agroalimentario",
+          "bloque": "especifico",
+          "total": 11,
+          "media": 1.57,
+          "pct": 1.7
+        },
+        {
+          "temaId": "comun_8",
+          "titulo": "Los contratos del Sector público: clases y régimen jurídico",
+          "bloque": "comun",
+          "total": 11,
+          "media": 1.57,
+          "pct": 1.7
+        },
+        {
+          "temaId": "especifico_30",
+          "titulo": "Productos fitosanitarios",
+          "bloque": "especifico",
+          "total": 10,
+          "media": 1.43,
+          "pct": 1.5
+        },
+        {
+          "temaId": "especifico_35",
+          "titulo": "Técnicas de producción de cultivos hortícolas (ajo, melón, cebolla y champiñón)",
+          "bloque": "especifico",
+          "total": 10,
+          "media": 1.43,
+          "pct": 1.5
+        },
+        {
+          "temaId": "comun_3",
+          "titulo": "El Estatuto de Autonomía de Castilla-La Mancha",
+          "bloque": "comun",
+          "total": 10,
+          "media": 1.43,
+          "pct": 1.5
+        },
+        {
+          "temaId": "especifico_39",
+          "titulo": "Valoración agraria",
+          "bloque": "especifico",
+          "total": 10,
+          "media": 1.43,
+          "pct": 1.5
+        },
+        {
+          "temaId": "especifico_41",
+          "titulo": "Conservación y almacenamiento de productos agrarios",
+          "bloque": "especifico",
+          "total": 10,
+          "media": 1.43,
+          "pct": 1.5
+        },
+        {
+          "temaId": "especifico_48",
+          "titulo": "Industria de la leche y sus derivados",
+          "bloque": "especifico",
+          "total": 10,
+          "media": 1.43,
+          "pct": 1.5
+        },
+        {
+          "temaId": "especifico_45",
+          "titulo": "Industria elayotécnica",
+          "bloque": "especifico",
+          "total": 10,
+          "media": 1.43,
+          "pct": 1.5
+        },
+        {
+          "temaId": "especifico_43",
+          "titulo": "Teledetección y Sistemas de Información Geográfica (SIG)",
+          "bloque": "especifico",
+          "total": 10,
+          "media": 1.43,
+          "pct": 1.5
+        },
+        {
+          "temaId": "especifico_40",
+          "titulo": "Infraestructuras agrarias",
+          "bloque": "especifico",
+          "total": 9,
+          "media": 1.29,
+          "pct": 1.4
+        },
+        {
+          "temaId": "especifico_42",
+          "titulo": "Evaluación del impacto ambiental (EIA)",
+          "bloque": "especifico",
+          "total": 9,
+          "media": 1.29,
+          "pct": 1.4
+        },
+        {
+          "temaId": "especifico_26",
+          "titulo": "Fertilizantes",
+          "bloque": "especifico",
+          "total": 9,
+          "media": 1.29,
+          "pct": 1.4
+        },
+        {
+          "temaId": "especifico_36",
+          "titulo": "Técnicas de producción ecológica, producción integrada y otros sistemas de producción respetuosos con el medio ambiente",
+          "bloque": "especifico",
+          "total": 9,
+          "media": 1.29,
+          "pct": 1.4
+        },
+        {
+          "temaId": "comun_5",
+          "titulo": "La Administración Pública: principios de actuación",
+          "bloque": "comun",
+          "total": 9,
+          "media": 1.29,
+          "pct": 1.4
+        },
+        {
+          "temaId": "especifico_27",
+          "titulo": "Maquinaria y equipos agrícolas",
+          "bloque": "especifico",
+          "total": 9,
+          "media": 1.29,
+          "pct": 1.4
+        },
+        {
+          "temaId": "especifico_24",
+          "titulo": "Los inputs energéticos en la producción agraria",
+          "bloque": "especifico",
+          "total": 8,
+          "media": 1.14,
+          "pct": 1.2
+        },
+        {
+          "temaId": "especifico_12",
+          "titulo": "La Organización Común de Mercado Única (OCM)",
+          "bloque": "especifico",
+          "total": 8,
+          "media": 1.14,
+          "pct": 1.2
+        },
+        {
+          "temaId": "especifico_34",
+          "titulo": "Técnicas de producción de cultivos industriales (girasol, colza, azafrán) y tubérculos (patata)",
+          "bloque": "especifico",
+          "total": 8,
+          "media": 1.14,
+          "pct": 1.2
+        },
+        {
+          "temaId": "especifico_17",
+          "titulo": "El sector de las frutas y hortalizas frescas y transformadas en el marco de la OCM",
+          "bloque": "especifico",
+          "total": 8,
+          "media": 1.14,
+          "pct": 1.2
+        },
+        {
+          "temaId": "comun_7",
+          "titulo": "El procedimiento administrativo común y sus fases",
+          "bloque": "comun",
+          "total": 7,
+          "media": 1.0,
+          "pct": 1.1
+        },
+        {
+          "temaId": "especifico_3",
+          "titulo": "Política de sanidad vegetal",
+          "bloque": "especifico",
+          "total": 7,
+          "media": 1.0,
+          "pct": 1.1
+        },
+        {
+          "temaId": "especifico_46",
+          "titulo": "Industrias de alimentos para el ganado",
+          "bloque": "especifico",
+          "total": 7,
+          "media": 1.0,
+          "pct": 1.1
+        },
+        {
+          "temaId": "especifico_28",
+          "titulo": "Semillas y plantas de vivero",
+          "bloque": "especifico",
+          "total": 6,
+          "media": 0.86,
+          "pct": 0.9
+        },
+        {
+          "temaId": "comun_9",
+          "titulo": "Las subvenciones públicas en la Administración de la JCCM",
+          "bloque": "comun",
+          "total": 6,
+          "media": 0.86,
+          "pct": 0.9
+        },
+        {
+          "temaId": "especifico_14",
+          "titulo": "El sector de los cereales en el marco de la OCM",
+          "bloque": "especifico",
+          "total": 6,
+          "media": 0.86,
+          "pct": 0.9
+        },
+        {
+          "temaId": "especifico_5",
+          "titulo": "Política de industrialización agroalimentaria",
+          "bloque": "especifico",
+          "total": 6,
+          "media": 0.86,
+          "pct": 0.9
+        },
+        {
+          "temaId": "especifico_20",
+          "titulo": "Los sectores de ovino y caprino en el marco de la OCM",
+          "bloque": "especifico",
+          "total": 5,
+          "media": 0.71,
+          "pct": 0.8
+        },
+        {
+          "temaId": "especifico_19",
+          "titulo": "El sector de la carne de vacuno en el marco de la OCM",
+          "bloque": "especifico",
+          "total": 5,
+          "media": 0.71,
+          "pct": 0.8
+        },
+        {
+          "temaId": "especifico_47",
+          "titulo": "Industrias cárnicas y derivados",
+          "bloque": "especifico",
+          "total": 5,
+          "media": 0.71,
+          "pct": 0.8
+        },
+        {
+          "temaId": "comun_2",
+          "titulo": "La Constitución Española de 1978",
+          "bloque": "comun",
+          "total": 4,
+          "media": 0.57,
+          "pct": 0.6
+        },
+        {
+          "temaId": "especifico_21",
+          "titulo": "El sector del porcino, de los huevos y las aves en el marco de la OCM",
+          "bloque": "especifico",
+          "total": 4,
+          "media": 0.57,
+          "pct": 0.6
+        },
+        {
+          "temaId": "especifico_15",
+          "titulo": "El sector del aceite de oliva en el marco de la OCM",
+          "bloque": "especifico",
+          "total": 4,
+          "media": 0.57,
+          "pct": 0.6
+        },
+        {
+          "temaId": "comun_12",
+          "titulo": "La administración burocrática y la nueva gestión pública",
+          "bloque": "comun",
+          "total": 4,
+          "media": 0.57,
+          "pct": 0.6
+        },
+        {
+          "temaId": "comun_6",
+          "titulo": "Los actos administrativos: requisitos y eficacia",
+          "bloque": "comun",
+          "total": 3,
+          "media": 0.43,
+          "pct": 0.5
+        },
+        {
+          "temaId": "comun_11",
+          "titulo": "El presupuesto de la JCCM: elaboración, aprobación y ejecución",
+          "bloque": "comun",
+          "total": 3,
+          "media": 0.43,
+          "pct": 0.5
+        },
+        {
+          "temaId": "comun_13",
+          "titulo": "La igualdad efectiva de mujeres y hombres",
+          "bloque": "comun",
+          "total": 3,
+          "media": 0.43,
+          "pct": 0.5
+        },
+        {
+          "temaId": "comun_14",
+          "titulo": "La transparencia en la Administración de la JCCM",
+          "bloque": "comun",
+          "total": 3,
+          "media": 0.43,
+          "pct": 0.5
+        },
+        {
+          "temaId": "especifico_18",
+          "titulo": "El sector de la leche y productos lácteos en el marco de la OCM",
+          "bloque": "especifico",
+          "total": 2,
+          "media": 0.29,
+          "pct": 0.3
+        },
+        {
+          "temaId": "comun_4",
+          "titulo": "El Gobierno y la Administración Regional: estructura, organización y régimen jurídico",
+          "bloque": "comun",
+          "total": 2,
+          "media": 0.29,
+          "pct": 0.3
+        },
+        {
+          "temaId": "comun_15",
+          "titulo": "La protección de datos",
+          "bloque": "comun",
+          "total": 1,
+          "media": 0.14,
+          "pct": 0.2
+        },
+        {
+          "temaId": "comun_10",
+          "titulo": "El personal al servicio de la Administración de la JCCM: clases y régimen jurídico",
+          "bloque": "comun",
+          "total": 1,
+          "media": 0.14,
+          "pct": 0.2
+        }
+      ],
+      "matriz": {
+        "examenes": [
+          "2016",
+          "2018",
+          "2020",
+          "2022",
+          "2022 Int",
+          "2024",
+          "2024 Int"
+        ],
+        "maximo": 6,
+        "filas": [
+          {
+            "titulo": "Política agraria y medio ambiente",
+            "valores": [
+              3,
+              3,
+              4,
+              4,
+              5,
+              5,
+              4
+            ]
+          },
+          {
+            "titulo": "Política de estructuras agrarias",
+            "valores": [
+              4,
+              2,
+              3,
+              4,
+              4,
+              6,
+              1
+            ]
+          },
+          {
+            "titulo": "Los inputs hidráulicos",
+            "valores": [
+              3,
+              3,
+              3,
+              3,
+              4,
+              4,
+              3
+            ]
+          },
+          {
+            "titulo": "Política de regadíos",
+            "valores": [
+              4,
+              4,
+              3,
+              2,
+              2,
+              3,
+              3
+            ]
+          },
+          {
+            "titulo": "Política de Residuos",
+            "valores": [
+              1,
+              4,
+              6,
+              6,
+              2,
+              1,
+              0
+            ]
+          },
+          {
+            "titulo": "Política alimentaria",
+            "valores": [
+              2,
+              3,
+              5,
+              4,
+              0,
+              3,
+              2
+            ]
+          },
+          {
+            "titulo": "El sector vitivinícola en el marco de la OCM",
+            "valores": [
+              2,
+              3,
+              2,
+              3,
+              5,
+              2,
+              2
+            ]
+          },
+          {
+            "titulo": "Los pagos directos a los agricultores en el marco de la PAC",
+            "valores": [
+              2,
+              5,
+              2,
+              2,
+              3,
+              1,
+              3
+            ]
+          },
+          {
+            "titulo": "Política de rentas",
+            "valores": [
+              2,
+              3,
+              2,
+              1,
+              0,
+              4,
+              5
+            ]
+          },
+          {
+            "titulo": "La empresa agrícola de secano y de regadío",
+            "valores": [
+              0,
+              1,
+              4,
+              3,
+              4,
+              3,
+              2
+            ]
+          },
+          {
+            "titulo": "Calidad diferenciada",
+            "valores": [
+              5,
+              2,
+              2,
+              1,
+              3,
+              2,
+              2
+            ]
+          },
+          {
+            "titulo": "La política de Desarrollo Rural de la PAC",
+            "valores": [
+              4,
+              2,
+              3,
+              2,
+              0,
+              4,
+              1
+            ]
+          },
+          {
+            "titulo": "Técnicas de producción del olivar, albaricoque, almendro y pistacho",
+            "valores": [
+              2,
+              4,
+              1,
+              2,
+              1,
+              3,
+              2
+            ]
+          },
+          {
+            "titulo": "Asociacionismo agrario",
+            "valores": [
+              3,
+              1,
+              2,
+              2,
+              2,
+              3,
+              1
+            ]
+          },
+          {
+            "titulo": "Lucha contra plagas y enfermedades",
+            "valores": [
+              1,
+              2,
+              1,
+              0,
+              2,
+              4,
+              4
+            ]
+          },
+          {
+            "titulo": "La empresa ganadera extensiva e intensiva",
+            "valores": [
+              1,
+              3,
+              4,
+              1,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "titulo": "Industria enológica",
+            "valores": [
+              4,
+              1,
+              1,
+              1,
+              2,
+              1,
+              3
+            ]
+          },
+          {
+            "titulo": "Técnicas de producción de cereales y leguminosas grano",
+            "valores": [
+              1,
+              1,
+              2,
+              2,
+              2,
+              1,
+              3
+            ]
+          },
+          {
+            "titulo": "La Unión Europea y sus instituciones",
+            "valores": [
+              2,
+              2,
+              2,
+              2,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "titulo": "La Política Agrícola Común (PAC) y sus distintas reformas",
+            "valores": [
+              0,
+              2,
+              2,
+              3,
+              1,
+              3,
+              1
+            ]
+          },
+          {
+            "titulo": "Técnicas de producción de la vid",
+            "valores": [
+              4,
+              4,
+              0,
+              1,
+              1,
+              2,
+              0
+            ]
+          },
+          {
+            "titulo": "Las macromagnitudes de la agricultura",
+            "valores": [
+              1,
+              1,
+              1,
+              3,
+              1,
+              2,
+              2
+            ]
+          },
+          {
+            "titulo": "Los contratos del Sector público: clases y régimen jurídico",
+            "valores": [
+              3,
+              1,
+              2,
+              1,
+              1,
+              3,
+              0
+            ]
+          },
+          {
+            "titulo": "Política de I+D+i en el sector agrario y agroalimentario",
+            "valores": [
+              1,
+              0,
+              2,
+              2,
+              1,
+              2,
+              3
+            ]
+          },
+          {
+            "titulo": "El suelo y la tecnología para uso agrario",
+            "valores": [
+              0,
+              2,
+              1,
+              3,
+              2,
+              2,
+              1
+            ]
+          },
+          {
+            "titulo": "El Estatuto de Autonomía de Castilla-La Mancha",
+            "valores": [
+              2,
+              3,
+              2,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "titulo": "Industria elayotécnica",
+            "valores": [
+              2,
+              2,
+              1,
+              2,
+              1,
+              0,
+              2
+            ]
+          },
+          {
+            "titulo": "Industria de la leche y sus derivados",
+            "valores": [
+              2,
+              3,
+              1,
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "titulo": "Conservación y almacenamiento de productos agrarios",
+            "valores": [
+              0,
+              0,
+              3,
+              2,
+              4,
+              1,
+              0
+            ]
+          },
+          {
+            "titulo": "Productos fitosanitarios",
+            "valores": [
+              2,
+              2,
+              1,
+              1,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "titulo": "Teledetección y Sistemas de Información Geográfica (SIG)",
+            "valores": [
+              0,
+              2,
+              2,
+              2,
+              0,
+              2,
+              2
+            ]
+          },
+          {
+            "titulo": "Técnicas de producción de cultivos hortícolas (ajo, melón, cebolla y champiñón)",
+            "valores": [
+              2,
+              2,
+              1,
+              1,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "titulo": "Valoración agraria",
+            "valores": [
+              2,
+              1,
+              1,
+              2,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "titulo": "Infraestructuras agrarias",
+            "valores": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              2,
+              2
+            ]
+          },
+          {
+            "titulo": "La Administración Pública: principios de actuación",
+            "valores": [
+              3,
+              4,
+              1,
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "titulo": "Evaluación del impacto ambiental (EIA)",
+            "valores": [
+              1,
+              2,
+              1,
+              1,
+              1,
+              2,
+              1
+            ]
+          },
+          {
+            "titulo": "Fertilizantes",
+            "valores": [
+              1,
+              2,
+              1,
+              1,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "titulo": "Maquinaria y equipos agrícolas",
+            "valores": [
+              1,
+              2,
+              0,
+              2,
+              1,
+              2,
+              1
+            ]
+          },
+          {
+            "titulo": "Técnicas de producción ecológica, producción integrada y otros sistemas de producción respetuosos con el medio ambiente",
+            "valores": [
+              0,
+              1,
+              1,
+              1,
+              1,
+              2,
+              3
+            ]
+          },
+          {
+            "titulo": "Técnicas de producción de cultivos industriales (girasol, colza, azafrán) y tubérculos (patata)",
+            "valores": [
+              2,
+              0,
+              1,
+              1,
+              1,
+              2,
+              1
+            ]
+          },
+          {
+            "titulo": "Los inputs energéticos en la producción agraria",
+            "valores": [
+              2,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "titulo": "El sector de las frutas y hortalizas frescas y transformadas en el marco de la OCM",
+            "valores": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              2,
+              1
+            ]
+          },
+          {
+            "titulo": "La Organización Común de Mercado Única (OCM)",
+            "valores": [
+              1,
+              0,
+              1,
+              3,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "titulo": "Política de sanidad vegetal",
+            "valores": [
+              2,
+              0,
+              2,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "titulo": "El procedimiento administrativo común y sus fases",
+            "valores": [
+              1,
+              2,
+              1,
+              0,
+              0,
+              3,
+              0
+            ]
+          },
+          {
+            "titulo": "Industrias de alimentos para el ganado",
+            "valores": [
+              1,
+              2,
+              0,
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "titulo": "Las subvenciones públicas en la Administración de la JCCM",
+            "valores": [
+              2,
+              0,
+              1,
+              2,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "titulo": "Semillas y plantas de vivero",
+            "valores": [
+              2,
+              1,
+              0,
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "titulo": "El sector de los cereales en el marco de la OCM",
+            "valores": [
+              2,
+              0,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "titulo": "Política de industrialización agroalimentaria",
+            "valores": [
+              1,
+              1,
+              2,
+              1,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "titulo": "Los sectores de ovino y caprino en el marco de la OCM",
+            "valores": [
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "titulo": "Industrias cárnicas y derivados",
+            "valores": [
+              2,
+              1,
+              1,
+              0,
+              0,
+              1,
+              0
+            ]
+          },
+          {
+            "titulo": "El sector de la carne de vacuno en el marco de la OCM",
+            "valores": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "titulo": "El sector del porcino, de los huevos y las aves en el marco de la OCM",
+            "valores": [
+              2,
+              0,
+              0,
+              0,
+              1,
+              1,
+              0
+            ]
+          },
+          {
+            "titulo": "La administración burocrática y la nueva gestión pública",
+            "valores": [
+              0,
+              0,
+              0,
+              2,
+              0,
+              2,
+              0
+            ]
+          },
+          {
+            "titulo": "La Constitución Española de 1978",
+            "valores": [
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "titulo": "El sector del aceite de oliva en el marco de la OCM",
+            "valores": [
+              0,
+              0,
+              1,
+              1,
+              1,
+              0,
+              1
+            ]
+          },
+          {
+            "titulo": "El presupuesto de la JCCM: elaboración, aprobación y ejecución",
+            "valores": [
+              1,
+              0,
+              1,
+              0,
+              0,
+              1,
+              0
+            ]
+          },
+          {
+            "titulo": "La transparencia en la Administración de la JCCM",
+            "valores": [
+              0,
+              0,
+              1,
+              1,
+              0,
+              1,
+              0
+            ]
+          },
+          {
+            "titulo": "Los actos administrativos: requisitos y eficacia",
+            "valores": [
+              0,
+              1,
+              1,
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "titulo": "La igualdad efectiva de mujeres y hombres",
+            "valores": [
+              0,
+              1,
+              1,
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "titulo": "El Gobierno y la Administración Regional: estructura, organización y régimen jurídico",
+            "valores": [
+              1,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "titulo": "El sector de la leche y productos lácteos en el marco de la OCM",
+            "valores": [
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          {
+            "titulo": "El personal al servicio de la Administración de la JCCM: clases y régimen jurídico",
+            "valores": [
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "titulo": "La protección de datos",
+            "valores": [
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "temporal": {
+        "data": [
+          {
+            "examen": "2016",
+            "Política agraria y medio ambiente": 3,
+            "Política de estructuras agrarias": 4,
+            "Los inputs hidráulicos": 3,
+            "Política de regadíos": 4,
+            "Política de Residuos": 1,
+            "Política alimentaria": 2,
+            "El sector vitivinícola en el marco de la OCM": 2,
+            "Los pagos directos a los agricultores en el marco de la PAC": 2,
+            "Política de rentas": 2,
+            "La empresa agrícola de secano y de regadío": 0
+          },
+          {
+            "examen": "2018",
+            "Política agraria y medio ambiente": 3,
+            "Política de estructuras agrarias": 2,
+            "Los inputs hidráulicos": 3,
+            "Política de regadíos": 4,
+            "Política de Residuos": 4,
+            "Política alimentaria": 3,
+            "El sector vitivinícola en el marco de la OCM": 3,
+            "Los pagos directos a los agricultores en el marco de la PAC": 5,
+            "Política de rentas": 3,
+            "La empresa agrícola de secano y de regadío": 1
+          },
+          {
+            "examen": "2020",
+            "Política agraria y medio ambiente": 4,
+            "Política de estructuras agrarias": 3,
+            "Los inputs hidráulicos": 3,
+            "Política de regadíos": 3,
+            "Política de Residuos": 6,
+            "Política alimentaria": 5,
+            "El sector vitivinícola en el marco de la OCM": 2,
+            "Los pagos directos a los agricultores en el marco de la PAC": 2,
+            "Política de rentas": 2,
+            "La empresa agrícola de secano y de regadío": 4
+          },
+          {
+            "examen": "2022",
+            "Política agraria y medio ambiente": 4,
+            "Política de estructuras agrarias": 4,
+            "Los inputs hidráulicos": 3,
+            "Política de regadíos": 2,
+            "Política de Residuos": 6,
+            "Política alimentaria": 4,
+            "El sector vitivinícola en el marco de la OCM": 3,
+            "Los pagos directos a los agricultores en el marco de la PAC": 2,
+            "Política de rentas": 1,
+            "La empresa agrícola de secano y de regadío": 3
+          },
+          {
+            "examen": "2022 Int",
+            "Política agraria y medio ambiente": 5,
+            "Política de estructuras agrarias": 4,
+            "Los inputs hidráulicos": 4,
+            "Política de regadíos": 2,
+            "Política de Residuos": 2,
+            "Política alimentaria": 0,
+            "El sector vitivinícola en el marco de la OCM": 5,
+            "Los pagos directos a los agricultores en el marco de la PAC": 3,
+            "Política de rentas": 0,
+            "La empresa agrícola de secano y de regadío": 4
+          },
+          {
+            "examen": "2024",
+            "Política agraria y medio ambiente": 5,
+            "Política de estructuras agrarias": 6,
+            "Los inputs hidráulicos": 4,
+            "Política de regadíos": 3,
+            "Política de Residuos": 1,
+            "Política alimentaria": 3,
+            "El sector vitivinícola en el marco de la OCM": 2,
+            "Los pagos directos a los agricultores en el marco de la PAC": 1,
+            "Política de rentas": 4,
+            "La empresa agrícola de secano y de regadío": 3
+          },
+          {
+            "examen": "2024 Int",
+            "Política agraria y medio ambiente": 4,
+            "Política de estructuras agrarias": 1,
+            "Los inputs hidráulicos": 3,
+            "Política de regadíos": 3,
+            "Política de Residuos": 0,
+            "Política alimentaria": 2,
+            "El sector vitivinícola en el marco de la OCM": 2,
+            "Los pagos directos a los agricultores en el marco de la PAC": 3,
+            "Política de rentas": 5,
+            "La empresa agrícola de secano y de regadío": 2
+          }
+        ],
+        "temas": [
+          "Política agraria y medio ambiente",
+          "Política de estructuras agrarias",
+          "Los inputs hidráulicos",
+          "Política de regadíos",
+          "Política de Residuos",
+          "Política alimentaria",
+          "El sector vitivinícola en el marco de la OCM",
+          "Los pagos directos a los agricultores en el marco de la PAC",
+          "Política de rentas",
+          "La empresa agrícola de secano y de regadío"
+        ]
+      },
+      "bloques": [
+        {
+          "examen": "2016",
+          "comun": 16,
+          "especifico": 84
+        },
+        {
+          "examen": "2018",
+          "comun": 15,
+          "especifico": 85
+        },
+        {
+          "examen": "2020",
+          "comun": 16,
+          "especifico": 84
+        },
+        {
+          "examen": "2022",
+          "comun": 14,
+          "especifico": 86
+        },
+        {
+          "examen": "2022 Int",
+          "comun": 4,
+          "especifico": 76
+        },
+        {
+          "examen": "2024",
+          "comun": 11,
+          "especifico": 89
+        },
+        {
+          "examen": "2024 Int",
+          "comun": 3,
+          "especifico": 77
+        }
+      ],
+      "calientes": [
+        {
+          "temaId": "especifico_9",
+          "titulo": "Política agraria y medio ambiente",
+          "bloque": "especifico",
+          "total": 28,
+          "media": 4.0,
+          "pct": 4.2
+        },
+        {
+          "temaId": "especifico_7",
+          "titulo": "Política de estructuras agrarias",
+          "bloque": "especifico",
+          "total": 24,
+          "media": 3.43,
+          "pct": 3.6
+        },
+        {
+          "temaId": "especifico_25",
+          "titulo": "Los inputs hidráulicos",
+          "bloque": "especifico",
+          "total": 23,
+          "media": 3.29,
+          "pct": 3.5
+        },
+        {
+          "temaId": "especifico_4",
+          "titulo": "Política de regadíos",
+          "bloque": "especifico",
+          "total": 21,
+          "media": 3.0,
+          "pct": 3.2
+        },
+        {
+          "temaId": "especifico_10",
+          "titulo": "Política de Residuos",
+          "bloque": "especifico",
+          "total": 20,
+          "media": 2.86,
+          "pct": 3.0
+        },
+        {
+          "temaId": "especifico_16",
+          "titulo": "El sector vitivinícola en el marco de la OCM",
+          "bloque": "especifico",
+          "total": 19,
+          "media": 2.71,
+          "pct": 2.9
+        },
+        {
+          "temaId": "especifico_6",
+          "titulo": "Política alimentaria",
+          "bloque": "especifico",
+          "total": 19,
+          "media": 2.71,
+          "pct": 2.9
+        },
+        {
+          "temaId": "especifico_13",
+          "titulo": "Los pagos directos a los agricultores en el marco de la PAC",
+          "bloque": "especifico",
+          "total": 18,
+          "media": 2.57,
+          "pct": 2.7
+        },
+        {
+          "temaId": "especifico_2",
+          "titulo": "Política de rentas",
+          "bloque": "especifico",
+          "total": 17,
+          "media": 2.43,
+          "pct": 2.6
+        },
+        {
+          "temaId": "especifico_37",
+          "titulo": "La empresa agrícola de secano y de regadío",
+          "bloque": "especifico",
+          "total": 17,
+          "media": 2.43,
+          "pct": 2.6
+        }
+      ]
+    }
+  },
+  "probabilidad": [
+    {
+      "temaId": "comun_1",
+      "titulo": "La Unión Europea y sus instituciones",
+      "bloque": "comun",
+      "pIta": 1.0,
+      "pIa": 1.0,
+      "dif": 0.0
+    },
+    {
+      "temaId": "especifico_1",
+      "titulo": "Las macromagnitudes de la agricultura",
+      "bloque": "especifico",
+      "pIta": 1.0,
+      "pIa": 1.0,
+      "dif": 0.0
+    },
+    {
+      "temaId": "especifico_13",
+      "titulo": "Los pagos directos a los agricultores en el marco de la PAC",
+      "bloque": "especifico",
+      "pIta": 1.0,
+      "pIa": 1.0,
+      "dif": 0.0
+    },
+    {
+      "temaId": "especifico_16",
+      "titulo": "El sector vitivinícola en el marco de la OCM",
+      "bloque": "especifico",
+      "pIta": 1.0,
+      "pIa": 1.0,
+      "dif": 0.0
+    },
+    {
+      "temaId": "especifico_30",
+      "titulo": "Productos fitosanitarios",
+      "bloque": "especifico",
+      "pIta": 1.0,
+      "pIa": 1.0,
+      "dif": 0.0
+    },
+    {
+      "temaId": "especifico_32",
+      "titulo": "Técnicas de producción del olivar, albaricoque, almendro y pistacho",
+      "bloque": "especifico",
+      "pIta": 1.0,
+      "pIa": 1.0,
+      "dif": 0.0
+    },
+    {
+      "temaId": "especifico_35",
+      "titulo": "Técnicas de producción de cultivos hortícolas (ajo, melón, cebolla y champiñón)",
+      "bloque": "especifico",
+      "pIta": 1.0,
+      "pIa": 1.0,
+      "dif": 0.0
+    },
+    {
+      "temaId": "especifico_44",
+      "titulo": "Industria enológica",
+      "bloque": "especifico",
+      "pIta": 1.0,
+      "pIa": 1.0,
+      "dif": 0.0
+    },
+    {
+      "temaId": "especifico_49",
+      "titulo": "Calidad diferenciada",
+      "bloque": "especifico",
+      "pIta": 1.0,
+      "pIa": 1.0,
+      "dif": 0.0
+    },
+    {
+      "temaId": "especifico_9",
+      "titulo": "Política agraria y medio ambiente",
+      "bloque": "especifico",
+      "pIta": 1.0,
+      "pIa": 1.0,
+      "dif": 0.0
+    },
+    {
+      "temaId": "comun_3",
+      "titulo": "El Estatuto de Autonomía de Castilla-La Mancha",
+      "bloque": "comun",
+      "pIta": 1.0,
+      "pIa": 0.86,
+      "dif": 0.14
+    },
+    {
+      "temaId": "especifico_36",
+      "titulo": "Técnicas de producción ecológica, producción integrada y otros sistemas de producción respetuosos con el medio ambiente",
+      "bloque": "especifico",
+      "pIta": 1.0,
+      "pIa": 0.86,
+      "dif": 0.14
+    },
+    {
+      "temaId": "especifico_45",
+      "titulo": "Industria elayotécnica",
+      "bloque": "especifico",
+      "pIta": 1.0,
+      "pIa": 0.86,
+      "dif": 0.14
+    },
+    {
+      "temaId": "especifico_3",
+      "titulo": "Política de sanidad vegetal",
+      "bloque": "especifico",
+      "pIta": 1.0,
+      "pIa": 0.71,
+      "dif": 0.29
+    },
+    {
+      "temaId": "comun_5",
+      "titulo": "La Administración Pública: principios de actuación",
+      "bloque": "comun",
+      "pIta": 1.0,
+      "pIa": 0.57,
+      "dif": 0.43
+    },
+    {
+      "temaId": "especifico_41",
+      "titulo": "Conservación y almacenamiento de productos agrarios",
+      "bloque": "especifico",
+      "pIta": 1.0,
+      "pIa": 0.57,
+      "dif": 0.43
+    },
+    {
+      "temaId": "especifico_24",
+      "titulo": "Los inputs energéticos en la producción agraria",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 1.0,
+      "dif": -0.25
+    },
+    {
+      "temaId": "especifico_25",
+      "titulo": "Los inputs hidráulicos",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 1.0,
+      "dif": -0.25
+    },
+    {
+      "temaId": "especifico_26",
+      "titulo": "Fertilizantes",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 1.0,
+      "dif": -0.25
+    },
+    {
+      "temaId": "especifico_39",
+      "titulo": "Valoración agraria",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 1.0,
+      "dif": -0.25
+    },
+    {
+      "temaId": "especifico_4",
+      "titulo": "Política de regadíos",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 1.0,
+      "dif": -0.25
+    },
+    {
+      "temaId": "especifico_42",
+      "titulo": "Evaluación del impacto ambiental (EIA)",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 1.0,
+      "dif": -0.25
+    },
+    {
+      "temaId": "especifico_48",
+      "titulo": "Industria de la leche y sus derivados",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 1.0,
+      "dif": -0.25
+    },
+    {
+      "temaId": "especifico_50",
+      "titulo": "Asociacionismo agrario",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 1.0,
+      "dif": -0.25
+    },
+    {
+      "temaId": "especifico_7",
+      "titulo": "Política de estructuras agrarias",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 1.0,
+      "dif": -0.25
+    },
+    {
+      "temaId": "comun_8",
+      "titulo": "Los contratos del Sector público: clases y régimen jurídico",
+      "bloque": "comun",
+      "pIta": 0.75,
+      "pIa": 0.86,
+      "dif": -0.11
+    },
+    {
+      "temaId": "especifico_11",
+      "titulo": "La Política Agrícola Común (PAC) y sus distintas reformas",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 0.86,
+      "dif": -0.11
+    },
+    {
+      "temaId": "especifico_2",
+      "titulo": "Política de rentas",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 0.86,
+      "dif": -0.11
+    },
+    {
+      "temaId": "especifico_22",
+      "titulo": "La política de Desarrollo Rural de la PAC",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 0.86,
+      "dif": -0.11
+    },
+    {
+      "temaId": "especifico_23",
+      "titulo": "El suelo y la tecnología para uso agrario",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 0.86,
+      "dif": -0.11
+    },
+    {
+      "temaId": "especifico_29",
+      "titulo": "Lucha contra plagas y enfermedades",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 0.86,
+      "dif": -0.11
+    },
+    {
+      "temaId": "especifico_37",
+      "titulo": "La empresa agrícola de secano y de regadío",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 0.86,
+      "dif": -0.11
+    },
+    {
+      "temaId": "especifico_8",
+      "titulo": "Política de I+D+i en el sector agrario y agroalimentario",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 0.86,
+      "dif": -0.11
+    },
+    {
+      "temaId": "especifico_20",
+      "titulo": "Los sectores de ovino y caprino en el marco de la OCM",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 0.71,
+      "dif": 0.04
+    },
+    {
+      "temaId": "especifico_28",
+      "titulo": "Semillas y plantas de vivero",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 0.71,
+      "dif": 0.04
+    },
+    {
+      "temaId": "especifico_31",
+      "titulo": "Técnicas de producción de la vid",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 0.71,
+      "dif": 0.04
+    },
+    {
+      "temaId": "especifico_43",
+      "titulo": "Teledetección y Sistemas de Información Geográfica (SIG)",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 0.71,
+      "dif": 0.04
+    },
+    {
+      "temaId": "especifico_5",
+      "titulo": "Política de industrialización agroalimentaria",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 0.71,
+      "dif": 0.04
+    },
+    {
+      "temaId": "especifico_47",
+      "titulo": "Industrias cárnicas y derivados",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 0.57,
+      "dif": 0.18
+    },
+    {
+      "temaId": "comun_13",
+      "titulo": "La igualdad efectiva de mujeres y hombres",
+      "bloque": "comun",
+      "pIta": 0.75,
+      "pIa": 0.43,
+      "dif": 0.32
+    },
+    {
+      "temaId": "comun_4",
+      "titulo": "El Gobierno y la Administración Regional: estructura, organización y régimen jurídico",
+      "bloque": "comun",
+      "pIta": 0.75,
+      "pIa": 0.29,
+      "dif": 0.46
+    },
+    {
+      "temaId": "especifico_18",
+      "titulo": "El sector de la leche y productos lácteos en el marco de la OCM",
+      "bloque": "especifico",
+      "pIta": 0.75,
+      "pIa": 0.29,
+      "dif": 0.46
+    },
+    {
+      "temaId": "especifico_17",
+      "titulo": "El sector de las frutas y hortalizas frescas y transformadas en el marco de la OCM",
+      "bloque": "especifico",
+      "pIta": 0.5,
+      "pIa": 1.0,
+      "dif": -0.5
+    },
+    {
+      "temaId": "especifico_33",
+      "titulo": "Técnicas de producción de cereales y leguminosas grano",
+      "bloque": "especifico",
+      "pIta": 0.5,
+      "pIa": 1.0,
+      "dif": -0.5
+    },
+    {
+      "temaId": "especifico_38",
+      "titulo": "La empresa ganadera extensiva e intensiva",
+      "bloque": "especifico",
+      "pIta": 0.5,
+      "pIa": 1.0,
+      "dif": -0.5
+    },
+    {
+      "temaId": "especifico_40",
+      "titulo": "Infraestructuras agrarias",
+      "bloque": "especifico",
+      "pIta": 0.5,
+      "pIa": 1.0,
+      "dif": -0.5
+    },
+    {
+      "temaId": "especifico_10",
+      "titulo": "Política de Residuos",
+      "bloque": "especifico",
+      "pIta": 0.5,
+      "pIa": 0.86,
+      "dif": -0.36
+    },
+    {
+      "temaId": "especifico_12",
+      "titulo": "La Organización Común de Mercado Única (OCM)",
+      "bloque": "especifico",
+      "pIta": 0.5,
+      "pIa": 0.86,
+      "dif": -0.36
+    },
+    {
+      "temaId": "especifico_27",
+      "titulo": "Maquinaria y equipos agrícolas",
+      "bloque": "especifico",
+      "pIta": 0.5,
+      "pIa": 0.86,
+      "dif": -0.36
+    },
+    {
+      "temaId": "especifico_34",
+      "titulo": "Técnicas de producción de cultivos industriales (girasol, colza, azafrán) y tubérculos (patata)",
+      "bloque": "especifico",
+      "pIta": 0.5,
+      "pIa": 0.86,
+      "dif": -0.36
+    },
+    {
+      "temaId": "especifico_6",
+      "titulo": "Política alimentaria",
+      "bloque": "especifico",
+      "pIta": 0.5,
+      "pIa": 0.86,
+      "dif": -0.36
+    },
+    {
+      "temaId": "especifico_14",
+      "titulo": "El sector de los cereales en el marco de la OCM",
+      "bloque": "especifico",
+      "pIta": 0.5,
+      "pIa": 0.71,
+      "dif": -0.21
+    },
+    {
+      "temaId": "especifico_19",
+      "titulo": "El sector de la carne de vacuno en el marco de la OCM",
+      "bloque": "especifico",
+      "pIta": 0.5,
+      "pIa": 0.71,
+      "dif": -0.21
+    },
+    {
+      "temaId": "comun_2",
+      "titulo": "La Constitución Española de 1978",
+      "bloque": "comun",
+      "pIta": 0.5,
+      "pIa": 0.57,
+      "dif": -0.07
+    },
+    {
+      "temaId": "comun_7",
+      "titulo": "El procedimiento administrativo común y sus fases",
+      "bloque": "comun",
+      "pIta": 0.5,
+      "pIa": 0.57,
+      "dif": -0.07
+    },
+    {
+      "temaId": "especifico_15",
+      "titulo": "El sector del aceite de oliva en el marco de la OCM",
+      "bloque": "especifico",
+      "pIta": 0.5,
+      "pIa": 0.57,
+      "dif": -0.07
+    },
+    {
+      "temaId": "comun_14",
+      "titulo": "La transparencia en la Administración de la JCCM",
+      "bloque": "comun",
+      "pIta": 0.5,
+      "pIa": 0.43,
+      "dif": 0.07
+    },
+    {
+      "temaId": "comun_10",
+      "titulo": "El personal al servicio de la Administración de la JCCM: clases y régimen jurídico",
+      "bloque": "comun",
+      "pIta": 0.5,
+      "pIa": 0.14,
+      "dif": 0.36
+    },
+    {
+      "temaId": "especifico_46",
+      "titulo": "Industrias de alimentos para el ganado",
+      "bloque": "especifico",
+      "pIta": 0.25,
+      "pIa": 0.86,
+      "dif": -0.61
+    },
+    {
+      "temaId": "comun_9",
+      "titulo": "Las subvenciones públicas en la Administración de la JCCM",
+      "bloque": "comun",
+      "pIta": 0.25,
+      "pIa": 0.57,
+      "dif": -0.32
+    },
+    {
+      "temaId": "comun_11",
+      "titulo": "El presupuesto de la JCCM: elaboración, aprobación y ejecución",
+      "bloque": "comun",
+      "pIta": 0.25,
+      "pIa": 0.43,
+      "dif": -0.18
+    },
+    {
+      "temaId": "comun_6",
+      "titulo": "Los actos administrativos: requisitos y eficacia",
+      "bloque": "comun",
+      "pIta": 0.25,
+      "pIa": 0.43,
+      "dif": -0.18
+    },
+    {
+      "temaId": "especifico_21",
+      "titulo": "El sector del porcino, de los huevos y las aves en el marco de la OCM",
+      "bloque": "especifico",
+      "pIta": 0.25,
+      "pIa": 0.43,
+      "dif": -0.18
+    },
+    {
+      "temaId": "comun_12",
+      "titulo": "La administración burocrática y la nueva gestión pública",
+      "bloque": "comun",
+      "pIta": 0.25,
+      "pIa": 0.29,
+      "dif": -0.04
+    },
+    {
+      "temaId": "comun_15",
+      "titulo": "La protección de datos",
+      "bloque": "comun",
+      "pIta": 0.25,
+      "pIa": 0.14,
+      "dif": 0.11
+    }
+  ],
+  "correlacion": [
+    {
+      "temaA": "Los inputs hidráulicos",
+      "temaB": "Política agraria y medio ambiente",
+      "r": 0.95
+    },
+    {
+      "temaA": "El personal al servicio de la Administración de la JCCM: clases y régimen jurídico",
+      "temaB": "El Gobierno y la Administración Regional: estructura, organización y régimen jurídico",
+      "r": 0.92
+    },
+    {
+      "temaA": "Técnicas de producción de cultivos hortícolas (ajo, melón, cebolla y champiñón)",
+      "temaB": "Industria enológica",
+      "r": 0.87
+    },
+    {
+      "temaA": "La Unión Europea y sus instituciones",
+      "temaB": "El personal al servicio de la Administración de la JCCM: clases y régimen jurídico",
+      "r": 0.86
+    },
+    {
+      "temaA": "La transparencia en la Administración de la JCCM",
+      "temaB": "La Política Agrícola Común (PAC) y sus distintas reformas",
+      "r": 0.86
+    }
+  ],
+  "recicladas": {
+    "exactas": [
+      {
+        "cuerpo": "ITA",
+        "enunciado": "Cómo afecta la fermentación maloláctica en la calidad y estabilidad de los vinos tintos",
+        "tema": "Industria enológica",
+        "examenes": [
+          "2020",
+          "2024"
+        ],
+        "veces": 2
+      },
+      {
+        "cuerpo": "ITA",
+        "enunciado": "El artículo 26 del Real Decreto 1047/2022, de 27 de diciembre, por el que se regula el sistema de gestión y control de las intervenciones del Plan Estratégico y otras ayudas de la Política Agrícola Común, cita que se llevará a cabo una evaluación de la calidad del SIGPAC sobre la base de una muestra de recintos SIGPAC, con una periodicidad:",
+        "tema": "Teledetección y Sistemas de Información Geográfica (SIG)",
+        "examenes": [
+          "2022",
+          "2024"
+        ],
+        "veces": 2
+      },
+      {
+        "cuerpo": "ITA",
+        "enunciado": "El Estatuto de Autonomía de Castilla-La Mancha tiene rango de:",
+        "tema": "El Estatuto de Autonomía de Castilla-La Mancha",
+        "examenes": [
+          "2022",
+          "2024"
+        ],
+        "veces": 2
+      },
+      {
+        "cuerpo": "ITA",
+        "enunciado": "La Ley 4/2004, de 18 de mayo, de la Explotación Agraria y de Desarrollo Rural en Castilla La Mancha, considera que una explotación agrícola es viable económicamente cuando:",
+        "tema": "La empresa agrícola de secano y de regadío",
+        "examenes": [
+          "2020",
+          "2024"
+        ],
+        "veces": 2
+      },
+      {
+        "cuerpo": "ITA",
+        "enunciado": "Según el Reglamento (UE) 2021/2115 del Parlamento Europeo y del Consejo de 2 de diciembre de 2021 por el que se establecen normas en relación con la ayuda a los planes estratégicos que deben elaborar los Estados miembros en el marco de la política agrícola común (planes estratégicos de la PAC), financiada con cargo al Fondo Europeo Agrícola de Garantía (FEAGA) y al Fondo Europeo Agrícola de Desarrollo Rural (Feader), la ayuda a la destilación de subproductos se abonará a los destiladores autorizados que transformen los subproductos de la vinificación en alcohol que contenga un grado alcohólico mínimo del:",
+        "tema": "Industria enológica",
+        "examenes": [
+          "2022",
+          "2024"
+        ],
+        "veces": 2
+      },
+      {
+        "cuerpo": "IA",
+        "enunciado": "Buscar el valor del bien por comparación con el precio pagado por otros bienes de características similares es una particularidad del:",
+        "tema": "Valoración agraria",
+        "examenes": [
+          "2022",
+          "2024"
+        ],
+        "veces": 2
+      },
+      {
+        "cuerpo": "IA",
+        "enunciado": "Cuando un queso contenga un mínimo de 45% y menos del 60% de materia grasa sobre el extracto seco total, se denominará:",
+        "tema": "Industria de la leche y sus derivados",
+        "examenes": [
+          "2022 Int",
+          "2024"
+        ],
+        "veces": 2
+      },
+      {
+        "cuerpo": "IA",
+        "enunciado": "El insecto Philaenus spumarius, cigarra espumadora, en los cultivos de almendro y olivar, es el principal vector de la enfermedad provocada por:",
+        "tema": "Lucha contra plagas y enfermedades",
+        "examenes": [
+          "2018",
+          "2024 Int"
+        ],
+        "veces": 2
+      },
+      {
+        "cuerpo": "IA",
+        "enunciado": "El Sistema Especial para Trabajadores por Cuenta Propia Agrarios establece como requisito de inclusión:",
+        "tema": "Política de rentas",
+        "examenes": [
+          "2022",
+          "2024 Int"
+        ],
+        "veces": 2
+      },
+      {
+        "cuerpo": "IA",
+        "enunciado": "En el Impuesto sobre el Valor Añadido (IVA) ¿A quién se aplica el régimen especial de la agricultura, ganadería y pesca?",
+        "tema": "Política de rentas",
+        "examenes": [
+          "2018",
+          "2024 Int"
+        ],
+        "veces": 2
+      },
+      {
+        "cuerpo": "IA",
+        "enunciado": "En la cuenta de costes de una explotación agrícola, se considera un coste directo variable:",
+        "tema": "La empresa agrícola de secano y de regadío",
+        "examenes": [
+          "2022 Int",
+          "2024 Int"
+        ],
+        "veces": 2
+      },
+      {
+        "cuerpo": "IA",
+        "enunciado": "En las instrucciones de planificación hidrológica ¿Qué se entiende por \"azud\"?",
+        "tema": "Política de regadíos",
+        "examenes": [
+          "2018",
+          "2024 Int"
+        ],
+        "veces": 2
+      },
+      {
+        "cuerpo": "IA",
+        "enunciado": "En un procedimiento administrativo, es motivo de abstención de las autoridades y funcionarios públicos tener relación de servicio con persona natural o jurídica interesada directamente en el asunto, o haberle prestado servicios profesionales de cualquier tipo y en cualquier circunstancia o lugar en:",
+        "tema": "El procedimiento administrativo común y sus fases",
+        "examenes": [
+          "2018",
+          "2024"
+        ],
+        "veces": 2
+      },
+      {
+        "cuerpo": "IA",
+        "enunciado": "En zonas de clima caluroso, sin vientos fuertes y porque además facilita la ventilación estática horizontal, la orientación más recomendable para ganado porcino es la que tiene el eje longitudinal mayor del edificio orientado:",
+        "tema": "La empresa ganadera extensiva e intensiva",
+        "examenes": [
+          "2018",
+          "2024 Int"
+        ],
+        "veces": 2
+      },
+      {
+        "cuerpo": "IA",
+        "enunciado": "Las variedades Monastrell y Bobal están autorizadas en la Denominación de Origen de Vinos:",
+        "tema": "Calidad diferenciada",
+        "examenes": [
+          "2018",
+          "2024 Int"
+        ],
+        "veces": 2
+      }
+    ],
+    "nearDuplicados": [
+      {
+        "cuerpo": "IA",
+        "similitud": 0.98,
+        "tema": "Evaluación del impacto ambiental (EIA)",
+        "a": {
+          "examen": "2018",
+          "enunciado": "La resolución escrita del órgano competente de la comunidad autónoma en la que se ubique la instalación, por la que se permite, a los efectos de la protección del medio ambiente y de la salud de las personas, explotar la totalidad o parte de una instalación, bajo determinadas condiciones, se denomina:"
+        },
+        "b": {
+          "examen": "2024",
+          "enunciado": "La resolución escrita del órgano competente de la comunidad autónoma en la que se ubique la instalación, por la que se permite, a los efectos de la protección del medio ambiente y de la salud de las personas, explotar la totalidad o parte de una instalación, bajo determinadas condiciones es:"
+        }
+      },
+      {
+        "cuerpo": "IA",
+        "similitud": 0.98,
+        "tema": "Técnicas de producción de cultivos industriales (girasol, colza, azafrán) y tubérculos (patata)",
+        "a": {
+          "examen": "2024",
+          "enunciado": "Según el anuario de estadística del Ministerio de Agricultura, Pesca y Alimentación del 2023, ¿cuál es la provincia con mayor superficie de cultivo de azafrán en Castilla-La Mancha?"
+        },
+        "b": {
+          "examen": "2024 Int",
+          "enunciado": "Según el anuario de estadística del Ministerio de Agricultura, Pesca y Alimentación del 2023, ¿cuál es la provincia con mayor superficie de cultivo de patata en Castilla-La Mancha?"
+        }
+      },
+      {
+        "cuerpo": "IA",
+        "similitud": 0.97,
+        "tema": "Técnicas de producción de cultivos industriales (girasol, colza, azafrán) y tubérculos (patata)",
+        "a": {
+          "examen": "2024",
+          "enunciado": "Según el anuario de estadística del Ministerio de Agricultura, Pesca y Alimentación del 2023, ¿cuál es la provincia con mayor superficie de cultivo de girasol en Castilla-La Mancha?"
+        },
+        "b": {
+          "examen": "2024 Int",
+          "enunciado": "Según el anuario de estadística del Ministerio de Agricultura, Pesca y Alimentación del 2023, ¿cuál es la provincia con mayor superficie de cultivo de patata en Castilla-La Mancha?"
+        }
+      },
+      {
+        "cuerpo": "IA",
+        "similitud": 0.95,
+        "tema": "Teledetección y Sistemas de Información Geográfica (SIG)",
+        "a": {
+          "examen": "2020",
+          "enunciado": "Indique cuál de las siguientes capas de información del visor nacional SIGPAC es una capa con formato Ráster:"
+        },
+        "b": {
+          "examen": "2022",
+          "enunciado": "Indique cuál de las siguientes capas de información del visor nacional SIGPAC es una capa con formato vectorial:"
+        }
+      },
+      {
+        "cuerpo": "ITA",
+        "similitud": 0.93,
+        "tema": "Calidad diferenciada",
+        "a": {
+          "examen": "2020",
+          "enunciado": "¿Cuál de las siguientes no es una Figura de Calidad Diferenciada?"
+        },
+        "b": {
+          "examen": "2022",
+          "enunciado": "¿Cuál de las siguientes opciones no es una Figura de Calidad Diferenciada?"
+        }
+      },
+      {
+        "cuerpo": "IA",
+        "similitud": 0.92,
+        "tema": "El sector vitivinícola en el marco de la OCM",
+        "a": {
+          "examen": "2022",
+          "enunciado": "Según el Informe anual de evaluación 2022, elaborado por el Ministerio de agricultura, pesca y alimentación, sobre la medida de inversiones en instalaciones de transformación y en infraestructura vinícola, financiadas por FEAGA, en Castilla-La Mancha, según las actuaciones admisibles, el mayor número de operaciones fueron destinadas a:"
+        },
+        "b": {
+          "examen": "2022 Int",
+          "enunciado": "Según el Informe anual de evaluación 2022, elaborado por el Ministerio de agricultura, pesca y alimentación sobre la medida de inversiones en instalaciones de transformación y en infraestructura vinícola, financiadas por FEAGA, en Castilla-La Mancha, según la finalidad o tipo de inversión, el mayor número de operaciones fueron destinadas a:"
+        }
+      },
+      {
+        "cuerpo": "IA",
+        "similitud": 0.91,
+        "tema": "Las subvenciones públicas en la Administración de la JCCM",
+        "a": {
+          "examen": "2020",
+          "enunciado": "De conformidad con la Ley 2/2021, de 7 de mayo, de Medidas Económicas, Sociales y Tributarias frente a la Despoblación y para el Desarrollo del Medio Rural en Castilla-La Mancha, de las zonas que integran el medio rural de Castilla-La Mancha las que tienen una densidad de población de 15 habitantes por km2 se denominan:"
+        },
+        "b": {
+          "examen": "2022",
+          "enunciado": "De conformidad con la Ley 2/2021, de 7 de mayo, de Medidas Económicas, Sociales y Tributarias frente a la Despoblación y para el Desarrollo del Medio Rural en Castilla-La Mancha, de las zonas que integran el medio rural de Castilla-La Mancha, las que tienen una menor densidad de población se denominan:"
+        }
+      },
+      {
+        "cuerpo": "IA",
+        "similitud": 0.9,
+        "tema": "Técnicas de producción ecológica, producción integrada y otros sistemas de producción respetuosos con el medio ambiente",
+        "a": {
+          "examen": "2020",
+          "enunciado": "De conformidad con el Reglamento (UE) 2018/848 del Parlamento Europeo y del Consejo, de 30 de mayo de 2018, sobre producción ecológica y etiquetado de los productos ecológicos:"
+        },
+        "b": {
+          "examen": "2024",
+          "enunciado": "El Reglamento (UE) 2018/848 del Parlamento Europeo y del Consejo, de 30 de mayo de 2018, sobre Producción ecológica y etiquetado de los productos ecológicos, establece que:"
+        }
+      },
+      {
+        "cuerpo": "IA",
+        "similitud": 0.88,
+        "tema": "Política agraria y medio ambiente",
+        "a": {
+          "examen": "2022",
+          "enunciado": "Según la Ley 9/1999, de 26 de mayo, de Conservación de la Naturaleza, de Castilla-La Mancha, una reserva natural es:"
+        },
+        "b": {
+          "examen": "2022 Int",
+          "enunciado": "Según la Ley 9/1999, de 26 de mayo, de Conservación de la Naturaleza, de Castilla-La Mancha, un paisaje protegido es:"
+        }
+      },
+      {
+        "cuerpo": "ITA",
+        "similitud": 0.87,
+        "tema": "El Estatuto de Autonomía de Castilla-La Mancha",
+        "a": {
+          "examen": "2020",
+          "enunciado": "Según el artículo 8 del Estatuto de Autonomía de Castilla-La Mancha, son órganos de la Junta ! - de Comunidades de Castilla-La Mancha: ,"
+        },
+        "b": {
+          "examen": "2022",
+          "enunciado": "Según el Estatuto de Autonomía de Castilla-La Mancha, señale cual no es un órgano de la Junta de Comunidades de Castilla-La Mancha:"
+        }
+      },
+      {
+        "cuerpo": "ITA",
+        "similitud": 0.87,
+        "tema": "La empresa agrícola de secano y de regadío",
+        "a": {
+          "examen": "2020",
+          "enunciado": "La Ley 4/2004, de 18 de mayo, de la Explotación Agraria y de Desarrollo Rural en Castilla La Mancha, considera en su definición que una explotación agrícola es prioritaria cuando:"
+        },
+        "b": {
+          "examen": "2024",
+          "enunciado": "La Ley 4/2004, de 18 de mayo, de la Explotación Agraria y de Desarrollo Rural en Castilla La Mancha, considera que una explotación agrícola es viable económicamente cuando:"
+        }
+      },
+      {
+        "cuerpo": "IA",
+        "similitud": 0.87,
+        "tema": "Fertilizantes",
+        "a": {
+          "examen": "2022",
+          "enunciado": "Dentro de los nutrientes para el desarrollo vegetal de los cultivos, es un microelemento:"
+        },
+        "b": {
+          "examen": "2022 Int",
+          "enunciado": "Dentro de los nutrientes para el desarrollo vegetal de los cultivos, es un nutriente secundario:"
+        }
+      },
+      {
+        "cuerpo": "ITA",
+        "similitud": 0.86,
+        "tema": "Calidad diferenciada",
+        "a": {
+          "examen": "2022",
+          "enunciado": "¿Qué variedad de aceituna no se utiliza en la elaboración de aceite de oliva virgen extra amparado por la D.O. Aceite Campo de Montiel?"
+        },
+        "b": {
+          "examen": "2024",
+          "enunciado": "¿Qué variedad de aceituna esta autorizada en la elaboración de aceite de oliva virgen extra amparado por la D.O. Aceite de la Alcarria?"
+        }
+      },
+      {
+        "cuerpo": "IA",
+        "similitud": 0.86,
+        "tema": "Calidad diferenciada",
+        "a": {
+          "examen": "2018",
+          "enunciado": "El aceite de oliva \"Aceite Campo de Montiel\" es un producto acogido a la figura de calidad:"
+        },
+        "b": {
+          "examen": "2024 Int",
+          "enunciado": "El aceite de oliva virgen extra “Aceite Campo de Calatrava” es un producto acogido a la figura de calidad:"
+        }
+      }
+    ],
+    "compartidasEntreCuerpos": [
+      {
+        "enunciado": "De acuerdo con la Ley 2/2020, de 7 de febrero, de Evaluación Ambiental de Castilla-La Mancha, el informe preceptivo y determinante del órgano ambiental con el que finaliza la evaluación de impacto ambiental simplificada se denomina:",
+        "tema": "Evaluación del impacto ambiental (EIA)",
+        "examenesITA": [
+          "2024"
+        ],
+        "examenesIA": [
+          "2022"
+        ]
+      },
+      {
+        "enunciado": "El Parlamento Europeo:",
+        "tema": "La Unión Europea y sus instituciones",
+        "examenesITA": [
+          "2022"
+        ],
+        "examenesIA": [
+          "2020"
+        ]
+      },
+      {
+        "enunciado": "Los goteros son emisores con caudales, por punto de emisión o metro lineal de manguera de goteo, no superiores a:",
+        "tema": "Los inputs hidráulicos",
+        "examenesITA": [
+          "2020"
+        ],
+        "examenesIA": [
+          "2016"
+        ]
+      },
+      {
+        "enunciado": "Según el Decreto 71/2020, de 9 de noviembre, por el que se regula en Castilla-La Mancha la venta directa de productos ligados a la explotación agraria, es una modalidad de venta directa:",
+        "tema": "Política alimentaria",
+        "examenesITA": [
+          "2024"
+        ],
+        "examenesIA": [
+          "2022"
+        ]
+      }
+    ]
+  },
+  "estrategia": {
+    "ITA": {
+      "nValidas": 360,
+      "sesgoLetra": {
+        "A": 0.206,
+        "B": 0.289,
+        "C": 0.269,
+        "D": 0.236
+      },
+      "sesgoLetraPorExamen": [
+        {
+          "examen": "2016",
+          "A": 0.222,
+          "B": 0.311,
+          "C": 0.233,
+          "D": 0.233
+        },
+        {
+          "examen": "2020",
+          "A": 0.122,
+          "B": 0.233,
+          "C": 0.322,
+          "D": 0.322
+        },
+        {
+          "examen": "2022",
+          "A": 0.211,
+          "B": 0.367,
+          "C": 0.211,
+          "D": 0.211
+        },
+        {
+          "examen": "2024",
+          "A": 0.267,
+          "B": 0.244,
+          "C": 0.311,
+          "D": 0.178
+        }
+      ],
+      "pctNegativas": 10.0,
+      "pctCorrectaMasLarga": 28.9
+    },
+    "IA": {
+      "nValidas": 660,
+      "sesgoLetra": {
+        "A": 0.248,
+        "B": 0.267,
+        "C": 0.23,
+        "D": 0.255
+      },
+      "sesgoLetraPorExamen": [
+        {
+          "examen": "2016",
+          "A": 0.28,
+          "B": 0.26,
+          "C": 0.19,
+          "D": 0.27
+        },
+        {
+          "examen": "2018",
+          "A": 0.27,
+          "B": 0.27,
+          "C": 0.2,
+          "D": 0.26
+        },
+        {
+          "examen": "2020",
+          "A": 0.26,
+          "B": 0.25,
+          "C": 0.25,
+          "D": 0.24
+        },
+        {
+          "examen": "2022",
+          "A": 0.24,
+          "B": 0.27,
+          "C": 0.25,
+          "D": 0.24
+        },
+        {
+          "examen": "2022 Int",
+          "A": 0.2,
+          "B": 0.275,
+          "C": 0.275,
+          "D": 0.25
+        },
+        {
+          "examen": "2024",
+          "A": 0.28,
+          "B": 0.27,
+          "C": 0.21,
+          "D": 0.24
+        },
+        {
+          "examen": "2024 Int",
+          "A": 0.188,
+          "B": 0.275,
+          "C": 0.25,
+          "D": 0.288
+        }
+      ],
+      "pctNegativas": 4.5,
+      "pctCorrectaMasLarga": 28.3
+    },
+    "todasAnteriores": {
+      "n": 4,
+      "pctCorrectaCuandoExiste": 100.0
+    }
+  },
+  "conceptos": {
+    "global": [
+      {
+        "keyword": "PAC",
+        "n": 532
+      },
+      {
+        "keyword": "DOP",
+        "n": 193
+      },
+      {
+        "keyword": "FEAGA",
+        "n": 180
+      },
+      {
+        "keyword": "IGP",
+        "n": 163
+      },
+      {
+        "keyword": "OCM",
+        "n": 160
+      },
+      {
+        "keyword": "Reglamento (UE) 2021/2115",
+        "n": 117
+      },
+      {
+        "keyword": "SAT",
+        "n": 110
+      },
+      {
+        "keyword": "FAO",
+        "n": 97
+      },
+      {
+        "keyword": "OEP",
+        "n": 91
+      },
+      {
+        "keyword": "Ley 7/2007",
+        "n": 90
+      },
+      {
+        "keyword": "Reglamento (UE) 2021/2117",
+        "n": 86
+      },
+      {
+        "keyword": "Real Decreto 1054/2022",
+        "n": 83
+      },
+      {
+        "keyword": "GPS",
+        "n": 79
+      },
+      {
+        "keyword": "reglamento (UE) 2020/2220",
+        "n": 76
+      },
+      {
+        "keyword": "AAPP",
+        "n": 74
+      },
+      {
+        "keyword": "Reglamento (CE) 1782/2003",
+        "n": 73
+      },
+      {
+        "keyword": "Real Decreto 1048/2022",
+        "n": 71
+      },
+      {
+        "keyword": "Ley 25/1970",
+        "n": 69
+      },
+      {
+        "keyword": "SIGPAC",
+        "n": 68
+      },
+      {
+        "keyword": "Ley 30/2022",
+        "n": 68
+      },
+      {
+        "keyword": "Ley 2/2021",
+        "n": 68
+      },
+      {
+        "keyword": "Ley 4/2004",
+        "n": 66
+      },
+      {
+        "keyword": "SIEX",
+        "n": 65
+      },
+      {
+        "keyword": "Real Decreto 1338/2018",
+        "n": 60
+      },
+      {
+        "keyword": "Reglamento (CE) 1234/2007",
+        "n": 60
+      }
+    ],
+    "ITA": [
+      {
+        "keyword": "PAC",
+        "n": 189
+      },
+      {
+        "keyword": "DOP",
+        "n": 82
+      },
+      {
+        "keyword": "FEAGA",
+        "n": 79
+      },
+      {
+        "keyword": "OCM",
+        "n": 69
+      },
+      {
+        "keyword": "IGP",
+        "n": 65
+      },
+      {
+        "keyword": "Reglamento (UE) 2021/2115",
+        "n": 48
+      },
+      {
+        "keyword": "Ley 7/2007",
+        "n": 38
+      },
+      {
+        "keyword": "Real Decreto 1048/2022",
+        "n": 37
+      },
+      {
+        "keyword": "FAO",
+        "n": 33
+      },
+      {
+        "keyword": "Ley 30/2022",
+        "n": 33
+      },
+      {
+        "keyword": "Real Decreto 1054/2022",
+        "n": 33
+      },
+      {
+        "keyword": "Reglamento (CE) 1782/2003",
+        "n": 33
+      },
+      {
+        "keyword": "Ley 25/1970",
+        "n": 33
+      },
+      {
+        "keyword": "reglamento (UE) 2020/2220",
+        "n": 33
+      },
+      {
+        "keyword": "GPS",
+        "n": 33
+      },
+      {
+        "keyword": "Reglamento (UE) 2021/2117",
+        "n": 32
+      },
+      {
+        "keyword": "SIGPAC",
+        "n": 29
+      },
+      {
+        "keyword": "Real Decreto 1338/2018",
+        "n": 29
+      },
+      {
+        "keyword": "AAPP",
+        "n": 27
+      },
+      {
+        "keyword": "SAT",
+        "n": 26
+      },
+      {
+        "keyword": "Ley 2/2021",
+        "n": 25
+      },
+      {
+        "keyword": "SIEX",
+        "n": 25
+      },
+      {
+        "keyword": "PEPAC",
+        "n": 25
+      },
+      {
+        "keyword": "Real Decreto 1047/2022",
+        "n": 24
+      },
+      {
+        "keyword": "Reglamento (CE) 1234/2007",
+        "n": 23
+      }
+    ],
+    "IA": [
+      {
+        "keyword": "PAC",
+        "n": 343
+      },
+      {
+        "keyword": "DOP",
+        "n": 111
+      },
+      {
+        "keyword": "FEAGA",
+        "n": 101
+      },
+      {
+        "keyword": "IGP",
+        "n": 98
+      },
+      {
+        "keyword": "OCM",
+        "n": 91
+      },
+      {
+        "keyword": "SAT",
+        "n": 84
+      },
+      {
+        "keyword": "OEP",
+        "n": 70
+      },
+      {
+        "keyword": "Reglamento (UE) 2021/2115",
+        "n": 69
+      },
+      {
+        "keyword": "FAO",
+        "n": 64
+      },
+      {
+        "keyword": "Reglamento (UE) 2021/2117",
+        "n": 54
+      },
+      {
+        "keyword": "Ley 7/2007",
+        "n": 52
+      },
+      {
+        "keyword": "Real Decreto 1054/2022",
+        "n": 50
+      },
+      {
+        "keyword": "Ley 4/2004",
+        "n": 50
+      },
+      {
+        "keyword": "AAPP",
+        "n": 47
+      },
+      {
+        "keyword": "GPS",
+        "n": 46
+      },
+      {
+        "keyword": "Ley 2/2021",
+        "n": 43
+      },
+      {
+        "keyword": "reglamento (UE) 2020/2220",
+        "n": 43
+      },
+      {
+        "keyword": "Ley 9/2003",
+        "n": 41
+      },
+      {
+        "keyword": "Ley 9/2023",
+        "n": 41
+      },
+      {
+        "keyword": "Ley 35/2011",
+        "n": 41
+      },
+      {
+        "keyword": "Ley 6/2019",
+        "n": 41
+      },
+      {
+        "keyword": "SIEX",
+        "n": 40
+      },
+      {
+        "keyword": "MAPA",
+        "n": 40
+      },
+      {
+        "keyword": "Reglamento (CE) 1782/2003",
+        "n": 40
+      },
+      {
+        "keyword": "Ley 1/2025",
+        "n": 39
+      }
+    ]
+  },
+  "calidad": {
+    "ITA": {
+      "anuladasPorTema": [
+        {
+          "titulo": "El sector vitivinícola en el marco de la OCM",
+          "n": 2
+        },
+        {
+          "titulo": "El procedimiento administrativo común y sus fases",
+          "n": 1
+        },
+        {
+          "titulo": "El sector de la leche y productos lácteos en el marco de la OCM",
+          "n": 1
+        },
+        {
+          "titulo": "El sector de las frutas y hortalizas frescas y transformadas en el marco de la OCM",
+          "n": 1
+        },
+        {
+          "titulo": "El sector del aceite de oliva en el marco de la OCM",
+          "n": 1
+        },
+        {
+          "titulo": "Evaluación del impacto ambiental (EIA)",
+          "n": 1
+        },
+        {
+          "titulo": "La política de Desarrollo Rural de la PAC",
+          "n": 1
+        },
+        {
+          "titulo": "Los inputs hidráulicos",
+          "n": 1
+        },
+        {
+          "titulo": "Los pagos directos a los agricultores en el marco de la PAC",
+          "n": 1
+        },
+        {
+          "titulo": "Lucha contra plagas y enfermedades",
+          "n": 1
+        },
+        {
+          "titulo": "Maquinaria y equipos agrícolas",
+          "n": 1
+        },
+        {
+          "titulo": "Política de estructuras agrarias",
+          "n": 1
+        }
+      ],
+      "anuladasPorExamen": [
+        {
+          "examen": "2016",
+          "n": 4
+        },
+        {
+          "examen": "2020",
+          "n": 2
+        },
+        {
+          "examen": "2022",
+          "n": 4
+        },
+        {
+          "examen": "2024",
+          "n": 4
+        }
+      ],
+      "reservasActivadas": 14,
+      "cobertura": {
+        "media": 45.2,
+        "min": 38,
+        "max": 49,
+        "total": 65
+      },
+      "coberturaPorExamen": [
+        {
+          "examen": "2016",
+          "nTemas": 48
+        },
+        {
+          "examen": "2020",
+          "nTemas": 49
+        },
+        {
+          "examen": "2022",
+          "nTemas": 46
+        },
+        {
+          "examen": "2024",
+          "nTemas": 38
+        }
+      ]
+    },
+    "IA": {
+      "anuladasPorTema": [
+        {
+          "titulo": "Asociacionismo agrario",
+          "n": 1
+        },
+        {
+          "titulo": "La empresa agrícola de secano y de regadío",
+          "n": 1
+        },
+        {
+          "titulo": "La empresa ganadera extensiva e intensiva",
+          "n": 1
+        },
+        {
+          "titulo": "Las subvenciones públicas en la Administración de la JCCM",
+          "n": 1
+        },
+        {
+          "titulo": "Los pagos directos a los agricultores en el marco de la PAC",
+          "n": 1
+        },
+        {
+          "titulo": "Política de Residuos",
+          "n": 1
+        },
+        {
+          "titulo": "Teledetección y Sistemas de Información Geográfica (SIG)",
+          "n": 1
+        },
+        {
+          "titulo": "Técnicas de producción de cereales y leguminosas grano",
+          "n": 1
+        },
+        {
+          "titulo": "Técnicas de producción de la vid",
+          "n": 1
+        }
+      ],
+      "anuladasPorExamen": [
+        {
+          "examen": "2016",
+          "n": 2
+        },
+        {
+          "examen": "2018",
+          "n": 2
+        },
+        {
+          "examen": "2020",
+          "n": 0
+        },
+        {
+          "examen": "2022",
+          "n": 0
+        },
+        {
+          "examen": "2022 Int",
+          "n": 0
+        },
+        {
+          "examen": "2024",
+          "n": 2
+        },
+        {
+          "examen": "2024 Int",
+          "n": 3
+        }
+      ],
+      "reservasActivadas": 9,
+      "cobertura": {
+        "media": 50.6,
+        "min": 44,
+        "max": 58,
+        "total": 65
+      },
+      "coberturaPorExamen": [
+        {
+          "examen": "2016",
+          "nTemas": 51
+        },
+        {
+          "examen": "2018",
+          "nTemas": 49
+        },
+        {
+          "examen": "2020",
+          "nTemas": 58
+        },
+        {
+          "examen": "2022",
+          "nTemas": 57
+        },
+        {
+          "examen": "2022 Int",
+          "nTemas": 46
+        },
+        {
+          "examen": "2024",
+          "nTemas": 49
+        },
+        {
+          "examen": "2024 Int",
+          "nTemas": 44
+        }
+      ]
+    }
+  }
+}

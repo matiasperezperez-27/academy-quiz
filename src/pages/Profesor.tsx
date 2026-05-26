@@ -15,6 +15,7 @@ import CrearExamen from '@/components/profesor/CrearExamen';
 import EstadisticasEstudiantes from '@/components/profesor/EstadisticasEstudiantes';
 import BancoPreguntas from '@/components/profesor/BancoPreguntas';
 import ImportarPreguntas from '@/components/profesor/ImportarPreguntas';
+import AnalisisExamenes from '@/components/profesor/AnalisisExamenes';
 import { GraduationCap } from 'lucide-react';
 
 function setSEO(title: string, description: string) {
@@ -31,7 +32,7 @@ export default function Profesor() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const VALID_TABS = ['dashboard', 'verificar', 'banco', 'preguntas', 'temas', 'examenes', 'alumnos', 'importar'];
+  const VALID_TABS = ['dashboard', 'verificar', 'banco', 'preguntas', 'temas', 'examenes', 'alumnos', 'importar', 'analisis'];
   const tabParam = searchParams.get('tab') ?? '';
   const defaultTab = VALID_TABS.includes(tabParam) ? tabParam : 'dashboard';
   const { stats, academias, loading: dataLoading, refresh } = useProfesorData(user?.id);
@@ -94,7 +95,7 @@ export default function Profesor() {
 
         {/* Tabs */}
         <Tabs defaultValue={defaultTab}>
-          <TabsList className="w-full grid grid-cols-4 sm:grid-cols-8 h-auto">
+          <TabsList className="w-full grid grid-cols-3 sm:grid-cols-9 h-auto">
             <TabsTrigger value="dashboard" className="text-xs sm:text-sm">Inicio</TabsTrigger>
             <TabsTrigger value="banco" className="text-xs sm:text-sm">Banco</TabsTrigger>
             <TabsTrigger value="verificar" className="text-xs sm:text-sm">Verificar</TabsTrigger>
@@ -103,6 +104,7 @@ export default function Profesor() {
             <TabsTrigger value="examenes" className="text-xs sm:text-sm">Exámenes</TabsTrigger>
             <TabsTrigger value="alumnos" className="text-xs sm:text-sm">Alumnos</TabsTrigger>
             <TabsTrigger value="importar" className="text-xs sm:text-sm">Importar</TabsTrigger>
+            <TabsTrigger value="analisis" className="text-xs sm:text-sm">Análisis</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6 mt-6">
@@ -136,6 +138,10 @@ export default function Profesor() {
 
           <TabsContent value="importar" className="mt-6">
             <ImportarPreguntas profesorId={user!.id} academias={academias} />
+          </TabsContent>
+
+          <TabsContent value="analisis" className="mt-6">
+            <AnalisisExamenes />
           </TabsContent>
         </Tabs>
 
