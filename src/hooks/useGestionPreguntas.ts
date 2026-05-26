@@ -31,30 +31,64 @@ export interface PreguntaListItem {
   verificada: boolean;
   rechazada: boolean;
   created_at: string;
+  numero_pregunta: number | null;
+  anulada: boolean;
+  reserva: boolean;
+  sustituye_a: number | null;
+  convocatoria: { exam_id: string } | null;
+}
+
+export interface CargarOpts {
+  temaId?: string;
+  parteFilter?: string;
+  convocatoriaId?: string;
+  esOficial?: boolean;
+  page?: number;
+  pageSize?: number;
 }
 
 export function useGestionPreguntas(profesorId: string) {
   const [preguntas, setPreguntas] = useState<PreguntaListItem[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const cargar = useCallback(async (academiaId: string, temaId?: string, parteFilter?: string) => {
+  const cargar = useCallback(async (academiaId: string, opts: CargarOpts = {}) => {
     if (!academiaId) return;
     setLoading(true);
     try {
+      const pageSize = opts.pageSize ?? 50;
+      const page = opts.page ?? 0;
+
       let query = supabase
         .from('preguntas')
-        .select('id, pregunta_texto, solucion_letra, parte, tema_id, academia_id, verificada, rechazada, created_at')
-        .eq('academia_id', academiaId)
-        .order('created_at', { ascending: false })
-        .limit(50);
+        .select(`
+          id, pregunta_texto, solucion_letra, parte, tema_id, academia_id,
+          verificada, rechazada, created_at,
+          numero_pregunta, anulada, reserva, sustituye_a,
+          convocatoria:convocatorias(exam_id)
+        `, { count: 'exact' })
+        .eq('academia_id', academiaId);
 
-      if (temaId) query = query.eq('tema_id', temaId);
-      if (parteFilter) query = query.eq('parte', parteFilter);
+      if (opts.temaId) query = query.eq('tema_id', opts.temaId);
+      if (opts.parteFilter) query = query.eq('parte', opts.parteFilter);
+      if (opts.convocatoriaId) query = query.eq('convocatoria_id', opts.convocatoriaId);
+      if (opts.esOficial !== undefined) query = query.eq('es_oficial', opts.esOficial);
 
-      const { data, error } = await query;
+      // Cuando filtramos por examen, ordenamos por numero_pregunta para verlas Q1, Q2, Q3…
+      // Si no, mantenemos el orden por created_at (comportamiento legacy)
+      if (opts.convocatoriaId) {
+        query = query.order('numero_pregunta', { ascending: true, nullsFirst: false });
+      } else {
+        query = query.order('created_at', { ascending: false });
+      }
+
+      query = query.range(page * pageSize, (page + 1) * pageSize - 1);
+
+      const { data, error, count } = await query;
       if (error) throw error;
       setPreguntas((data as PreguntaListItem[]) || []);
+      setTotal(count ?? 0);
     } catch (err) {
       console.error('useGestionPreguntas.cargar:', err);
       toast.error('Error cargando preguntas');
@@ -112,5 +146,5 @@ export function useGestionPreguntas(profesorId: string) {
     }
   }, [profesorId]);
 
-  return { preguntas, loading, saving, cargar, guardar };
+  return { preguntas, total, loading, saving, cargar, guardar };
 }

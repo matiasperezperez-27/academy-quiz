@@ -9,6 +9,7 @@ import { useVerificacion, type PreguntaParaVerificar } from '@/hooks/useVerifica
 import { useGestionPreguntas, type PreguntaForm } from '@/hooks/useGestionPreguntas';
 import { useParteOptions } from '@/hooks/useParteOptions';
 import PreguntaFormDialog from '@/components/profesor/PreguntaFormDialog';
+import ConvocatoriaBadge from '@/components/profesor/ConvocatoriaBadge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { shuffleOptions } from '@/lib/shuffleOptions';
@@ -714,6 +715,18 @@ export default function VerificacionPreguntas({ profesorId, academias, onRefresh
                         <Badge variant="outline" className="text-xs">{p.academia_nombre}</Badge>
                         <Badge variant="outline" className="text-xs">{p.tema_nombre}</Badge>
                         {p.parte && <Badge variant="outline" className="text-xs">{p.parte}</Badge>}
+                        {(() => {
+                          const conv = Array.isArray(p.convocatoria) ? p.convocatoria[0] : p.convocatoria;
+                          return (
+                            <ConvocatoriaBadge
+                              exam_id={conv?.exam_id}
+                              numero_pregunta={p.numero_pregunta}
+                              anulada={p.anulada}
+                              reserva={p.reserva}
+                              sustituye_a={p.sustituye_a}
+                            />
+                          );
+                        })()}
                         {p.pregunta_origen_id ? (
                           <Badge variant="outline" className="text-xs text-teal-600 border-teal-300 dark:text-teal-400 dark:border-teal-700">
                             📚 {p.academia_origen_nombre ?? 'Banco'}
@@ -898,6 +911,18 @@ export default function VerificacionPreguntas({ profesorId, academias, onRefresh
           onRewriteAI={editando?.pregunta_origen_id ? handleRewriteAI : undefined}
           aiBusy={aiBusy}
           originalPregunta={editando?.pregunta_origen_id ? originals[editando.pregunta_origen_id] : undefined}
+          convocatoriaInfo={(() => {
+            if (!editando) return undefined;
+            const conv = Array.isArray(editando.convocatoria) ? editando.convocatoria[0] : editando.convocatoria;
+            if (!conv?.exam_id) return undefined;
+            return {
+              exam_id: conv.exam_id,
+              numero_pregunta: editando.numero_pregunta,
+              anulada: editando.anulada,
+              reserva: editando.reserva,
+              sustituye_a: editando.sustituye_a,
+            };
+          })()}
         />
       )}
     </div>

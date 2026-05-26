@@ -73,6 +73,25 @@ Explanation fields added to `preguntas` (AI-generated, may be null):
 
 These are shown in the quiz UI after the user answers. The correct option shows a detailed explanation (~350 chars); distractors show a brief note on why they are wrong. Loaded via `enrichWithExplanations()` in `useQuiz.ts` (1 extra query per session, merged into the question objects).
 
+Official exam fields added to `preguntas` (imported from JCCM state exams):
+- `es_oficial` (boolean, default false) — true for the 1,075 imported official state exam questions (ITA A2 + IA A1)
+- `convocatoria_id` (uuid → convocatorias) — which exam this question belongs to
+- `numero_pregunta` (integer) — question number in the exam, displayed as Q1, Q2…
+- `anulada` (boolean) — voided in the official exam; stored with `solucion_letra = NULL`; excluded from all quiz RPCs
+- `reserva` (boolean) — backup/reserve question in the original exam
+- `sustituye_a` (integer) — if `reserva = true`, the `numero_pregunta` it was designed to replace
+- `question_id_origen` (text, unique) — original exam-level identifier for idempotent import
+
+`convocatorias` table:
+- `id` (uuid), `academia_id` (uuid → academias), `nombre` (text)
+- `exam_id` (text) — structured key: `{N}_{ITA|IA}_{YYYY}[_Interna]`, e.g. `1_IA_2024`, `2_ITA_2023_Interna`
+
+Official exam extension fields added to `temas`:
+- `bloque` (text) — content block (`común` / `específico`)
+- `numero` (integer) — tema number in the official curriculum
+- `resumen` (text) — brief description
+- `tema_id_origen` (text) — original identifier; UNIQUE per `(academia_id, tema_id_origen)` for idempotent import
+
 ### Roles
 
 The app has three roles in `profiles.role`:
@@ -134,6 +153,8 @@ Used by `get_smart_preguntas` (called inside `useQuiz` and `useQuestionSelection
 
 Note: the quiz RPCs do NOT filter by `verificada`. All questions are available to students regardless of verification status.
 
+Anuladas (`anulada = true`) ARE excluded — `get_smart_preguntas` and `get_random_preguntas` both include `AND p.anulada IS NOT TRUE` in all priority blocks (migration `20260521000001_anulada_filter_quiz_rpcs.sql`).
+
 ### Business logic hooks
 
 **Student/quiz hooks:**
@@ -149,7 +170,7 @@ Note: the quiz RPCs do NOT filter by `verificada`. All questions are available t
 **Profesor data hooks:**
 - `src/hooks/useProfesorData.ts` — fetches `get_profesor_stats` + `get_profesor_academias`. Returns `{ stats, academias, loading, refresh }`.
 - `src/hooks/useVerificacion.ts` — wraps `get_preguntas_para_verificar` + `verificar_pregunta`. Returns `{ preguntas, loading, total, cargar, verificar }`.
-- `src/hooks/useGestionPreguntas.ts` — wraps `upsert_pregunta` + direct `preguntas` table query. Returns `{ preguntas, loading, saving, cargar, guardar }`.
+- `src/hooks/useGestionPreguntas.ts` — wraps `upsert_pregunta` + direct `preguntas` table query. Returns `{ preguntas, total, loading, saving, cargar, guardar }`. `CargarOpts` supports `temaId`, `parteFilter`, `convocatoriaId`, `esOficial`, `page`, `pageSize` for paginated + filtered queries (`count: 'exact'` + `.range()`).
 - `src/hooks/useExamenes.ts` — direct queries on `examenes` + `examen_preguntas` tables. Returns `{ examenes, loading, saving, cargar, crear, toggleActivo }`.
 - `src/hooks/useProfesorStudentStats.ts` — fetches `get_profesor_student_stats` + `get_profesor_topic_stats`. Returns `{ studentStats, topicStats, loading, cargar }`.
 - `src/hooks/useParteOptions.ts` — loads distinct `parte` values from the `preguntas` table for the given academia IDs, merged with the 3 hardcoded presets (`Común`, `EXAMEN`, `Específica`). Used by `ImportarPreguntas` and `PreguntaFormDialog` to populate the parte dropdown dynamically. Accepts `academiaIds: string[]`; starts with presets while the DB query is in-flight.
@@ -182,7 +203,7 @@ Eight-tab dashboard at `src/pages/Profesor.tsx`. Access requires `is_user_profes
 | Inicio | `ProfesorStats` + `ProfesorAcademias` | KPI cards + academia list with verification progress bars |
 | Verificar | `VerificacionPreguntas` | Review pending/verified/rejected questions with inline edit + approve/reject. Supports single and batch (multi-select) verify/reject. Shows origin badges (📚 banco, 🤖 IA). |
 | Banco | `BancoPreguntas` | Browse biblioteca questions, import (clone) into own academia, AI rewrite button. |
-| Preguntas | `GestionPreguntas` | CRUD questions via Dialog form |
+| Preguntas | `GestionPreguntas` | CRUD questions via Dialog form. Toolbar: academia, tema, parte, convocatoria (📋 exam filter), **Oficiales** toggle (`es_oficial = true`). Paginated (PAGE_SIZE = 50) with `< Página N de M >` controls. `ConvocatoriaBadge` shown per row and in the edit dialog title. |
 | Temas | `GestionTemas` | Create / rename / delete temas per academia. Delete warns that all preguntas in the tema will also be deleted. |
 | Exámenes | `CrearExamen` + `ExamenForm` | 3-step stepper: basic info → select verified questions → review & create |
 | Alumnos | `EstadisticasEstudiantes` | Per-student and per-topic accuracy tables |
@@ -198,6 +219,9 @@ Admin panel (`/admin`) includes a **Gestión de Profesores** section (`ProfesorM
 - When the question list loads, all `pregunta_origen_id` values on the current page are batch-fetched in one query (fields: `pregunta_texto`, `opcion_a/b/c/d`, `solucion_letra`). Results are stored in an `originals: Record<string, OriginalPregunta>` map.
 - Each cloned question card shows a "📚 Original del banco" toggle (blue) between the options grid and the verify/reject buttons. Clicking it expands a compact blue panel with the original text + options (correct answer highlighted green). Toggle state is a `Set<string>` so multiple cards can be open simultaneously.
 - `PreguntaFormDialog` accepts an optional `originalPregunta` prop. When present, a collapsible "Original del banco" header appears above the form fields (collapsed by default, resets on dialog close), giving Yeray a reference while editing.
+- `PreguntaFormDialog` also accepts an optional `convocatoriaInfo` prop (`{ exam_id, numero_pregunta, anulada, reserva, sustituye_a }`). When present, a `ConvocatoriaBadge` is rendered inline in the `DialogTitle`.
+
+**`ConvocatoriaBadge`** (`src/components/profesor/ConvocatoriaBadge.tsx`): badge for official exam questions. Props: `exam_id, numero_pregunta, anulada, reserva, sustituye_a`. Exports `parseExamId(exam_id)` and `formatExamLabel(exam_id)` — utilities that parse the `{N}_{ITA|IA}_{YYYY}[_Interna]` format. Three variants: indigo (normal), red (anulada), amber (reserva with `→ QN` pointer). Used in `GestionPreguntas`, `VerificacionPreguntas`, and `PreguntaFormDialog`. Note: exporting non-component functions from the same file triggers a `react-refresh/only-export-components` lint warning — harmless, ignored.
 
 **Banco import flow** (`BancoPreguntas`):
 
@@ -253,6 +277,15 @@ The professor uses NotebookLM's "Personalizar tabla de datos" feature with a spe
 - Filter selects only show propias academias. Context bar below shows live counts for the current scope (`filterCounts` state, refreshed via `refreshKey` after each action).
 - **Batch multi-select**: "Selección múltiple" toggle (only shown when `estado = pendiente`) reveals checkboxes on each card. Clicking a card toggles it; "Seleccionar página (N)" marks all on the page. A floating bar at `bottom-20` shows count + **Verificar N** / **Rechazar N** buttons. RPCs run in parallel via `Promise.allSettled`.
 - Accepts an optional `onRefresh` prop (wired to `useProfesorData.refresh` from `Profesor.tsx`) called after each action to keep the Inicio tab stats in sync.
+
+**Official exam import pipeline** (`scripts/import_examenes_oficiales.py`):
+
+Imports 1,075 questions from 11 JSON files (ITA × 4, IA × 7) representing official JCCM state exams. Run once; idempotent via `UNIQUE(question_id_origen)`. Requires `SUPABASE_SERVICE_ROLE_KEY` in `.env`.
+
+- Handles two JSON formats: ITA (root-level metadata) and IA (nested under `"exam"` key). Normalizes field name differences across file versions (`anuladas` vs `preguntas_anuladas`, etc.).
+- Anuladas imported with `solucion_letra = NULL` — the `solucion_letra` CHECK constraint was updated in migration `20260521000000` to allow NULL.
+- Questions live directly in **Academia Yeray** (not biblioteca academias). Using `clonar_pregunta` was avoided because it loses trazabilidad fields (`convocatoria_id`, `numero_pregunta`, `anulada`, etc.) and resets `verificada = false`.
+- The spec/prompt document is preserved at `PROMPT_IMPORTAR_EXAMENES_OFICIALES.md`.
 
 **GestionPreguntas / GestionTemas**: Both components filter `academias` to `propias` (es_biblioteca = false) before rendering. If the professor has only one propia academia, the selector is replaced with a static label and the academia is auto-selected on mount.
 

@@ -25,3 +25,12 @@ dist-ssr
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+
+# Supabase CLI generated files
+supabase/.temp/
+

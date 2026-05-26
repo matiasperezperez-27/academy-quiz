@@ -46,6 +46,68 @@ export type Database = {
           },
         ]
       }
+      convocatorias: {
+        Row: {
+          academia_id: string | null
+          convocatoria: string
+          created_at: string
+          cuerpo: string
+          exam_id: string
+          fecha_examen: string | null
+          grupo: string
+          id: string
+          oep: string | null
+          plantilla_nota: string | null
+          plantilla_tipo: string | null
+          preguntas_anuladas_numeros: number[] | null
+          preguntas_regulares: number | null
+          preguntas_reserva: number | null
+          total_preguntas: number | null
+        }
+        Insert: {
+          academia_id?: string | null
+          convocatoria?: string
+          created_at?: string
+          cuerpo: string
+          exam_id: string
+          fecha_examen?: string | null
+          grupo: string
+          id?: string
+          oep?: string | null
+          plantilla_nota?: string | null
+          plantilla_tipo?: string | null
+          preguntas_anuladas_numeros?: number[] | null
+          preguntas_regulares?: number | null
+          preguntas_reserva?: number | null
+          total_preguntas?: number | null
+        }
+        Update: {
+          academia_id?: string | null
+          convocatoria?: string
+          created_at?: string
+          cuerpo?: string
+          exam_id?: string
+          fecha_examen?: string | null
+          grupo?: string
+          id?: string
+          oep?: string | null
+          plantilla_nota?: string | null
+          plantilla_tipo?: string | null
+          preguntas_anuladas_numeros?: number[] | null
+          preguntas_regulares?: number | null
+          preguntas_reserva?: number | null
+          total_preguntas?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "convocatorias_academia_id_fkey"
+            columns: ["academia_id"]
+            isOneToOne: false
+            referencedRelation: "academias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       examen_preguntas: {
         Row: {
           examen_id: string
@@ -181,11 +243,43 @@ export type Database = {
         }
         Relationships: []
       }
+      partes_academia: {
+        Row: {
+          academia_id: string
+          created_at: string | null
+          id: string
+          nombre: string
+        }
+        Insert: {
+          academia_id: string
+          created_at?: string | null
+          id?: string
+          nombre: string
+        }
+        Update: {
+          academia_id?: string
+          created_at?: string | null
+          id?: string
+          nombre?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partes_academia_academia_id_fkey"
+            columns: ["academia_id"]
+            isOneToOne: false
+            referencedRelation: "academias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       preguntas: {
         Row: {
           academia_id: string
+          anulada: boolean
+          convocatoria_id: string | null
           creada_por: string | null
           created_at: string
+          es_oficial: boolean
           explicacion: string | null
           explicacion_a: string | null
           explicacion_b: string | null
@@ -194,6 +288,7 @@ export type Database = {
           explicacion_modelo: string | null
           id: string
           modificada_por_ia: boolean
+          numero_pregunta: number | null
           opcion_a: string
           opcion_b: string
           opcion_c: string | null
@@ -201,8 +296,11 @@ export type Database = {
           parte: string | null
           pregunta_origen_id: string | null
           pregunta_texto: string
+          question_id_origen: string | null
           rechazada: boolean
-          solucion_letra: string
+          reserva: boolean
+          solucion_letra: string | null
+          sustituye_a: number | null
           tema_id: string
           verificacion_notas: string | null
           verificada: boolean
@@ -211,8 +309,11 @@ export type Database = {
         }
         Insert: {
           academia_id: string
+          anulada?: boolean
+          convocatoria_id?: string | null
           creada_por?: string | null
           created_at?: string
+          es_oficial?: boolean
           explicacion?: string | null
           explicacion_a?: string | null
           explicacion_b?: string | null
@@ -221,6 +322,7 @@ export type Database = {
           explicacion_modelo?: string | null
           id?: string
           modificada_por_ia?: boolean
+          numero_pregunta?: number | null
           opcion_a: string
           opcion_b: string
           opcion_c?: string | null
@@ -228,8 +330,11 @@ export type Database = {
           parte?: string | null
           pregunta_origen_id?: string | null
           pregunta_texto: string
+          question_id_origen?: string | null
           rechazada?: boolean
-          solucion_letra: string
+          reserva?: boolean
+          solucion_letra?: string | null
+          sustituye_a?: number | null
           tema_id: string
           verificacion_notas?: string | null
           verificada?: boolean
@@ -238,8 +343,11 @@ export type Database = {
         }
         Update: {
           academia_id?: string
+          anulada?: boolean
+          convocatoria_id?: string | null
           creada_por?: string | null
           created_at?: string
+          es_oficial?: boolean
           explicacion?: string | null
           explicacion_a?: string | null
           explicacion_b?: string | null
@@ -248,6 +356,7 @@ export type Database = {
           explicacion_modelo?: string | null
           id?: string
           modificada_por_ia?: boolean
+          numero_pregunta?: number | null
           opcion_a?: string
           opcion_b?: string
           opcion_c?: string | null
@@ -255,8 +364,11 @@ export type Database = {
           parte?: string | null
           pregunta_origen_id?: string | null
           pregunta_texto?: string
+          question_id_origen?: string | null
           rechazada?: boolean
-          solucion_letra?: string
+          reserva?: boolean
+          solucion_letra?: string | null
+          sustituye_a?: number | null
           tema_id?: string
           verificacion_notas?: string | null
           verificada?: boolean
@@ -269,6 +381,13 @@ export type Database = {
             columns: ["academia_id"]
             isOneToOne: false
             referencedRelation: "academias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preguntas_convocatoria_id_fkey"
+            columns: ["convocatoria_id"]
+            isOneToOne: false
+            referencedRelation: "convocatorias"
             referencedColumns: ["id"]
           },
           {
@@ -300,6 +419,90 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      preguntas_backup_20260521: {
+        Row: {
+          academia_id: string | null
+          creada_por: string | null
+          created_at: string | null
+          explicacion: string | null
+          explicacion_a: string | null
+          explicacion_b: string | null
+          explicacion_c: string | null
+          explicacion_d: string | null
+          explicacion_modelo: string | null
+          id: string | null
+          modificada_por_ia: boolean | null
+          opcion_a: string | null
+          opcion_b: string | null
+          opcion_c: string | null
+          opcion_d: string | null
+          parte: string | null
+          pregunta_origen_id: string | null
+          pregunta_texto: string | null
+          rechazada: boolean | null
+          solucion_letra: string | null
+          tema_id: string | null
+          verificacion_notas: string | null
+          verificada: boolean | null
+          verificada_at: string | null
+          verificada_por: string | null
+        }
+        Insert: {
+          academia_id?: string | null
+          creada_por?: string | null
+          created_at?: string | null
+          explicacion?: string | null
+          explicacion_a?: string | null
+          explicacion_b?: string | null
+          explicacion_c?: string | null
+          explicacion_d?: string | null
+          explicacion_modelo?: string | null
+          id?: string | null
+          modificada_por_ia?: boolean | null
+          opcion_a?: string | null
+          opcion_b?: string | null
+          opcion_c?: string | null
+          opcion_d?: string | null
+          parte?: string | null
+          pregunta_origen_id?: string | null
+          pregunta_texto?: string | null
+          rechazada?: boolean | null
+          solucion_letra?: string | null
+          tema_id?: string | null
+          verificacion_notas?: string | null
+          verificada?: boolean | null
+          verificada_at?: string | null
+          verificada_por?: string | null
+        }
+        Update: {
+          academia_id?: string | null
+          creada_por?: string | null
+          created_at?: string | null
+          explicacion?: string | null
+          explicacion_a?: string | null
+          explicacion_b?: string | null
+          explicacion_c?: string | null
+          explicacion_d?: string | null
+          explicacion_modelo?: string | null
+          id?: string | null
+          modificada_por_ia?: boolean | null
+          opcion_a?: string | null
+          opcion_b?: string | null
+          opcion_c?: string | null
+          opcion_d?: string | null
+          parte?: string | null
+          pregunta_origen_id?: string | null
+          pregunta_texto?: string | null
+          rechazada?: boolean | null
+          solucion_letra?: string | null
+          tema_id?: string | null
+          verificacion_notas?: string | null
+          verificada?: boolean | null
+          verificada_at?: string | null
+          verificada_por?: string | null
+        }
+        Relationships: []
       }
       preguntas_falladas: {
         Row: {
@@ -457,21 +660,33 @@ export type Database = {
       temas: {
         Row: {
           academia_id: string
+          bloque: string | null
           created_at: string
           id: string
           nombre: string
+          numero: number | null
+          resumen: string | null
+          tema_id_origen: string | null
         }
         Insert: {
           academia_id: string
+          bloque?: string | null
           created_at?: string
           id?: string
           nombre: string
+          numero?: number | null
+          resumen?: string | null
+          tema_id_origen?: string | null
         }
         Update: {
           academia_id?: string
+          bloque?: string | null
           created_at?: string
           id?: string
           nombre?: string
+          numero?: number | null
+          resumen?: string | null
+          tema_id_origen?: string | null
         }
         Relationships: [
           {
@@ -482,6 +697,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      temas_backup_20260521: {
+        Row: {
+          academia_id: string | null
+          created_at: string | null
+          id: string | null
+          nombre: string | null
+        }
+        Insert: {
+          academia_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          nombre?: string | null
+        }
+        Update: {
+          academia_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          nombre?: string | null
+        }
+        Relationships: []
       }
       user_answers: {
         Row: {
@@ -718,6 +954,10 @@ export type Database = {
       crear_tema: {
         Args: { p_academia_id: string; p_nombre: string; p_profesor_id: string }
         Returns: string
+      }
+      eliminar_parte_preguntas: {
+        Args: { p_academia_id: string; p_nombre: string; p_profesor_id: string }
+        Returns: number
       }
       eliminar_pregunta: {
         Args: { p_pregunta_id: string; p_profesor_id: string }
@@ -980,6 +1220,15 @@ export type Database = {
         Returns: boolean
       }
       refresh_user_stats: { Args: never; Returns: undefined }
+      renombrar_parte_preguntas: {
+        Args: {
+          p_academia_id: string
+          p_nombre_actual: string
+          p_nombre_nuevo: string
+          p_profesor_id: string
+        }
+        Returns: undefined
+      }
       renombrar_tema: {
         Args: {
           p_nuevo_nombre: string

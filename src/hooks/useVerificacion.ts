@@ -27,6 +27,12 @@ export interface PreguntaParaVerificar {
   pregunta_origen_id: string | null;
   modificada_por_ia: boolean;
   academia_origen_nombre: string | null;
+  // Convocatoria oficial (null si la pregunta no es de examen oficial)
+  numero_pregunta: number | null;
+  anulada: boolean;
+  reserva: boolean;
+  sustituye_a: number | null;
+  convocatoria: { exam_id: string } | null;
 }
 
 export interface VerificacionFiltros {
@@ -56,12 +62,16 @@ export function useVerificacion(profesorId: string) {
       if (error) throw error;
       if (Array.isArray(data) && data.length > 0) {
         const ids = (data as any[]).map((p: any) => p.id);
-        const { data: expData } = await supabase
+        const { data: enrichData } = await supabase
           .from('preguntas')
-          .select('id, explicacion_a, explicacion_b, explicacion_c, explicacion_d')
+          .select(`
+            id, explicacion_a, explicacion_b, explicacion_c, explicacion_d,
+            numero_pregunta, anulada, reserva, sustituye_a,
+            convocatoria:convocatorias(exam_id)
+          `)
           .in('id', ids);
-        const expMap = Object.fromEntries((expData || []).map((e: any) => [e.id, e]));
-        const enriched = (data as any[]).map((p: any) => ({ ...p, ...expMap[p.id] }));
+        const enrichMap = Object.fromEntries((enrichData || []).map((e: any) => [e.id, e]));
+        const enriched = (data as any[]).map((p: any) => ({ ...p, ...enrichMap[p.id] }));
         setPreguntas(enriched as PreguntaParaVerificar[]);
         setTotal((data[0] as any).total_count ?? data.length);
       } else {

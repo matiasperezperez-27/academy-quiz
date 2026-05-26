@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, CheckCircle, Clock, XCircle, HelpCircle, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Trash2, CheckCircle, Clock, XCircle, HelpCircle, AlertTriangle, ChevronLeft, ChevronRight, BadgeCheck } from 'lucide-react';
 import { useGestionPreguntas, type PreguntaForm } from '@/hooks/useGestionPreguntas';
 import { useParteOptions } from '@/hooks/useParteOptions';
 import PreguntaFormDialog from '@/components/profesor/PreguntaFormDialog';
+import ConvocatoriaBadge, { formatExamLabel } from '@/components/profesor/ConvocatoriaBadge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { ProfesorAcademia } from '@/hooks/useProfesorData';
@@ -46,9 +47,11 @@ function getStatus(v: boolean, r: boolean): StatusKey {
   return 'pendiente';
 }
 
+const PAGE_SIZE = 50;
+
 export default function GestionPreguntas({ profesorId, academias, onRefresh }: Props) {
   const propias = academias.filter(a => !a.es_biblioteca);
-  const { preguntas, loading, saving, cargar, guardar } = useGestionPreguntas(profesorId);
+  const { preguntas, total, loading, saving, cargar, guardar } = useGestionPreguntas(profesorId);
   const [academiaId, setAcademiaId] = useState('');
 
   useEffect(() => {
@@ -57,11 +60,22 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
   }, [propias.length]);
   const [temaId, setTemaId] = useState('__all__');
   const [parteFilter, setParteFilter] = useState('__all__');
+  const [convocatoriaId, setConvocatoriaId] = useState('__all__');
+  const [soloOficiales, setSoloOficiales] = useState(false);
+  const [page, setPage] = useState(0);
   const [temas, setTemas] = useState<{ id: string; nombre: string }[]>([]);
+  const [convocatorias, setConvocatorias] = useState<{ id: string; exam_id: string }[]>([]);
   const parteOptions = useParteOptions(academiaId ? [academiaId] : []);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<PreguntaForm>(FORM_EMPTY);
   const [formTemas, setFormTemas] = useState<{ id: string; nombre: string }[]>([]);
+  const [formConvocatoria, setFormConvocatoria] = useState<{
+    exam_id?: string | null;
+    numero_pregunta?: number | null;
+    anulada?: boolean | null;
+    reserva?: boolean | null;
+    sustituye_a?: number | null;
+  } | undefined>(undefined);
   const [deleteItem, setDeleteItem] = useState<{ id: string; texto: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -69,20 +83,33 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
     if (academiaId) {
       supabase.from('temas').select('id, nombre').eq('academia_id', academiaId).order('nombre')
         .then(({ data }) => setTemas(data || []));
+      supabase.from('convocatorias').select('id, exam_id').eq('academia_id', academiaId).order('exam_id')
+        .then(({ data }) => setConvocatorias(data || []));
       setTemaId('__all__');
       setParteFilter('__all__');
+      setConvocatoriaId('__all__');
+      setPage(0);
     } else {
       setTemas([]);
+      setConvocatorias([]);
     }
   }, [academiaId]);
 
+  // Reset pagination al cambiar cualquier filtro
   useEffect(() => {
-    if (academiaId) cargar(
-      academiaId,
-      temaId === '__all__' ? undefined : temaId,
-      parteFilter === '__all__' ? undefined : parteFilter,
-    );
-  }, [academiaId, temaId, parteFilter, cargar]);
+    setPage(0);
+  }, [temaId, parteFilter, convocatoriaId, soloOficiales]);
+
+  useEffect(() => {
+    if (academiaId) cargar(academiaId, {
+      temaId: temaId === '__all__' ? undefined : temaId,
+      parteFilter: parteFilter === '__all__' ? undefined : parteFilter,
+      convocatoriaId: convocatoriaId === '__all__' ? undefined : convocatoriaId,
+      esOficial: soloOficiales ? true : undefined,
+      page,
+      pageSize: PAGE_SIZE,
+    });
+  }, [academiaId, temaId, parteFilter, convocatoriaId, soloOficiales, page, cargar]);
 
   const handleAcademiaForm = async (value: string) => {
     setForm(prev => ({ ...prev, academia_id: value, tema_id: '' }));
@@ -115,13 +142,34 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
       explicacion_c: full?.explicacion_c || null,
       explicacion_d: full?.explicacion_d || null,
     });
+    const conv = Array.isArray(p.convocatoria) ? p.convocatoria[0] : p.convocatoria;
+    setFormConvocatoria(conv?.exam_id ? {
+      exam_id: conv.exam_id,
+      numero_pregunta: p.numero_pregunta,
+      anulada: p.anulada,
+      reserva: p.reserva,
+      sustituye_a: p.sustituye_a,
+    } : undefined);
     setDialogOpen(true);
   };
 
   const handleNueva = () => {
     setForm({ ...FORM_EMPTY, academia_id: academiaId, tema_id: temaId === '__all__' ? '' : temaId });
     if (academiaId) setFormTemas(temas);
+    setFormConvocatoria(undefined);
     setDialogOpen(true);
+  };
+
+  const reload = () => {
+    if (!academiaId) return;
+    cargar(academiaId, {
+      temaId: temaId === '__all__' ? undefined : temaId,
+      parteFilter: parteFilter === '__all__' ? undefined : parteFilter,
+      convocatoriaId: convocatoriaId === '__all__' ? undefined : convocatoriaId,
+      esOficial: soloOficiales ? true : undefined,
+      page,
+      pageSize: PAGE_SIZE,
+    });
   };
 
   const handleGuardar = async () => {
@@ -130,7 +178,7 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
     if (id) {
       setDialogOpen(false);
       setForm(FORM_EMPTY);
-      if (academiaId) cargar(academiaId, temaId === '__all__' ? undefined : temaId, parteFilter === '__all__' ? undefined : parteFilter);
+      reload();
       onRefresh();
     }
   };
@@ -146,7 +194,7 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
       if (error) throw error;
       toast.success('Pregunta eliminada');
       setDeleteItem(null);
-      if (academiaId) cargar(academiaId, temaId === '__all__' ? undefined : temaId, parteFilter === '__all__' ? undefined : parteFilter);
+      reload();
       onRefresh();
     } catch (err: any) {
       toast.error(err.message || 'Error al eliminar la pregunta');
@@ -154,6 +202,9 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
       setDeleting(false);
     }
   };
+
+  const totalPages = total > 0 ? Math.max(1, Math.ceil(total / PAGE_SIZE)) : 1;
+  const hasNextPage = (page + 1) * PAGE_SIZE < total;
 
   const selectedTema = temas.find(t => t.id === temaId);
 
@@ -207,6 +258,29 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
           </Select>
         )}
 
+        {convocatorias.length > 0 && (
+          <Select value={convocatoriaId} onValueChange={setConvocatoriaId}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Todos los exámenes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todos los exámenes</SelectItem>
+              {convocatorias.map(c => (
+                <SelectItem key={c.id} value={c.id}>📋 {formatExamLabel(c.exam_id)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        <Button
+          variant="outline"
+          onClick={() => setSoloOficiales(v => !v)}
+          className={`flex-shrink-0 gap-1.5 ${soloOficiales ? 'bg-indigo-50 border-indigo-300 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-700 dark:text-indigo-300' : ''}`}
+        >
+          <BadgeCheck className="h-4 w-4" />
+          Oficiales
+        </Button>
+
         <Button onClick={handleNueva} disabled={!academiaId} className="bg-teal-600 hover:bg-teal-700 flex-shrink-0">
           <Plus className="h-4 w-4 mr-1" />
           Nueva
@@ -218,7 +292,9 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
         <div className="flex items-center justify-between px-1">
           <p className="text-xs text-muted-foreground">
             {selectedTema ? <><span className="font-medium">{selectedTema.nombre}</span> · </> : ''}
-            {preguntas.length} preguntas
+            {total > preguntas.length
+              ? <>Mostrando <span className="font-medium">{preguntas.length}</span> de <span className="font-medium">{total.toLocaleString()}</span></>
+              : <>{total.toLocaleString()} preguntas</>}
           </p>
           <div className="flex gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
@@ -254,6 +330,7 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
           </Button>
         </div>
       ) : (
+        <>
         <div className="space-y-1.5">
           {preguntas.map(p => {
             const statusKey = getStatus(p.verificada, p.rechazada);
@@ -278,6 +355,18 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
                     {p.parte && (
                       <span className="text-[11px] text-muted-foreground border rounded px-1">{p.parte}</span>
                     )}
+                    {(() => {
+                      const conv = Array.isArray(p.convocatoria) ? p.convocatoria[0] : p.convocatoria;
+                      return (
+                        <ConvocatoriaBadge
+                          exam_id={conv?.exam_id}
+                          numero_pregunta={p.numero_pregunta}
+                          anulada={p.anulada}
+                          reserva={p.reserva}
+                          sustituye_a={p.sustituye_a}
+                        />
+                      );
+                    })()}
                     <span className="text-[11px] text-muted-foreground ml-auto">
                       {new Date(p.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
                     </span>
@@ -302,12 +391,27 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
             );
           })}
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-3 pt-2">
+            <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Página {page + 1} de {totalPages}
+            </span>
+            <Button variant="outline" size="sm" disabled={!hasNextPage} onClick={() => setPage(p => p + 1)}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+        </>
       )}
 
       {dialogOpen && (
         <PreguntaFormDialog
           open={dialogOpen}
-          onClose={() => { setDialogOpen(false); setForm(FORM_EMPTY); }}
+          onClose={() => { setDialogOpen(false); setForm(FORM_EMPTY); setFormConvocatoria(undefined); }}
           form={form}
           setForm={setForm}
           saving={saving}
@@ -316,6 +420,7 @@ export default function GestionPreguntas({ profesorId, academias, onRefresh }: P
           academias={academias}
           temas={formTemas}
           onAcademiaChange={handleAcademiaForm}
+          convocatoriaInfo={formConvocatoria}
         />
       )}
 

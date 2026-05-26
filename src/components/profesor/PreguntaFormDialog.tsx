@@ -9,6 +9,7 @@ import { CheckCircle2, Library, ChevronDown, ChevronUp } from 'lucide-react';
 import { useParteOptions } from '@/hooks/useParteOptions';
 import type { PreguntaForm } from '@/hooks/useGestionPreguntas';
 import type { ProfesorAcademia } from '@/hooks/useProfesorData';
+import ConvocatoriaBadge from '@/components/profesor/ConvocatoriaBadge';
 
 interface OriginalPregunta {
   pregunta_texto: string;
@@ -36,6 +37,14 @@ interface Props {
   aiBusy?: boolean;
   // Pregunta original del banco (para comparación)
   originalPregunta?: OriginalPregunta;
+  // Convocatoria oficial (cuando la pregunta viene de un examen oficial)
+  convocatoriaInfo?: {
+    exam_id?: string | null;
+    numero_pregunta?: number | null;
+    anulada?: boolean | null;
+    reserva?: boolean | null;
+    sustituye_a?: number | null;
+  };
 }
 
 const OPCIONES = [
@@ -59,7 +68,7 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 export default function PreguntaFormDialog({
   open, onClose, form, setForm, saving, onSave, isEditing,
   academias, temas, onAcademiaChange,
-  onRewriteAI, aiBusy, originalPregunta,
+  onRewriteAI, aiBusy, originalPregunta, convocatoriaInfo,
 }: Props) {
   const patch = (updates: Partial<PreguntaForm>) =>
     setForm(prev => ({ ...prev, ...updates }));
@@ -118,8 +127,17 @@ export default function PreguntaFormDialog({
     <Dialog open={open} onOpenChange={open => { if (!open) onClose(); }}>
       <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-lg">
-            {isEditing ? 'Editar Pregunta' : 'Nueva Pregunta'}
+          <DialogTitle className="text-lg flex items-center gap-2 flex-wrap">
+            <span>{isEditing ? 'Editar Pregunta' : 'Nueva Pregunta'}</span>
+            {convocatoriaInfo?.exam_id && (
+              <ConvocatoriaBadge
+                exam_id={convocatoriaInfo.exam_id}
+                numero_pregunta={convocatoriaInfo.numero_pregunta}
+                anulada={convocatoriaInfo.anulada}
+                reserva={convocatoriaInfo.reserva}
+                sustituye_a={convocatoriaInfo.sustituye_a}
+              />
+            )}
           </DialogTitle>
         </DialogHeader>
 
