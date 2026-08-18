@@ -30,6 +30,7 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+.mcp.json
 
 # Supabase CLI generated files
 supabase/.temp/
